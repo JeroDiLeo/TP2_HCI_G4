@@ -3,8 +3,9 @@
 @import "tailwindcss/utilities" layer(tailwind-utilities);
 
 @theme {
-  --font-heading: "Roboto", sans-serif;
-  --font-body: "Roboto", sans-serif;
+  /* SmartHome uses Inter as primary font */
+  --font-heading: "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
   --font-mono: "Roboto Mono", monospace;
 
   --color-background: rgb(var(--v-theme-background));
@@ -16,6 +17,14 @@
   --color-info: rgb(var(--v-theme-info));
   --color-warning: rgb(var(--v-theme-warning));
   --color-error: rgb(var(--v-theme-error));
+
+  /* SmartHome custom palette */
+  --color-sh-primary: #6366F1;
+  --color-sh-primary-dark: #4F46E5;
+  --color-sh-text-main: #0F172A;
+  --color-sh-text-muted: #64748B;
+  --color-sh-text-light: #94A3B8;
+  --color-sh-border: #E2E8F0;
 
   --breakpoint-*: initial;
   --breakpoint-xs: 0px;

@@ -1,7 +1,7 @@
 /**
  * plugins/vuetify.ts
  *
- * Framework documentation: https://vuetifyjs.com
+ * Vuetify 4 configuration with SmartHome custom theme
  */
 
 import { createVuetify } from 'vuetify'
@@ -11,7 +11,19 @@ import 'vuetify/styles'
 
 export default createVuetify({
   theme: {
-    defaultTheme: 'system',
+    defaultTheme: 'light',
+    themes: {
+      light: {
+        colors: {
+          // SmartHome palette
+          primary: '#6366F1',
+          'primary-dark': '#4F46E5',
+          background: '#FFFFFF',
+          surface: '#FFFFFF',
+          error: '#EF4444',
+        },
+      },
+    },
     utilities: false,
   },
   display: {

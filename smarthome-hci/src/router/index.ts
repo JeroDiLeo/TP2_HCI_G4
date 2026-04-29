@@ -1,19 +1,38 @@
-/**
- * router/index.ts
- *
- * Manual routes for ./src/pages/*.vue
- */
 
-// Composables
 import { createRouter, createWebHistory } from 'vue-router'
-import Index from '@/pages/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      component: Index,
+      redirect: '/login',
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('@/views/LoginView.vue'),
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/views/RegisterView.vue'),
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot',
+      component: () => import('@/views/ForgotPasswordView.vue'),
+    },
+
+    {
+      path: '/verify-account',
+      name: 'verify-account',
+      component: () => import('@/views/VerifyAccountView.vue'),
+    },
+    {
+      path: '/home',
+      name: 'home',
+      component: () => import('@/views/HomeView.vue'),
     },
   ],
 })
