@@ -119,7 +119,7 @@ function handleVerify() {
     email: email.value,
     code: otpCode.value,
   })
-  router.push('/home')
+  router.push('/homes')
 }
 
 // ── Reenviar ──

@@ -105,8 +105,10 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthLayout from '@/layouts/AuthLayout.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const auth = useAuthStore()
 
 // ── Estado del formulario ──
 const email = ref('')
@@ -153,10 +155,9 @@ async function handleSubmit() {
   isSubmitting.value = true
 
   // Simulación: en próximas iteraciones se conecta con la API
-  console.log('Login attempt', { email: email.value, password: password.value })
+  auth.loginAs(email.value)
 
-  // Placeholder: navegar a home
-  router.push('/home')
+  router.push('/homes')
 
   isSubmitting.value = false
 }

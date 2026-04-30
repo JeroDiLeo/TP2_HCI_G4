@@ -30,9 +30,9 @@ const router = createRouter({
       component: () => import('@/views/VerifyAccountView.vue'),
     },
     {
-      path: '/home',
-      name: 'home',
-      component: () => import('@/views/HomeView.vue'),
+      path: '/homes',
+      name: 'homes',
+      component: () => import('@/views/HomesView.vue'),
     },
   ],
 })
