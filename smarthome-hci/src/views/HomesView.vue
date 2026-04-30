@@ -45,19 +45,7 @@
       </template>
     </main>
 
-    <!-- Placeholder de creación de hogar -->
-    <v-dialog v-model="addDialog" max-width="480">
-      <v-card>
-        <v-card-title>Agregar hogar</v-card-title>
-        <v-card-text>
-        pendiente para implementar
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="addDialog = false">Cerrar</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <AddHomeModal v-model:open="addDialog" />
   </div>
 </template>
 
@@ -67,6 +55,7 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import HomesGrid from '@/components/homes/HomesGrid.vue'
 import EmptyHomesState from '@/components/homes/EmptyHomesState.vue'
 import EcosystemStats from '@/components/homes/EcosystemStats.vue'
+import AddHomeModal from '@/components/dashboard/AddHomeModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useHomesStore } from '@/stores/homes'
 
