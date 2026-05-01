@@ -66,7 +66,7 @@ const searchQuery = ref('')
 const addDialog = ref(false)
 
 function normalize(s: string) {
-  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
 const filteredHomes = computed(() => {

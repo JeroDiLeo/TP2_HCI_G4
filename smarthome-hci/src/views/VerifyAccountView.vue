@@ -15,7 +15,7 @@
 
       <!-- ── Descripción + email + link ── -->
       <div class="verify-form__desc">
-        <p class="verify-form__desc-text">Te enviamos un código de 6 dígitos a</p>
+        <p class="verify-form__desc-text">Te enviamos un código de verificación a</p>
         <p class="verify-form__desc-email">{{ email }}</p>
         <button
           type="button"
@@ -26,11 +26,21 @@
         </button>
       </div>
 
-      <!-- ── OTP inputs ── -->
-      <OtpInput
-        v-model="otpCode"
-        :length="6"
-      />
+      <!-- ── Input código ── -->
+      <div class="verify-form__code-field">
+        <input
+          v-model="otpCode"
+          type="text"
+          class="verify-form__code-input"
+          :class="{ 'verify-form__code-input--error': errorMessage }"
+          placeholder="ej: 635cedeef22759c5"
+          maxlength="16"
+          autocomplete="one-time-code"
+          autofocus
+          spellcheck="false"
+          @input="onCodeInput"
+        >
+      </div>
 
       <!-- ── Helper / Error ── -->
       <p
@@ -39,7 +49,7 @@
         role="alert"
         aria-live="polite"
       >
-        {{ errorMessage || 'Ingresá los 6 dígitos del código' }}
+        {{ errorMessage || 'Ingresá el código de 16 caracteres que recibiste por email' }}
       </p>
 
       <!-- ── Botón Verificar ── -->
@@ -88,9 +98,9 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import AuthIconBadge from '@/components/AuthIconBadge.vue'
-import OtpInput from '@/components/OtpInput.vue'
 import { useResendCooldown } from '@/composables/useResendCooldown.js'
 import verifyHeroImage from '@/assets/images/verifyPhoto.jpg'
+import { verifyAccount, sendVerification } from '@/services/api/userApi'
 
 const route = useRoute()
 const router = useRouter()
@@ -106,27 +116,49 @@ const errorMessage = ref('')
 const { cooldown, startCooldown } = useResendCooldown(30)
 
 // ── Computadas ──
-const isComplete = computed(() => otpCode.value.length === 6)
+const isComplete = computed(() => /^[0-9a-fA-F]{16}$/.test(otpCode.value.trim()))
+
+function onCodeInput() {
+  errorMessage.value = ''
+}
 
 // ── Verificar ──
-function handleVerify() {
+async function handleVerify() {
   if (!isComplete.value) {
-    errorMessage.value = 'Ingresá los 6 dígitos del código'
+    errorMessage.value = 'El código debe tener 16 caracteres hexadecimales.'
     return
   }
   errorMessage.value = ''
-  console.log('Verify account', {
-    email: email.value,
-    code: otpCode.value,
-  })
-  router.push('/homes')
+  try {
+    await verifyAccount(otpCode.value)
+    router.push('/homes')
+  } catch (error) {
+    if (error.status === 409) {
+      // Cuenta ya verificada — ir al login directamente
+      router.push('/login')
+    } else if (error.status === 400) {
+      errorMessage.value = 'Código incorrecto. Revisalo e intentá de nuevo.'
+    } else {
+      errorMessage.value = 'Ocurrió un error. Intentá de nuevo.'
+    }
+  }
 }
 
 // ── Reenviar ──
-function handleResend() {
+async function handleResend() {
   if (cooldown.value > 0) return
-  console.log('Resend code to', email.value)
-  startCooldown()
+  try {
+    await sendVerification(email.value)
+    startCooldown()
+    errorMessage.value = ''
+  } catch (error) {
+    if (error.status === 409) {
+      // La cuenta ya está verificada — redirigir al login
+      router.push('/login')
+    } else {
+      errorMessage.value = 'No se pudo reenviar el código. Intentá de nuevo.'
+    }
+  }
 }
 </script>
 
@@ -315,5 +347,45 @@ function handleResend() {
   outline: 2px solid #6366F1;
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* ── Input código ── */
+.verify-form__code-field {
+  width: 100%;
+}
+
+.verify-form__code-input {
+  width: 100%;
+  height: 52px;
+  padding: 0 1rem;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 0.5rem;
+  font-size: 1.1rem;
+  font-family: monospace;
+  letter-spacing: 2px;
+  text-align: center;
+  color: #0F172A;
+  background-color: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.verify-form__code-input::placeholder {
+  color: #94A3B8;
+  letter-spacing: 1px;
+}
+
+.verify-form__code-input:focus {
+  border-color: #6366F1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.verify-form__code-input--error {
+  border-color: #EF4444;
+}
+
+.verify-form__code-input--error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
 }
 </style>

@@ -171,11 +171,20 @@
             >{{ errors.confirmPassword }}</span>
           </div>
 
+          <!-- Error de API -->
+          <span
+            v-if="apiError"
+            class="register-form__error"
+            role="alert"
+            aria-live="polite"
+          >{{ apiError }}</span>
+
           <!-- Botones Volver / Crear cuenta -->
           <div class="register-form__btn-row">
             <button
               type="button"
               class="register-form__btn register-form__btn--secondary"
+              :disabled="loading"
               @click="currentStep = 1"
             >
               Volver
@@ -183,8 +192,9 @@
             <button
               type="submit"
               class="register-form__btn register-form__btn--primary register-form__btn--grow"
+              :disabled="loading"
             >
-              Crear cuenta
+              {{ loading ? 'Creando cuenta...' : 'Crear cuenta' }}
             </button>
           </div>
 
@@ -214,6 +224,7 @@ import { useRouter } from 'vue-router'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import Stepper from '@/components/Stepper.vue'
 import registerHeroImage from '@/assets/images/RegisterPhoto.jpg'
+import { registerUser } from '@/services/api/userApi'
 
 const router = useRouter()
 
@@ -235,6 +246,10 @@ const errors = reactive({
   password: '',
   confirmPassword: '',
 })
+
+// ── Estado de la petición ──
+const loading = ref(false)
+const apiError = ref('')
 
 // ── Visibilidad de contraseñas ──
 const showPassword = ref(false)
@@ -318,17 +333,31 @@ function isStep2Valid() {
 }
 
 // ── Submit ──
-function handleSubmit() {
+async function handleSubmit() {
   if (currentStep.value === 1) {
     if (isStep1Valid()) currentStep.value = 2
   } else if (currentStep.value === 2) {
-    if (isStep2Valid()) {
-      console.log('Register attempt', {
-        nombreCompleto: formData.nombreCompleto,
+    if (!isStep2Valid()) return
+    apiError.value = ''
+    loading.value = true
+    try {
+      await registerUser({
         email: formData.email,
         password: formData.password,
+        name: formData.nombreCompleto,
+        metadata: {},
       })
       router.push({ path: '/verify-account', query: { email: formData.email } })
+    } catch (error) {
+      if (error.status === 409) {
+        apiError.value = 'Este email ya está registrado. Intentá con otro.'
+      } else if (error.status === 400) {
+        apiError.value = error.message || 'Datos inválidos. Revisá los campos.'
+      } else {
+        apiError.value = 'Ocurrió un error inesperado. Intentá de nuevo.'
+      }
+    } finally {
+      loading.value = false
     }
   }
 }
