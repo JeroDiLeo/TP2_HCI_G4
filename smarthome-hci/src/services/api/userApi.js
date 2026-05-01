@@ -56,6 +56,68 @@ export async function verifyAccount(code) {
   }
 }
 
+export async function forgotPassword(email) {
+  const init = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-KEY': import.meta.env.VITE_API_KEY,
+    },
+    body: JSON.stringify({ email }),
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/users/forgot-password`, init)
+
+    if (!response.ok) {
+      const text = await response.text()
+      let data = null
+      try { data = text ? JSON.parse(text) : null } catch { data = null }
+      const err = new Error(data?.error?.description ?? 'Error desconocido')
+      err.code = data?.error?.code
+      err.status = response.status
+      throw err
+    }
+
+    const text = await response.text()
+    return text ? JSON.parse(text) : null
+  } catch (error) {
+    console.log(`Unexpected error: ${error.message}`)
+    throw error
+  }
+}
+
+export async function resetPassword({ code, password }) {
+  const init = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-KEY': import.meta.env.VITE_API_KEY,
+    },
+    body: JSON.stringify({ code, password }),
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/users/reset-password`, init)
+
+    if (!response.ok) {
+      const text = await response.text()
+      let data = null
+      try { data = text ? JSON.parse(text) : null } catch { data = null }
+      const err = new Error(data?.error?.description ?? 'Error desconocido')
+      err.code = data?.error?.code
+      err.status = response.status
+      throw err
+    }
+
+    const text = await response.text()
+    return text ? JSON.parse(text) : null
+  } catch (error) {
+    console.log(`Unexpected error: ${error.message}`)
+    throw error
+  }
+}
+
 export async function registerUser({ email, password, name, metadata = {} }) {
   const init = {
     method: 'POST',

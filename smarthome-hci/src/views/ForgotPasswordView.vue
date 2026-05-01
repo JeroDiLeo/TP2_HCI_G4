@@ -56,8 +56,9 @@
           <button
             type="submit"
             class="forgot-form__btn forgot-form__btn--primary"
+            :disabled="loading"
           >
-            Enviar enlace de recuperación
+            {{ loading ? 'Enviando...' : 'Enviar enlace de recuperación' }}
           </button>
         </form>
 
@@ -102,6 +103,15 @@
             Volver a iniciar sesión
           </button>
 
+          <!-- Ingresar código -->
+          <button
+            type="button"
+            class="forgot-form__btn forgot-form__btn--secondary"
+            @click="router.push({ path: '/reset-password', query: { email } })"
+          >
+            Ingresar código
+          </button>
+
           <!-- Reenviar (mismo patrón que VerifyAccount) -->
           <p class="forgot-form__resend-row">
             <span class="forgot-form__resend-text">¿No recibiste el email?</span>
@@ -130,6 +140,7 @@ import AuthLayout from '@/layouts/AuthLayout.vue'
 import AuthIconBadge from '@/components/AuthIconBadge.vue'
 import { useResendCooldown } from '@/composables/useResendCooldown.js'
 import heroImage from '@/assets/images/resetPasswordPhoto.jpg'
+import { forgotPassword } from '@/services/api/userApi'
 
 const router = useRouter()
 
@@ -137,6 +148,7 @@ const router = useRouter()
 const email = ref('')
 const emailSent = ref(false)
 const errorMessage = ref('')
+const loading = ref(false)
 
 //Cooldown reutilizable:
 const { cooldown, startCooldown } = useResendCooldown(30)
@@ -157,19 +169,43 @@ function validateEmail() {
 }
 
 //Submit:
-function handleSubmit() {
+async function handleSubmit() {
   validateEmail()
   if (errorMessage.value) return
 
-  console.log('Send recovery link to', email.value)
-  emailSent.value = true
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    await forgotPassword(email.value)
+    emailSent.value = true
+    startCooldown()
+  } catch (error) {
+    if (error.status === 404) {
+      errorMessage.value = 'No existe una cuenta con ese email.'
+    } else if (error.status === 400) {
+      errorMessage.value = error.message || 'Email inválido.'
+    } else {
+      errorMessage.value = 'Ocurrió un error inesperado. Intentá de nuevo.'
+    }
+  } finally {
+    loading.value = false
+  }
 }
 
 //Reenviar:
-function handleResend() {
+async function handleResend() {
   if (cooldown.value > 0) return
-  console.log('Resend recovery to', email.value)
-  startCooldown()
+  try {
+    await forgotPassword(email.value)
+    startCooldown()
+    errorMessage.value = ''
+  } catch (error) {
+    if (error.status === 404) {
+      errorMessage.value = 'No existe una cuenta con ese email.'
+    } else {
+      errorMessage.value = 'No se pudo reenviar. Intentá de nuevo.'
+    }
+  }
 }
 </script>
 
@@ -307,6 +343,16 @@ function handleResend() {
 
 .forgot-form__btn--primary:hover {
   background-color: #4F46E5;
+}
+
+.forgot-form__btn--secondary {
+  background-color: #ffffff;
+  color: #6366F1;
+  border: 1.5px solid #6366F1;
+}
+
+.forgot-form__btn--secondary:hover {
+  background-color: #EEF2FF;
 }
 
 /*Link volver (escape route, gris, menor jerarquía)*/

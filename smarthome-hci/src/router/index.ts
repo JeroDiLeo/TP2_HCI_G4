@@ -30,6 +30,11 @@ const router = createRouter({
       component: () => import('@/views/VerifyAccountView.vue'),
     },
     {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('@/views/ResetPasswordView.vue'),
+    },
+    {
       path: '/homes',
       name: 'homes',
       component: () => import('@/views/HomesView.vue'),
