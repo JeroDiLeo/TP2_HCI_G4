@@ -1,7 +1,7 @@
 <template>
   <v-dialog
     :model-value="open"
-    width="720"
+    width="820"
     @update:model-value="onDialogUpdate"
   >
     <div
@@ -29,6 +29,9 @@
         @drop.prevent="handleDrop"
         :class="{ 'modal__left--dragover': isDragOver }"
       >
+        <!-- Left column title -->
+        <p class="left-col-title">Elegí una foto</p>
+
         <!-- Preset photo list -->
         <div class="preset-list" role="radiogroup" aria-label="Foto del hogar">
           <button
@@ -206,6 +209,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { useHomesStore } from '@/stores/homes'
+import { shareHome } from '@/services/api/homeApi'
 import casaPrincipalImg from '@/assets/images/homes/casaPrincipal.jpg'
 import casaFindeImg     from '@/assets/images/homes/casaFinde.jpg'
 import deptoImg         from '@/assets/images/homes/depto.jpg'
@@ -237,7 +241,7 @@ const presetImages = [
 const typeOptions = [
   { value: 'casa',         label: 'Casa',         icon: 'mdi-home-outline'             },
   { value: 'departamento', label: 'Departamento', icon: 'mdi-office-building-outline'  },
-  { value: 'quinta',       label: 'Quinta',       icon: 'mdi-tree-outline'             },
+  { value: 'oficina',      label: 'Oficina',      icon: 'mdi-briefcase-outline'        },
   { value: 'otro',         label: 'Otro',         icon: 'mdi-dots-horizontal'          },
 ]
 
@@ -463,6 +467,16 @@ watch(() => props.open, (val) => {
 }
 .modal__close:hover         { background-color: var(--primary-light); }
 .modal__close:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ── Left column title ──────────────────────────────── */
+.left-col-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: normal;
+}
 
 /* ── Left column ────────────────────────────────────── */
 .modal__left {
@@ -828,6 +842,191 @@ watch(() => props.open, (val) => {
 }
 .btn--primary:hover:not(:disabled) { background: var(--primary-dark); }
 .btn--primary:disabled             { opacity: .5; cursor: not-allowed; }
+.btn--full                         { width: 100%; }
+
+/* ── Share button verde (cuerpo del formulario) ─────── */
+.btn--share-green {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 24px;
+  border-radius: 10px;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: var(--primary);
+  color: #fff;
+  transition: background-color 150ms cubic-bezier(.4, 0, .2, 1);
+  position: relative;
+}
+.btn--share-green:hover { background: var(--primary-dark); }
+.btn--share-green:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.share-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ── Back button ───────────────────────────────────── */
+.btn--back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Share step ────────────────────────────────────── */
+.share-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.share-input-row .field__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.share-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-light);
+  padding: 8px 0;
+}
+
+.pending-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.pending-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+}
+
+.pending-item__icon { color: var(--primary); flex-shrink: 0; }
+
+.pending-item__email {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pending-item__remove {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background-color 120ms, color 120ms;
+}
+.pending-item__remove:hover { background: #fee2e2; color: var(--error); }
+.pending-item__remove:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ── Share pill ────────────────────────────────────── */
+.share-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms, border-color 150ms;
+  width: fit-content;
+}
+.share-pill:hover { background-color: #dde4fd; }
+.share-pill:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ── Invites mini-modal ────────────────────────────── */
+.invites-modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: var(--font);
+  box-shadow: 0 8px 32px rgba(15,23,42,.14);
+}
+
+.invites-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.invites-modal__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* ── Share result errors ──────────────────────────── */
+.share-errors {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share-errors__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--error);
+}
+
+.share-errors__list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
 /* ── Reduced motion ────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
