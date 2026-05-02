@@ -6,7 +6,11 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/login',
+      name: 'root',
+      redirect: () => {
+        const token = localStorage.getItem('token')
+        return token ? '/homes' : '/login'
+      },
     },
     {
       path: '/login',
@@ -38,13 +42,29 @@ const router = createRouter({
       path: '/homes',
       name: 'homes',
       component: () => import('@/views/HomesView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('@/views/DashboardView.vue'),
+      meta: { requiresAuth: true },
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  const { useAuthStore } = await import('@/stores/auth')
+  const authStore = useAuthStore()
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    return { name: 'login' }
+  } else if ((to.name === 'login' || to.name === 'register') && authStore.isAuthenticated) {
+    return { name: 'homes' }
+  } else if (to.name === 'verify-account' && !to.query.email) {
+    return { name: 'register' }
+  } else if (to.name === 'reset-password' && !to.query.email) {
+    return { name: 'forgot' }
+  }
 })
 
 export default router

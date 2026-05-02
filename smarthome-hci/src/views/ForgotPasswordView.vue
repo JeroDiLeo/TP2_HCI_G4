@@ -94,22 +94,22 @@
             Revisá tu bandeja de entrada y la carpeta de spam.
           </p>
 
-          <!-- Botón primario: volver al login -->
+          <!-- Botón primario: ingresar código -->
           <button
             type="button"
             class="forgot-form__btn forgot-form__btn--primary"
-            @click="router.push('/login')"
-          >
-            Volver a iniciar sesión
-          </button>
-
-          <!-- Ingresar código -->
-          <button
-            type="button"
-            class="forgot-form__btn forgot-form__btn--secondary"
             @click="router.push({ path: '/reset-password', query: { email } })"
           >
             Ingresar código
+          </button>
+
+          <!-- Volver al login -->
+          <button
+            type="button"
+            class="forgot-form__btn forgot-form__btn--secondary"
+            @click="router.push('/login')"
+          >
+            Volver a iniciar sesión
           </button>
 
           <!-- Reenviar (mismo patrón que VerifyAccount) -->

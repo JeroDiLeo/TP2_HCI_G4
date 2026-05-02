@@ -101,9 +101,11 @@ import AuthIconBadge from '@/components/AuthIconBadge.vue'
 import { useResendCooldown } from '@/composables/useResendCooldown.js'
 import verifyHeroImage from '@/assets/images/verifyPhoto.jpg'
 import { verifyAccount, sendVerification } from '@/services/api/userApi'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 // ── Email desde query param ──
 const email = ref(route.query.email || 'tu@email.com')
@@ -131,7 +133,20 @@ async function handleVerify() {
   errorMessage.value = ''
   try {
     await verifyAccount(otpCode.value)
-    router.push('/homes')
+    // Auto-login si hay credenciales guardadas del registro
+    const savedPassword = sessionStorage.getItem('registerPassword')
+    if (savedPassword && email.value) {
+      try {
+        await authStore.login({ email: email.value, password: savedPassword })
+        sessionStorage.removeItem('registerPassword')
+        router.push('/homes')
+        return
+      } catch {
+        // Si falla el auto-login, ir al login manual
+      }
+    }
+    sessionStorage.removeItem('registerPassword')
+    router.push('/login')
   } catch (error) {
     if (error.status === 409) {
       // Cuenta ya verificada — ir al login directamente
@@ -360,9 +375,8 @@ async function handleResend() {
   padding: 0 1rem;
   border: 1.5px solid #E2E8F0;
   border-radius: 0.5rem;
-  font-size: 1.1rem;
-  font-family: monospace;
-  letter-spacing: 2px;
+  font-size: 0.95rem;
+  font-family: 'Inter', sans-serif;
   text-align: center;
   color: #0F172A;
   background-color: #ffffff;
@@ -373,7 +387,6 @@ async function handleResend() {
 
 .verify-form__code-input::placeholder {
   color: #94A3B8;
-  letter-spacing: 1px;
 }
 
 .verify-form__code-input:focus {

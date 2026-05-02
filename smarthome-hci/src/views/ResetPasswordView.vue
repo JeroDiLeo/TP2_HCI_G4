@@ -47,17 +47,27 @@
         <!-- Nueva contraseña -->
         <div class="reset-form__field">
           <label class="reset-form__label" for="reset-password">Nueva contraseña</label>
-          <input
-            id="reset-password"
-            v-model="password"
-            type="password"
-            class="reset-form__input"
-            :class="{ 'reset-form__input--error': errors.password }"
-            placeholder="Mínimo 8 caracteres"
-            autocomplete="new-password"
-            @blur="validatePassword"
-            @input="errors.password = ''"
-          >
+          <div class="reset-form__input-wrapper">
+            <input
+              id="reset-password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              class="reset-form__input reset-form__input--password"
+              :class="{ 'reset-form__input--error': errors.password }"
+              placeholder="Mínimo 8 caracteres"
+              autocomplete="new-password"
+              @blur="validatePassword"
+              @input="errors.password = ''"
+            >
+            <button
+              type="button"
+              class="reset-form__eye-btn"
+              :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              @click="showPassword = !showPassword"
+            >
+              <v-icon :icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'" size="20" />
+            </button>
+          </div>
           <span
             v-if="errors.password"
             class="reset-form__error"
@@ -69,17 +79,27 @@
         <!-- Confirmar contraseña -->
         <div class="reset-form__field">
           <label class="reset-form__label" for="reset-confirm">Confirmar contraseña</label>
-          <input
-            id="reset-confirm"
-            v-model="confirmPassword"
-            type="password"
-            class="reset-form__input"
-            :class="{ 'reset-form__input--error': errors.confirm }"
-            placeholder="Repetí la contraseña"
-            autocomplete="new-password"
-            @blur="validateConfirm"
-            @input="errors.confirm = ''"
-          >
+          <div class="reset-form__input-wrapper">
+            <input
+              id="reset-confirm"
+              v-model="confirmPassword"
+              :type="showConfirmPassword ? 'text' : 'password'"
+              class="reset-form__input reset-form__input--password"
+              :class="{ 'reset-form__input--error': errors.confirm }"
+              placeholder="Repetí la contraseña"
+              autocomplete="new-password"
+              @blur="validateConfirm"
+              @input="errors.confirm = ''"
+            >
+            <button
+              type="button"
+              class="reset-form__eye-btn"
+              :aria-label="showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              @click="showConfirmPassword = !showConfirmPassword"
+            >
+              <v-icon :icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'" size="20" />
+            </button>
+          </div>
           <span
             v-if="errors.confirm"
             class="reset-form__error"
@@ -137,6 +157,8 @@ const password = ref('')
 const confirmPassword = ref('')
 const apiError = ref('')
 const loading = ref(false)
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 const errors = reactive({
   code: '',
@@ -285,6 +307,40 @@ async function handleSubmit() {
 
 .reset-form__input--error:focus {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.reset-form__input-wrapper {
+  position: relative;
+}
+
+.reset-form__input--password {
+  padding-right: 3rem;
+}
+
+.reset-form__eye-btn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: color 0.15s;
+}
+
+.reset-form__eye-btn:hover {
+  color: #6366F1;
+}
+
+.reset-form__eye-btn:focus-visible {
+  outline: 2px solid #6366F1;
+  outline-offset: 2px;
 }
 
 .reset-form__error {

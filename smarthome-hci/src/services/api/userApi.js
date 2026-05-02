@@ -118,6 +118,34 @@ export async function resetPassword({ code, password }) {
   }
 }
 
+export async function loginUser({ email, password }) {
+  const init = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-KEY': import.meta.env.VITE_API_KEY,
+    },
+    body: JSON.stringify({ email, password }),
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/users/login`, init)
+
+    if (!response.ok) {
+      const data = await response.json()
+      const err = new Error(data.error?.description ?? 'Error desconocido')
+      err.code = data.error?.code
+      err.status = response.status
+      throw err
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.log(`Unexpected error: ${error.message}`)
+    throw error
+  }
+}
+
 export async function registerUser({ email, password, name, metadata = {} }) {
   const init = {
     method: 'POST',

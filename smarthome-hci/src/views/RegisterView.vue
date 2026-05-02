@@ -347,6 +347,7 @@ async function handleSubmit() {
         name: formData.nombreCompleto,
         metadata: {},
       })
+      sessionStorage.setItem('registerPassword', formData.password)
       router.push({ path: '/verify-account', query: { email: formData.email } })
     } catch (error) {
       if (error.status === 409) {

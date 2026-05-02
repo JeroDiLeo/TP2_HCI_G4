@@ -88,6 +88,14 @@
         </span>
       </div>
 
+      <!-- ── Error de API ── -->
+      <span
+        v-if="apiError"
+        class="login-form__error"
+        role="alert"
+        aria-live="polite"
+      >{{ apiError }}</span>
+
       <!-- ── Botón Ingresar ── -->
       <button
         type="submit"
@@ -115,6 +123,7 @@ const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const isSubmitting = ref(false)
+const apiError = ref('')
 
 const errors = reactive({
   email: '',
@@ -153,13 +162,22 @@ async function handleSubmit() {
   if (!isFormValid()) return
 
   isSubmitting.value = true
+  apiError.value = ''
 
-  // Simulación: en próximas iteraciones se conecta con la API
-  auth.loginAs(email.value)
-
-  router.push('/homes')
-
-  isSubmitting.value = false
+  try {
+    await auth.login({ email: email.value, password: password.value })
+    router.push('/homes')
+  } catch (error: any) {
+    if (error.status === 401) {
+      apiError.value = 'Email o contraseña incorrectos.'
+    } else if (error.status === 400) {
+      apiError.value = error.message || 'Datos inválidos. Revisá los campos.'
+    } else {
+      apiError.value = 'Ocurrió un error inesperado. Intentá de nuevo.'
+    }
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 

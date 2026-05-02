@@ -1,11 +1,14 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { loginUser } from '@/services/api/userApi'
 
 export const useAuthStore = defineStore('auth', () => {
-  const email = ref<string>('')
-  const fullName = ref<string>('')
+  const email = ref<string>(JSON.parse(localStorage.getItem('user') || 'null')?.email || '')
+  const fullName = ref<string>(JSON.parse(localStorage.getItem('user') || 'null')?.name || '')
+  const user = ref<Record<string, any> | null>(JSON.parse(localStorage.getItem('user') || 'null'))
+  const token = ref<string | null>(localStorage.getItem('token'))
 
-  const isAuthenticated = computed(() => !!email.value)
+  const isAuthenticated = computed(() => !!token.value)
 
   const displayName = computed(() => {
     if (fullName.value) return fullName.value
@@ -22,6 +25,17 @@ export const useAuthStore = defineStore('auth', () => {
     (displayName.value.trim()[0] ?? 'U').toUpperCase()
   )
 
+  async function login(credentials: { email: string; password: string }) {
+    const data = await loginUser(credentials)
+    user.value = data.user
+    token.value = data.token
+    email.value = data.user.email
+    fullName.value = data.user.name || ''
+    localStorage.setItem('user', JSON.stringify(data.user))
+    localStorage.setItem('token', data.token)
+    return data
+  }
+
   function loginAs(emailValue: string, nameValue = '') {
     email.value = emailValue
     fullName.value = nameValue
@@ -30,7 +44,11 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     email.value = ''
     fullName.value = ''
+    user.value = null
+    token.value = null
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
   }
 
-  return { email, fullName, isAuthenticated, displayName, initial, loginAs, logout }
+  return { email, fullName, user, token, isAuthenticated, displayName, initial, login, loginAs, logout }
 })
