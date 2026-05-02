@@ -38,7 +38,7 @@
 import type { Home } from '@/stores/homes'
 
 defineProps<{ home: Home; selected: boolean }>()
-defineEmits<{ (e: 'select', id: number): void }>()
+defineEmits<{ (e: 'select', id: string): void }>()
 </script>
 
 <style scoped>
@@ -77,8 +77,10 @@ defineEmits<{ (e: 'select', id: number): void }>()
 
 .home-card__media {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: 220px;
+  flex-shrink: 0;
   background-color: #0f172a;
+  overflow: hidden;
 }
 
 .home-card__img {

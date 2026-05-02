@@ -179,51 +179,11 @@
           </div>
         </div>
 
-        <!-- Block 3: Habitaciones (stepper) -->
-        <div
-          class="field stagger"
-          :class="{ 'is-entered': entered }"
-          :style="staggerStyle(3)"
-        >
-          <span id="rooms-label" class="field__label">Habitaciones</span>
-          <div class="stepper" role="group" aria-labelledby="rooms-label">
-            <button
-              type="button"
-              class="stepper__btn"
-              :disabled="form.rooms <= 1"
-              aria-label="Disminuir habitaciones"
-              @click="changeRooms(-1)"
-            >
-              <v-icon icon="mdi-minus" size="18" aria-hidden="true" />
-            </button>
-            <span
-              class="stepper__value"
-              role="spinbutton"
-              :aria-valuenow="form.rooms"
-              aria-valuemin="1"
-              aria-valuemax="99"
-              aria-labelledby="rooms-label"
-              tabindex="0"
-              @keydown.up.prevent="changeRooms(1)"
-              @keydown.down.prevent="changeRooms(-1)"
-            >{{ form.rooms }}</span>
-            <button
-              type="button"
-              class="stepper__btn"
-              :disabled="form.rooms >= 99"
-              aria-label="Aumentar habitaciones"
-              @click="changeRooms(1)"
-            >
-              <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-
-        <!-- Block 4: Footer -->
+        <!-- Block 3: Footer -->
         <div
           class="modal__footer stagger"
           :class="{ 'is-entered': entered }"
-          :style="staggerStyle(4)"
+          :style="staggerStyle(3)"
         >
           <button type="button" class="btn btn--ghost" @click="handleClose">
             Cancelar
@@ -231,10 +191,10 @@
           <button
             type="button"
             class="btn btn--primary"
-            :disabled="!isFormValid"
+            :disabled="!isFormValid || submitting"
             @click="handleSubmit"
           >
-            Crear hogar
+            {{ submitting ? 'Creando...' : 'Crear hogar' }}
           </button>
         </div>
 
@@ -282,7 +242,7 @@ const typeOptions = [
 ]
 
 // ── Form state ───────────────────────────────────────
-const form = ref({ name: '', type: 'casa', rooms: 1 })
+const form = ref({ name: '', type: 'casa' })
 
 const errors             = ref({ name: '' })
 const selectedPreset     = ref(null)   // index of selected preset, or null
@@ -363,11 +323,6 @@ function removeCustomImage() {
   imageError.value = ''
 }
 
-// ── Stepper ───────────────────────────────────────────
-function changeRooms(delta) {
-  form.value.rooms = Math.min(99, Math.max(1, form.value.rooms + delta))
-}
-
 // ── Chip keyboard nav ─────────────────────────────────
 function handleChipKeydown(event) {
   const focused = chipRefs.value.findIndex(el => el === document.activeElement)
@@ -397,7 +352,7 @@ function isDirty() {
 
 // ── Reset ─────────────────────────────────────────────
 function resetForm() {
-  form.value           = { name: '', type: 'casa', rooms: 1 }
+  form.value           = { name: '', type: 'casa' }
   errors.value         = { name: '' }
   selectedPreset.value     = null
   customImagePreview.value = null
@@ -419,23 +374,28 @@ function onDialogUpdate(val) {
 }
 
 // ── Submit ────────────────────────────────────────────
-function handleSubmit() {
+const submitting = ref(false)
+
+async function handleSubmit() {
   validateName()
   if (!isFormValid.value) {
     nextTick(() => nameInputRef.value?.focus())
     return
   }
 
-  homesStore.addHome({
-    name:    form.value.name.trim(),
-    type:    form.value.type,
-    rooms:   form.value.rooms,
-    devices: 0,
-    image:   resolvedImage.value,
-  })
-
-  emit('update:open', false)
-  resetForm()
+  submitting.value = true
+  try {
+    await homesStore.addHome({
+      name: form.value.name.trim(),
+      metadata: resolvedImage.value ? { image: resolvedImage.value } : {},
+    })
+    emit('update:open', false)
+    resetForm()
+  } catch {
+    // El error se muestra desde el store via snackbar en HomesView
+  } finally {
+    submitting.value = false
+  }
 }
 
 // ── Lifecycle ─────────────────────────────────────────

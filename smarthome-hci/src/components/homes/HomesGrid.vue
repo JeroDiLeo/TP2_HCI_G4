@@ -21,10 +21,10 @@
 import HomeCard from './HomeCard.vue'
 import type { Home } from '@/stores/homes'
 
-defineProps<{ homes: Home[]; selectedId: number | null }>()
-const emit = defineEmits<{ (e: 'select', id: number): void }>()
+defineProps<{ homes: Home[]; selectedId: string | null }>()
+const emit = defineEmits<{ (e: 'select', id: string): void }>()
 
-function onSelect(id: number) {
+function onSelect(id: string) {
   emit('select', id)
 }
 </script>

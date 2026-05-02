@@ -15,6 +15,7 @@
         </div>
 
         <button
+          v-if="homesStore.homes.length > 0"
           type="button"
           class="homes-view__add-btn"
           aria-label="Agregar nuevo hogar"
@@ -25,22 +26,31 @@
         </button>
       </section>
 
+      <!-- Loading -->
+      <div v-if="homesStore.loading" class="homes-view__loading">
+        <v-progress-circular indeterminate color="#6366f1" size="48" />
+      </div>
+
+      <!-- Error -->
+      <v-snackbar
+        v-model="showError"
+        color="error"
+        timeout="5000"
+        location="bottom"
+      >
+        {{ homesStore.error }}
+      </v-snackbar>
+
       <!-- Empty state vs grid + stats -->
-      <template v-if="homesStore.homes.length === 0">
+      <template v-if="!homesStore.loading && homesStore.homes.length === 0">
         <EmptyHomesState class="homes-view__empty" @add="openAddDialog" />
       </template>
-      <template v-else>
+      <template v-if="!homesStore.loading && homesStore.homes.length > 0">
         <HomesGrid
           class="homes-view__grid"
           :homes="filteredHomes"
           :selected-id="homesStore.selectedHomeId"
           @select="homesStore.selectHome"
-        />
-
-        <EcosystemStats
-          class="homes-view__stats"
-          :total-devices="homesStore.totalDevices"
-          :energy-saved="homesStore.energySaved"
         />
       </template>
     </main>
@@ -50,11 +60,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import HomesGrid from '@/components/homes/HomesGrid.vue'
 import EmptyHomesState from '@/components/homes/EmptyHomesState.vue'
-import EcosystemStats from '@/components/homes/EcosystemStats.vue'
 import AddHomeModal from '@/components/dashboard/AddHomeModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useHomesStore } from '@/stores/homes'
@@ -64,6 +73,15 @@ const homesStore = useHomesStore()
 
 const searchQuery = ref('')
 const addDialog = ref(false)
+const showError = ref(false)
+
+onMounted(() => {
+  homesStore.fetchHomes()
+})
+
+watch(() => homesStore.error, (val) => {
+  showError.value = !!val
+})
 
 function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -142,7 +160,9 @@ function openAddDialog() {
   outline-offset: 3px;
 }
 
-.homes-view__stats {
-  margin-top: -8px;
+.homes-view__loading {
+  display: flex;
+  justify-content: center;
+  padding: 64px 0;
 }
 </style>
