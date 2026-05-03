@@ -23,6 +23,7 @@
 
       <!-- Usuario -->
       <v-menu offset="8">
+      <v-menu location="bottom end" offset="8" content-class="app-header-menu">
         <template #activator="{ props }">
           <button
             v-bind="props"
@@ -34,20 +35,45 @@
             <span class="app-header__avatar" aria-hidden="true">{{ auth.initial }}</span>
           </button>
         </template>
-        <v-list>
-          <v-list-item @click="handleLogout">
-            <template #prepend>
-              <v-icon icon="mdi-logout" />
-            </template>
-            <v-list-item-title>Cerrar sesión</v-list-item-title>
-          </v-list-item>
-        </v-list>
+
+        <div class="user-menu">
+          <!-- User info header -->
+          <div class="user-menu__header">
+            <span class="user-menu__avatar" aria-hidden="true">{{ auth.initial }}</span>
+            <div class="user-menu__info">
+              <span class="user-menu__name">{{ auth.displayName }}</span>
+              <span class="user-menu__email">{{ auth.email }}</span>
+            </div>
+          </div>
+
+          <div class="user-menu__divider" />
+
+          <!-- Configuración -->
+          <button type="button" class="user-menu__item" disabled aria-disabled="true">
+            <v-icon icon="mdi-cog-outline" size="16" aria-hidden="true" />
+            Configuración
+          </button>
+
+          <div class="user-menu__divider" />
+
+          <!-- Cerrar sesión -->
+          <button
+            type="button"
+            class="user-menu__item user-menu__item--danger"
+            :disabled="loggingOut"
+            @click="handleLogout"
+          >
+            <v-icon icon="mdi-logout" size="16" aria-hidden="true" />
+            {{ loggingOut ? 'Cerrando sesión...' : 'Cerrar sesión' }}
+          </button>
+        </div>
       </v-menu>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -56,13 +82,15 @@ const emit = defineEmits<{ (e: 'update:modelValue', value: string): void }>()
 
 const router = useRouter()
 const auth = useAuthStore()
+const loggingOut = ref(false)
 
 function onInput(e: Event) {
   emit('update:modelValue', (e.target as HTMLInputElement).value)
 }
 
-function handleLogout() {
-  auth.logout()
+async function handleLogout() {
+  loggingOut.value = true
+  await auth.logout()
   router.push('/login')
 }
 </script>
@@ -149,7 +177,7 @@ function handleLogout() {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
-/* User */
+/* User button */
 .app-header__user {
   display: inline-flex;
   align-items: center;
@@ -163,9 +191,7 @@ function handleLogout() {
   transition: background-color 0.15s, border-color 0.15s;
   justify-self: end;
 }
-.app-header__user:hover {
-  background-color: #eef2ff;
-}
+.app-header__user:hover { background-color: #eef2ff; }
 .app-header__user:focus-visible {
   outline: 2px solid #6366f1;
   outline-offset: 2px;
@@ -188,4 +214,98 @@ function handleLogout() {
   font-size: 15px;
   font-family: 'Inter', sans-serif;
 }
+
+/* Dropdown menu (teleported) */
+:deep(.app-header-menu) {
+  border-radius: 14px !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.12) !important;
+  overflow: hidden !important;
+}
+
+.user-menu {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 8px;
+  min-width: 220px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Header with avatar + name/email */
+.user-menu__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 12px;
+}
+
+.user-menu__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #6366f1;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  flex-shrink: 0;
+}
+
+.user-menu__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.user-menu__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu__email {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu__divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
+
+.user-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  cursor: pointer;
+  transition: background-color 120ms;
+  text-align: left;
+}
+.user-menu__item:hover:not(:disabled) { background-color: #f1f5f9; }
+.user-menu__item:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+.user-menu__item--danger { color: #ef4444; }
+.user-menu__item--danger:hover:not(:disabled) { background-color: #fef2f2; }
 </style>

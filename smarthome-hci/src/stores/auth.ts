@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { loginUser } from '@/services/api/userApi'
+import { loginUser, logoutUser } from '@/services/api/userApi'
 
 export const useAuthStore = defineStore('auth', () => {
   const email = ref<string>(JSON.parse(localStorage.getItem('user') || 'null')?.email || '')
@@ -41,7 +41,8 @@ export const useAuthStore = defineStore('auth', () => {
     fullName.value = nameValue
   }
 
-  function logout() {
+  async function logout() {
+    await logoutUser()
     email.value = ''
     fullName.value = ''
     user.value = null

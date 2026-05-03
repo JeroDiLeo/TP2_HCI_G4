@@ -89,12 +89,18 @@
       </div>
 
       <!-- ── Error de API ── -->
-      <span
-        v-if="apiError"
-        class="login-form__error"
-        role="alert"
-        aria-live="polite"
-      >{{ apiError }}</span>
+      <div v-if="apiError" class="login-form__error-block">
+        <span class="login-form__error" role="alert" aria-live="polite">{{ apiError }}</span>
+        <button
+          v-if="accountNotVerified"
+          type="button"
+          class="login-form__verify-link"
+          :disabled="verifyLoading"
+          @click="handleGoToVerify"
+        >
+          {{ verifyLoading ? 'Enviando código...' : '¿Tu cuenta no está verificada? Verificá tu cuenta acá' }}
+        </button>
+      </div>
 
       <!-- ── Botón Ingresar ── -->
       <button
@@ -114,6 +120,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import { useAuthStore } from '@/stores/auth'
+import { sendVerification } from '@/services/api/userApi'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -124,6 +131,8 @@ const password = ref('')
 const showPassword = ref(false)
 const isSubmitting = ref(false)
 const apiError = ref('')
+const accountNotVerified = ref(false)
+const verifyLoading = ref(false)
 
 const errors = reactive({
   email: '',
@@ -157,18 +166,46 @@ function isFormValid() {
   return !errors.email && !errors.password
 }
 
+// ── Ir a verificar cuenta ──
+async function handleGoToVerify() {
+  if (!email.value.trim()) {
+    apiError.value = 'Ingresá tu email para poder enviarte el código de verificación.'
+    return
+  }
+  verifyLoading.value = true
+  try {
+    await sendVerification(email.value.trim())
+  } catch {
+    // Si falla el envío igual redirigimos — el usuario puede usar "Reenviar" en la pantalla de verificación
+  } finally {
+    verifyLoading.value = false
+  }
+  // Guardar contraseña para auto-login tras verificación (mismo mecanismo que el registro)
+  if (password.value) {
+    sessionStorage.setItem('registerPassword', password.value)
+  }
+  router.push(`/verify-account?email=${encodeURIComponent(email.value.trim())}`)
+}
+
 // ── Submit ──
 async function handleSubmit() {
   if (!isFormValid()) return
 
   isSubmitting.value = true
   apiError.value = ''
+  accountNotVerified.value = false
 
   try {
     await auth.login({ email: email.value, password: password.value })
     router.push('/homes')
   } catch (error: any) {
-    if (error.status === 401) {
+    const isUnverified =
+      error.status === 403 ||
+      /verif/i.test(error.message ?? '')
+    if (isUnverified) {
+      apiError.value = error.message || 'Tu cuenta no está verificada.'
+      accountNotVerified.value = true
+    } else if (error.status === 401) {
       apiError.value = 'Email o contraseña incorrectos.'
     } else if (error.status === 400) {
       apiError.value = error.message || 'Datos inválidos. Revisá los campos.'
@@ -380,5 +417,37 @@ async function handleSubmit() {
 
 .login-form__legal-link:hover {
   color: #64748B;
+}
+
+.login-form__error-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-form__verify-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6366F1;
+  text-align: left;
+  transition: color 0.15s;
+}
+.login-form__verify-link:hover:not(:disabled) {
+  color: #4F46E5;
+  text-decoration: underline;
+}
+.login-form__verify-link:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.login-form__verify-link:focus-visible {
+  outline: 2px solid #6366F1;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 </style>

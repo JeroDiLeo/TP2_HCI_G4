@@ -118,6 +118,26 @@ export async function resetPassword({ code, password }) {
   }
 }
 
+export async function logoutUser() {
+  const token = localStorage.getItem('token')
+  const init = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-KEY': import.meta.env.VITE_API_KEY,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/users/logout`, init)
+    // Fire-and-forget: even if the server returns an error, we still log out locally
+    if (!response.ok) console.log(`Logout API returned ${response.status}`)
+  } catch (error) {
+    console.log(`Logout error (ignored): ${error.message}`)
+  }
+}
+
 export async function loginUser({ email, password }) {
   const init = {
     method: 'POST',
