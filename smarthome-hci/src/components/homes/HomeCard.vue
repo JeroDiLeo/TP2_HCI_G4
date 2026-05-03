@@ -47,6 +47,9 @@
                 <v-icon icon="mdi-pencil-outline" size="16" aria-hidden="true" />
                 Editar
               </button>
+              <button v-if="isOwner" class="hc-menu__item" type="button" @click="openShare">
+                <v-icon icon="mdi-share-variant-outline" size="16" aria-hidden="true" />
+                Compartir
               </button>
               <button v-if="isOwner" class="hc-menu__item hc-menu__item--danger" type="button" @click="openDelete">
                 <v-icon icon="mdi-trash-can-outline" size="16" aria-hidden="true" />
@@ -257,6 +260,12 @@
     </div>
   </v-dialog>
 
+  <!-- Dialog: Compartir -->
+  <ShareHomeDialog
+    :home-id="home.id"
+    :open="shareDialog"
+    @update:open="shareDialog = $event"
+  />
 
   <!-- Snackbar -->
   <v-snackbar
@@ -284,6 +293,7 @@ import { useRouter } from 'vue-router'
 import type { Home } from '@/stores/homes'
 import { useHomesStore } from '@/stores/homes'
 import { useAuthStore } from '@/stores/auth'
+import ShareHomeDialog from '@/components/homes/ShareHomeDialog.vue'
 import casaPrincipalImg from '@/assets/images/homes/casaPrincipal.jpg'
 import casaFindeImg     from '@/assets/images/homes/casaFinde.jpg'
 import deptoImg         from '@/assets/images/homes/depto.jpg'
@@ -480,6 +490,12 @@ async function submitEdit() {
   }
 }
 
+// --- Compartir ---
+const shareDialog = ref(false)
+
+function openShare() {
+  shareDialog.value = true
+}
 
 // --- Eliminar ---
 const deleteDialog  = ref(false)

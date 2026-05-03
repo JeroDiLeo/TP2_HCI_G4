@@ -13,7 +13,7 @@
     >
       <!-- Close button -->
       <button
-        class="modal__close"
+        class="modal-close"
         type="button"
         aria-label="Cerrar"
         @click="handleClose"
@@ -103,103 +103,287 @@
       <!-- ── Right column (60%) ── -->
       <div class="modal__right">
 
-        <!-- Block 0: Header -->
-        <div
-          class="modal__header stagger"
-          :class="{ 'is-entered': entered }"
-          :style="staggerStyle(0)"
-        >
-          <h2 id="modal-title" class="modal__title">Agregar nuevo hogar</h2>
-          <p id="modal-desc" class="modal__subtitle">
-            Definí los datos básicos. Podrás editarlos cuando quieras.
-          </p>
-        </div>
-
-        <!-- Block 1: Nombre -->
-        <div
-          class="field stagger"
-          :class="{ 'is-entered': entered }"
-          :style="staggerStyle(1)"
-        >
-          <label for="home-name" class="field__label">
-            Nombre del hogar
-            <span class="field__required" aria-hidden="true">*</span>
-          </label>
-          <input
-            id="home-name"
-            ref="nameInputRef"
-            v-model="form.name"
-            type="text"
-            class="field__input"
-            :class="{ 'field__input--error': errors.name }"
-            placeholder="Ej: Casa de la sierra"
-            maxlength="50"
-            autocomplete="off"
-            :aria-describedby="errors.name ? 'name-error' : undefined"
-            :aria-invalid="!!errors.name"
-            @blur="validateName"
-          />
-          <p
-            v-if="errors.name"
-            id="name-error"
-            class="field__error"
-            role="alert"
-            aria-live="polite"
-          >
-            <v-icon icon="mdi-alert-circle-outline" size="14" aria-hidden="true" />
-            {{ errors.name }}
-          </p>
-        </div>
-
-        <!-- Block 2: Tipo (chips) -->
-        <div
-          class="field stagger"
-          :class="{ 'is-entered': entered }"
-          :style="staggerStyle(2)"
-        >
-          <span id="type-label" class="field__label">Tipo</span>
+        <!-- ══ PASO 1: Datos del hogar ══ -->
+        <template v-if="step === 1">
+          <!-- Block 0: Header -->
           <div
-            class="chips"
-            role="radiogroup"
-            aria-labelledby="type-label"
-            @keydown="handleChipKeydown"
+            class="modal__header stagger"
+            :class="{ 'is-entered': entered }"
+            :style="staggerStyle(0)"
           >
-            <button
-              v-for="(option, idx) in typeOptions"
-              :key="option.value"
-              :ref="el => { chipRefs[idx] = el }"
-              type="button"
-              class="chip"
-              :class="{ 'chip--selected': form.type === option.value }"
-              role="radio"
-              :aria-checked="String(form.type === option.value)"
-              :tabindex="form.type === option.value ? 0 : -1"
-              @click="form.type = option.value"
+            <h2 id="modal-title" class="modal__title">Agregar nuevo hogar</h2>
+            <p id="modal-desc" class="modal__subtitle">
+              Definí los datos básicos. Podrás editarlos cuando quieras.
+            </p>
+          </div>
+
+          <!-- Block 1: Nombre -->
+          <div
+            class="field stagger"
+            :class="{ 'is-entered': entered }"
+            :style="staggerStyle(1)"
+          >
+            <label for="home-name" class="field__label">
+              Nombre del hogar
+              <span class="field__required" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="home-name"
+              ref="nameInputRef"
+              v-model="form.name"
+              type="text"
+              class="field__input"
+              :class="{ 'field__input--error': errors.name }"
+              placeholder="Ej: Casa de la sierra"
+              maxlength="50"
+              autocomplete="off"
+              :aria-describedby="errors.name ? 'name-error' : undefined"
+              :aria-invalid="!!errors.name"
+              @blur="validateName"
+            />
+            <p
+              v-if="errors.name"
+              id="name-error"
+              class="field__error"
+              role="alert"
+              aria-live="polite"
             >
-              <v-icon :icon="option.icon" size="16" aria-hidden="true" />
-              {{ option.label }}
+              <v-icon icon="mdi-alert-circle-outline" size="14" aria-hidden="true" />
+              {{ errors.name }}
+            </p>
+          </div>
+
+          <!-- Block 2: Tipo (chips) -->
+          <div
+            class="field stagger"
+            :class="{ 'is-entered': entered }"
+            :style="staggerStyle(2)"
+          >
+            <span id="type-label" class="field__label">Tipo</span>
+            <div
+              class="chips"
+              role="radiogroup"
+              aria-labelledby="type-label"
+              @keydown="handleChipKeydown"
+            >
+              <button
+                v-for="(option, idx) in typeOptions"
+                :key="option.value"
+                :ref="el => { chipRefs[idx] = el }"
+                type="button"
+                class="chip"
+                :class="{ 'chip--selected': form.type === option.value }"
+                role="radio"
+                :aria-checked="String(form.type === option.value)"
+                :tabindex="form.type === option.value ? 0 : -1"
+                @click="form.type = option.value"
+              >
+                <v-icon :icon="option.icon" size="16" aria-hidden="true" />
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Block 3: Compartir (inline) -->
+          <div
+            class="field stagger"
+            :class="{ 'is-entered': entered }"
+            :style="staggerStyle(3)"
+          >
+            <span class="field__label">Compartir <span class="field__optional">(opcional)</span></span>
+            <div class="share-input-row">
+              <input
+                id="share-email"
+                v-model="shareEmailInput"
+                type="email"
+                class="field__input"
+                :class="{ 'field__input--error': shareEmailError }"
+                placeholder="ejemplo@mail.com"
+                autocomplete="off"
+                @input="shareEmailError = ''"
+                @keyup.enter="addPendingEmail"
+              />
+              <button
+                type="button"
+                class="btn btn--primary"
+                style="padding: 0 18px; font-size: 14px;"
+                @click="addPendingEmail"
+              >
+                Agregar
+              </button>
+            </div>
+            <p v-if="shareEmailError" class="field__error" role="alert">
+              <v-icon icon="mdi-alert-circle-outline" size="14" aria-hidden="true" />
+              {{ shareEmailError }}
+            </p>
+            <!-- Badge compacto cuando hay emails -->
+            <button
+              v-if="pendingEmails.length > 0"
+              type="button"
+              class="share-pill"
+              @click="showInvitesModal = true"
+            >
+              <v-icon icon="mdi-account-multiple-outline" size="15" aria-hidden="true" />
+              {{ pendingEmails.length }} {{ pendingEmails.length === 1 ? 'invitado' : 'invitados' }}
+              <v-icon icon="mdi-pencil-outline" size="13" aria-hidden="true" style="margin-left:4px; opacity:.7" />
             </button>
           </div>
-        </div>
 
-        <!-- Block 3: Footer -->
-        <div
-          class="modal__footer stagger"
-          :class="{ 'is-entered': entered }"
-          :style="staggerStyle(3)"
-        >
-          <button type="button" class="btn btn--ghost" @click="handleClose">
-            Cancelar
-          </button>
-          <button
-            type="button"
-            class="btn btn--primary"
-            :disabled="!isFormValid || submitting"
-            @click="handleSubmit"
+          <!-- Mini-modal lista de invitados -->
+          <v-dialog v-model="showInvitesModal" width="420" @update:model-value="val => { if(!val) showInvitesModal = false }">
+            <div class="invites-modal">
+              <div class="invites-modal__header">
+                <span class="invites-modal__title">Invitados ({{ pendingEmails.length }})</span>
+                <button type="button" class="modal__close" style="position:static; width:28px; height:28px;" @click="showInvitesModal = false">
+                  <v-icon icon="mdi-close" size="16" />
+                </button>
+              </div>
+              <ul class="pending-list" role="list">
+                <li
+                  v-for="(email, idx) in pendingEmails"
+                  :key="email"
+                  class="pending-item"
+                >
+                  <v-icon icon="mdi-email-outline" size="16" class="pending-item__icon" aria-hidden="true" />
+                  <span class="pending-item__email">{{ email }}</span>
+                  <button
+                    type="button"
+                    class="pending-item__remove"
+                    :aria-label="`Quitar ${email}`"
+                    @click="removePendingEmail(idx)"
+                  >
+                    <v-icon icon="mdi-close" size="14" aria-hidden="true" />
+                  </button>
+                </li>
+              </ul>
+              <button type="button" class="btn btn--primary" style="width:100%; margin-top:12px;" @click="showInvitesModal = false">
+                Listo
+              </button>
+            </div>
+          </v-dialog>
+
+          <!-- Share result errors -->
+          <div v-if="shareResultErrors.length > 0" class="share-errors" role="alert">
+            <p class="share-errors__title">
+              <v-icon icon="mdi-alert-circle-outline" size="16" aria-hidden="true" />
+              El hogar se creó, pero no se pudo compartir con:
+            </p>
+            <ul class="share-errors__list">
+              <li v-for="(fail, idx) in shareResultErrors" :key="idx">
+                <strong>{{ fail.email }}</strong>: {{ fail.message }}
+              </li>
+            </ul>
+            <button
+              type="button"
+              class="btn btn--ghost"
+              style="font-size: 13px; height: 32px; padding: 0 12px;"
+              @click="shareResultErrors = []; emit('update:open', false); resetForm()"
+            >
+              Cerrar de todas formas
+            </button>
+          </div>
+
+          <!-- Block 4: Footer paso 1 -->
+          <div
+            class="modal__footer stagger"
+            :class="{ 'is-entered': entered }"
+            :style="staggerStyle(4)"
           >
-            {{ submitting ? 'Creando...' : 'Crear hogar' }}
-          </button>
-        </div>
+            <button
+              type="button"
+              class="btn btn--primary btn--full"
+              :disabled="!isFormValid || submitting"
+              @click="handleSubmit"
+            >
+              {{ submitting ? 'Creando...' : 'Crear hogar' }}
+            </button>
+          </div>
+        </template>
+
+        <!-- ══ PASO 2: Compartir ══ -->
+        <template v-else>
+          <!-- Header paso 2 -->
+          <div class="modal__header">
+            <h2 id="modal-title" class="modal__title">Compartir hogar</h2>
+            <p id="modal-desc" class="modal__subtitle">
+              Invitá a otros usuarios al crear el hogar. Podés agregar varios emails.
+            </p>
+          </div>
+
+          <!-- Input agregar email -->
+          <div class="field">
+            <label for="share-email" class="field__label">
+              Agregar por email <span class="field__optional">(opcional)</span>
+            </label>
+            <div class="share-input-row">
+              <input
+                id="share-email"
+                v-model="shareEmailInput"
+                type="email"
+                class="field__input"
+                :class="{ 'field__input--error': shareEmailError }"
+                placeholder="ejemplo@mail.com"
+                autocomplete="off"
+                @input="shareEmailError = ''"
+                @keyup.enter="addPendingEmail"
+              />
+              <button
+                type="button"
+                class="btn btn--primary"
+                style="padding: 0 18px; font-size: 14px;"
+                @click="addPendingEmail"
+              >
+                Agregar
+              </button>
+            </div>
+            <p v-if="shareEmailError" class="field__error" role="alert">
+              <v-icon icon="mdi-alert-circle-outline" size="14" aria-hidden="true" />
+              {{ shareEmailError }}
+            </p>
+          </div>
+
+          <!-- Lista de emails pendientes -->
+          <div class="field">
+            <span class="field__label">Invitaciones ({{ pendingEmails.length }})</span>
+            <p v-if="pendingEmails.length === 0" class="share-empty">
+              Todavía no agregaste ningún email.
+            </p>
+            <ul v-else class="pending-list" role="list">
+              <li
+                v-for="(email, idx) in pendingEmails"
+                :key="email"
+                class="pending-item"
+              >
+                <v-icon icon="mdi-email-outline" size="16" class="pending-item__icon" aria-hidden="true" />
+                <span class="pending-item__email">{{ email }}</span>
+                <button
+                  type="button"
+                  class="pending-item__remove"
+                  :aria-label="`Quitar ${email}`"
+                  @click="removePendingEmail(idx)"
+                >
+                  <v-icon icon="mdi-close" size="14" aria-hidden="true" />
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Footer paso 2 -->
+          <div class="modal__footer">
+            <button type="button" class="btn btn--ghost btn--back" @click="step = 1">
+              <v-icon icon="mdi-arrow-left" size="16" aria-hidden="true" />
+              Volver
+            </button>
+            <button
+              type="button"
+              class="btn btn--primary"
+              :disabled="!isFormValid || submitting"
+              @click="handleSubmit"
+            >
+              {{ submitting ? 'Creando...' : 'Crear hogar' }}
+            </button>
+          </div>
+        </template>
 
       </div>
     </div>
@@ -244,6 +428,34 @@ const typeOptions = [
   { value: 'oficina',      label: 'Oficina',      icon: 'mdi-briefcase-outline'        },
   { value: 'otro',         label: 'Otro',         icon: 'mdi-dots-horizontal'          },
 ]
+
+// ── Step ─────────────────────────────────────────────
+const step = ref(1) // 1 = form, 2 = compartir
+
+// ── Share step state ──────────────────────────────────
+const shareEmailInput  = ref('')
+const shareEmailError  = ref('')
+const pendingEmails    = ref([]) // emails to share after home is created
+const showInvitesModal = ref(false)
+const shareResultErrors = ref([]) // errors from share API after home creation
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+function addPendingEmail() {
+  shareEmailError.value = ''
+  const email = shareEmailInput.value.trim()
+  if (!email) return
+  if (!isValidEmail(email)) { shareEmailError.value = 'Ingresá un email válido.'; return }
+  if (pendingEmails.value.includes(email)) { shareEmailError.value = 'Ya agregaste ese email.'; return }
+  pendingEmails.value.push(email)
+  shareEmailInput.value = ''
+}
+
+function removePendingEmail(idx) {
+  pendingEmails.value.splice(idx, 1)
+}
 
 // ── Form state ───────────────────────────────────────
 const form = ref({ name: '', type: 'casa' })
@@ -350,18 +562,25 @@ function isDirty() {
   return (
     form.value.name.trim()   !== '' ||
     customImagePreview.value !== null ||
-    selectedPreset.value     !== null
+    selectedPreset.value     !== null ||
+    pendingEmails.value.length > 0
   )
 }
 
 // ── Reset ─────────────────────────────────────────────
 function resetForm() {
-  form.value           = { name: '', type: 'casa' }
-  errors.value         = { name: '' }
+  form.value               = { name: '', type: 'casa' }
+  errors.value             = { name: '' }
   selectedPreset.value     = null
   customImagePreview.value = null
   imageError.value         = ''
   entered.value            = false
+  step.value               = 1
+  shareEmailInput.value    = ''
+  shareEmailError.value    = ''
+  pendingEmails.value      = []
+  showInvitesModal.value   = false
+  shareResultErrors.value  = []
 }
 
 // ── Close ─────────────────────────────────────────────
@@ -383,16 +602,32 @@ const submitting = ref(false)
 async function handleSubmit() {
   validateName()
   if (!isFormValid.value) {
+    step.value = 1
     nextTick(() => nameInputRef.value?.focus())
     return
   }
 
+  if (shareEmailInput.value.trim()) {
+    addPendingEmail()
+    if (shareEmailError.value) return
+  }
+
   submitting.value = true
   try {
-    await homesStore.addHome({
+    const newHome = await homesStore.addHome({
       name: form.value.name.trim(),
       metadata: resolvedImage.value ? { image: resolvedImage.value } : {},
     })
+    // Enviar invitaciones si el usuario agregó emails en el paso de compartir
+    if (pendingEmails.value.length > 0 && newHome?.id) {
+      try {
+        await shareHome(newHome.id, pendingEmails.value)
+      } catch (err) {
+        shareResultErrors.value = [{ email: pendingEmails.value.join(', '), message: err.message || 'Error desconocido' }]
+        // No cerramos el modal para que el usuario vea el error
+        return
+      }
+    }
     emit('update:open', false)
     resetForm()
   } catch {
@@ -414,32 +649,18 @@ watch(() => props.open, (val) => {
 </script>
 
 <style scoped>
-/* ── Local design tokens ─────────────────────────────── */
+/* ── Modal layout ──────────────────────────────────── */
 .modal {
-  --primary:       #6366F1;
-  --primary-dark:  #4F46E5;
-  --primary-light: #EEF2FF;
-  --bg:            #FFFFFF;
-  --border:        #E2E8F0;
-  --text-main:     #0F172A;
-  --text-muted:    #64748B;
-  --text-light:    #94A3B8;
-  --error:         #EF4444;
-  --font:          'Inter', sans-serif;
-  --mono:          ui-monospace, 'SF Mono', Menlo, monospace;
-
   display: flex;
   width: 100%;
   min-height: 480px;
-  background: var(--bg);
+  background: var(--sh-bg);
   border-radius: 16px;
-  border: 1px solid var(--border);
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, .04),
-    0 24px 48px -12px rgba(15, 23, 42, .18);
+  border: 1px solid var(--sh-border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 24px 48px -12px rgba(15, 23, 42, .18);
   overflow: hidden;
   position: relative;
-  font-family: var(--font);
+  font-family: var(--sh-font);
 }
 
 :deep(.v-overlay__scrim) {
@@ -447,196 +668,25 @@ watch(() => props.open, (val) => {
   backdrop-filter: blur(2px);
 }
 
-/* ── Close button ──────────────────────────────────── */
-.modal__close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  color: var(--text-muted);
-  transition: background-color 150ms cubic-bezier(.4, 0, .2, 1);
-  z-index: 1;
-}
-.modal__close:hover         { background-color: var(--primary-light); }
-.modal__close:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-
-/* ── Left column title ──────────────────────────────── */
 .left-col-title {
   margin: 0;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-muted);
-  text-transform: none;
-  letter-spacing: normal;
+  color: var(--sh-text-muted);
 }
 
-/* ── Left column ────────────────────────────────────── */
 .modal__left {
   width: 40%;
   flex-shrink: 0;
-  background-color: var(--primary-light);
+  background-color: var(--sh-primary-light);
   padding: 28px 24px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   transition: outline 150ms;
 }
-.modal__left--dragover {
-  outline: 2px dashed var(--primary);
-  outline-offset: -4px;
-}
+.modal__left--dragover { outline: 2px dashed var(--sh-primary); outline-offset: -4px; }
 
-/* ── Preset list ──────────────────────────────────── */
-.preset-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.preset-item {
-  position: relative;
-  width: 100%;
-  height: 80px;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 2px solid transparent;
-  cursor: pointer;
-  padding: 0;
-  background: none;
-  transition: border-color 150ms cubic-bezier(.4, 0, .2, 1), transform 100ms;
-}
-.preset-item:hover        { border-color: rgba(99, 102, 241, .4); transform: scale(1.01); }
-.preset-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.preset-item--selected    { border-color: var(--primary); }
-
-.preset-item__img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.preset-item__check {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, .3);
-}
-
-/* ── Upload button ────────────────────────────────── */
-.upload-btn {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  height: 40px;
-  border-radius: 10px;
-  border: 1.5px dashed var(--border);
-  background: rgba(255, 255, 255, .7);
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  overflow: hidden;
-  transition:
-    border-color     150ms cubic-bezier(.4, 0, .2, 1),
-    background-color 150ms cubic-bezier(.4, 0, .2, 1),
-    color            150ms cubic-bezier(.4, 0, .2, 1);
-}
-.upload-btn:hover {
-  border-color: var(--primary);
-  background-color: rgba(99, 102, 241, .06);
-  color: var(--primary);
-}
-.upload-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-
-.upload-btn--custom {
-  height: 56px;
-  border-style: solid;
-  border-color: var(--primary);
-  padding: 0;
-}
-
-.upload-btn__preview {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.upload-btn__overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
-  background: rgba(15, 23, 42, .45);
-  opacity: 0;
-  transition: opacity 150ms;
-}
-.upload-btn--custom:hover .upload-btn__overlay { opacity: 1; }
-
-.upload-btn__remove {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, .2);
-  color: var(--text-muted);
-  transition: background-color 150ms, color 150ms;
-  z-index: 1;
-}
-.upload-btn__remove:hover { background-color: var(--error); color: #fff; }
-
-.upload-hint {
-  font-size: 11px;
-  color: var(--text-light);
-  text-align: center;
-  margin: 0;
-}
-.upload-hint--error { color: var(--error); }
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-}
-
-/* ── Right column ──────────────────────────────────── */
 .modal__right {
   flex: 1;
   padding: 40px 40px 32px;
@@ -647,147 +697,51 @@ watch(() => props.open, (val) => {
 }
 
 /* ── Stagger animation ─────────────────────────────── */
-.stagger {
-  opacity: 0;
-  transform: translateY(6px);
-}
+.stagger { opacity: 0; transform: translateY(6px); }
 .stagger.is-entered {
   animation: stagger-in 260ms cubic-bezier(.4, 0, .2, 1) both;
   animation-delay: var(--stagger-delay, 0ms);
 }
+@keyframes stagger-in { to { opacity: 1; transform: translateY(0); } }
 
-@keyframes stagger-in {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Modal header ──────────────────────────────────── */
 .modal__title {
   margin: 0;
   font-size: 24px;
   font-weight: 700;
-  color: var(--text-main);
+  color: var(--sh-text-main);
   line-height: 1.2;
 }
 .modal__subtitle {
   margin: 6px 0 0;
   font-size: 14px;
-  color: var(--text-muted);
+  color: var(--sh-text-muted);
   line-height: 1.5;
-}
-
-/* ── Fields ────────────────────────────────────────── */
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field__label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-main);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.field__required { color: var(--error); }
-
-.field__input {
-  height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font-family: var(--font);
-  font-size: 15px;
-  color: var(--text-main);
-  background: var(--bg);
-  outline: none;
-  transition:
-    border-color 150ms cubic-bezier(.4, 0, .2, 1),
-    box-shadow   150ms cubic-bezier(.4, 0, .2, 1);
-}
-.field__input::placeholder { color: var(--text-light); }
-.field__input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
-}
-.field__input--error { border-color: var(--error); }
-.field__input--error:focus {
-  border-color: var(--error);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, .12);
-}
-
-.field__error {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0;
-  font-size: 12px;
-  color: var(--error);
-}
-
-/* ── Chips ─────────────────────────────────────────── */
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition:
-    border-color     150ms cubic-bezier(.4, 0, .2, 1),
-    background-color 150ms cubic-bezier(.4, 0, .2, 1),
-    color            150ms cubic-bezier(.4, 0, .2, 1);
-}
-.chip:hover:not(.chip--selected) {
-  border-color: var(--text-muted);
-  background-color: #F8FAFC;
-}
-.chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.chip--selected {
-  background-color: var(--primary-light);
-  border: 1.5px solid var(--primary);
-  color: var(--primary-dark);
 }
 
 /* ── Stepper ───────────────────────────────────────── */
 .stepper {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--border);
+  border: 1px solid var(--sh-border);
   border-radius: 10px;
   overflow: hidden;
   width: fit-content;
 }
-
 .stepper__btn {
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background: var(--sh-bg);
   border: none;
   cursor: pointer;
-  color: var(--text-main);
+  color: var(--sh-text-main);
   transition: background-color 150ms, color 150ms;
 }
-.stepper__btn:hover:not(:disabled) { background-color: var(--primary-light); color: var(--primary); }
-.stepper__btn:focus-visible        { outline: 2px solid var(--primary); outline-offset: -2px; }
-.stepper__btn:disabled             { opacity: .4; cursor: not-allowed; }
-
+.stepper__btn:hover:not(:disabled) { background-color: var(--sh-primary-light); color: var(--sh-primary); }
+.stepper__btn:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: -2px; }
+.stepper__btn:disabled { opacity: .4; cursor: not-allowed; }
 .stepper__value {
   width: 48px;
   height: 36px;
@@ -796,55 +750,26 @@ watch(() => props.open, (val) => {
   justify-content: center;
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-main);
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
+  color: var(--sh-text-main);
+  border-left: 1px solid var(--sh-border);
+  border-right: 1px solid var(--sh-border);
   user-select: none;
 }
-.stepper__value:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 
 /* ── Footer ────────────────────────────────────────── */
 .modal__footer {
   margin-top: auto;
   padding-top: 20px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--sh-border);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
 }
 
-/* ── Buttons ───────────────────────────────────────── */
-.btn {
-  height: 44px;
-  padding: 0 24px;
-  border-radius: 10px;
-  font-family: var(--font);
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition:
-    background-color 150ms cubic-bezier(.4, 0, .2, 1),
-    color            150ms cubic-bezier(.4, 0, .2, 1);
-}
-.btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.btn--full { width: 100%; }
 
-.btn--ghost { background: transparent; color: var(--text-muted); }
-.btn--ghost:hover { background-color: #F8FAFC; color: var(--text-main); }
-
-.btn--primary {
-  padding: 0 32px;
-  font-size: 15px;
-  font-weight: 600;
-  background: var(--primary);
-  color: #fff;
-}
-.btn--primary:hover:not(:disabled) { background: var(--primary-dark); }
-.btn--primary:disabled             { opacity: .5; cursor: not-allowed; }
-.btn--full                         { width: 100%; }
-
-/* ── Share button verde (cuerpo del formulario) ─────── */
+/* ── Share button ──────────────────────────────────── */
 .btn--share-green {
   display: inline-flex;
   align-items: center;
@@ -852,18 +777,17 @@ watch(() => props.open, (val) => {
   height: 44px;
   padding: 0 24px;
   border-radius: 10px;
-  font-family: var(--font);
+  font-family: var(--sh-font);
   font-size: 15px;
   font-weight: 600;
   border: none;
   cursor: pointer;
-  background: var(--primary);
+  background: var(--sh-primary);
   color: #fff;
-  transition: background-color 150ms cubic-bezier(.4, 0, .2, 1);
-  position: relative;
+  transition: background-color 150ms;
 }
-.btn--share-green:hover { background: var(--primary-dark); }
-.btn--share-green:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.btn--share-green:hover { background: var(--sh-primary-dark); }
+.btn--share-green:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 
 .share-badge {
   display: inline-flex;
@@ -873,85 +797,23 @@ watch(() => props.open, (val) => {
   height: 18px;
   border-radius: 50%;
   background: #fff;
-  color: var(--primary-dark);
+  color: var(--sh-primary-dark);
   font-size: 11px;
   font-weight: 700;
-  line-height: 1;
 }
 
-/* ── Back button ───────────────────────────────────── */
-.btn--back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
+.btn--back { display: inline-flex; align-items: center; gap: 6px; }
 
 /* ── Share step ────────────────────────────────────── */
-.share-input-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-.share-input-row .field__input {
-  flex: 1;
-  min-width: 0;
-}
+.share-input-row { display: flex; gap: 10px; align-items: center; }
+.share-input-row .field__input { flex: 1; min-width: 0; }
 
 .share-empty {
   margin: 0;
   font-size: 13px;
-  color: var(--text-light);
+  color: var(--sh-text-light);
   padding: 8px 0;
 }
-
-.pending-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 160px;
-  overflow-y: auto;
-}
-
-.pending-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: #f8fafc;
-}
-
-.pending-item__icon { color: var(--primary); flex-shrink: 0; }
-
-.pending-item__email {
-  flex: 1;
-  font-size: 13px;
-  color: var(--text-main);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pending-item__remove {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  color: var(--text-muted);
-  flex-shrink: 0;
-  transition: background-color 120ms, color 120ms;
-}
-.pending-item__remove:hover { background: #fee2e2; color: var(--error); }
-.pending-item__remove:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 /* ── Share pill ────────────────────────────────────── */
 .share-pill {
@@ -960,10 +822,10 @@ watch(() => props.open, (val) => {
   gap: 6px;
   padding: 5px 12px;
   border-radius: 999px;
-  border: 1.5px solid var(--primary);
-  background: var(--primary-light);
-  color: var(--primary-dark);
-  font-family: var(--font);
+  border: 1.5px solid var(--sh-primary);
+  background: var(--sh-primary-light);
+  color: var(--sh-primary-dark);
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -971,7 +833,7 @@ watch(() => props.open, (val) => {
   width: fit-content;
 }
 .share-pill:hover { background-color: #dde4fd; }
-.share-pill:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.share-pill:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 
 /* ── Invites mini-modal ────────────────────────────── */
 .invites-modal {
@@ -981,23 +843,13 @@ watch(() => props.open, (val) => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  font-family: var(--font);
-  box-shadow: 0 8px 32px rgba(15,23,42,.14);
+  font-family: var(--sh-font);
+  box-shadow: 0 8px 32px rgba(15, 23, 42, .14);
 }
+.invites-modal__header { display: flex; align-items: center; justify-content: space-between; }
+.invites-modal__title { font-size: 15px; font-weight: 600; color: var(--sh-text-main); }
 
-.invites-modal__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.invites-modal__title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-/* ── Share result errors ──────────────────────────── */
+/* ── Share errors ──────────────────────────────────── */
 .share-errors {
   background: #FEF2F2;
   border: 1px solid #FECACA;
@@ -1007,7 +859,6 @@ watch(() => props.open, (val) => {
   flex-direction: column;
   gap: 8px;
 }
-
 .share-errors__title {
   display: flex;
   align-items: center;
@@ -1015,23 +866,20 @@ watch(() => props.open, (val) => {
   margin: 0;
   font-size: 13px;
   font-weight: 600;
-  color: var(--error);
+  color: var(--sh-error);
 }
-
 .share-errors__list {
   margin: 0;
   padding-left: 20px;
   font-size: 12px;
-  color: var(--text-main);
+  color: var(--sh-text-main);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-/* ── Reduced motion ────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .stagger.is-entered { animation-duration: 0ms; }
-  .modal__close, .preset-item, .upload-btn, .chip,
-  .stepper__btn, .field__input, .btn { transition-duration: 0ms; }
+  .stepper__btn { transition-duration: 0ms; }
 }
 </style>

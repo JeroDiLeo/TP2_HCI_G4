@@ -22,7 +22,6 @@
       </div>
 
       <!-- Usuario -->
-      <v-menu offset="8">
       <v-menu location="bottom end" offset="8" content-class="app-header-menu">
         <template #activator="{ props }">
           <button
