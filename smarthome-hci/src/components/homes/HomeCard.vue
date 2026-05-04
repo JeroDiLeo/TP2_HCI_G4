@@ -5,7 +5,7 @@
     :class="{ 'home-card--selected': selected }"
     :aria-pressed="selected"
     :aria-label="cardAriaLabel"
-    @click="$emit('select', home.id)"
+    @click="router.push({ name: 'home-detail', params: { homeId: home.id } })"
   >
     <div class="home-card__media">
       <img
