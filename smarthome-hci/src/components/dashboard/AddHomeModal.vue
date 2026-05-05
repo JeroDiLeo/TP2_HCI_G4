@@ -878,8 +878,4 @@ watch(() => props.open, (val) => {
   gap: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .stagger.is-entered { animation-duration: 0ms; }
-  .stepper__btn { transition-duration: 0ms; }
-}
 </style>

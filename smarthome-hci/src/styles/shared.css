@@ -369,8 +369,3 @@
 .hc-snackbar--success .hc-snackbar__icon { color: #6366f1; }
 .hc-snackbar--error   .hc-snackbar__icon { color: #ef4444; }
 
-/* ── Reduced motion ────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  .modal-close, .preset-item, .upload-btn, .chip,
-  .field__input, .btn, .pending-item__remove { transition-duration: 0ms; }
-}

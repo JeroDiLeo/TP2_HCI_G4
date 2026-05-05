@@ -811,7 +811,4 @@ async function submitDelete() {
   width: 100%;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .hc-menu__item, .home-card__menu-btn { transition-duration: 0ms; }
-}
 </style>

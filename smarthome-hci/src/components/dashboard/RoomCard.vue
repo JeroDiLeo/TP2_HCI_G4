@@ -247,10 +247,4 @@ watch(
   outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .toggle,
-  .toggle__thumb {
-    transition-duration: 0ms;
-  }
-}
 </style>
