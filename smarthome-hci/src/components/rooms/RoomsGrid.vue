@@ -1,0 +1,129 @@
+<template>
+  <div>
+    <div
+      v-if="filteredRooms.length > 0"
+      :class="viewMode === 'grid' ? 'rooms-grid' : 'rooms-list'"
+      role="list"
+    >
+      <RoomCard
+        v-for="(room, idx) in filteredRooms"
+        :key="room.id"
+        :room="room"
+        :list-mode="viewMode === 'list'"
+        :style="{ '--card-delay': `${idx * 30}ms` }"
+        role="listitem"
+        @view-details="emit('view-details', $event)"
+      />
+    </div>
+
+    <div v-else-if="hasSearch" class="rooms-empty" role="status">
+      <v-icon icon="mdi-magnify-remove-outline" size="48" class="rooms-empty__icon" aria-hidden="true" />
+      <p class="rooms-empty__title">Sin resultados</p>
+      <p class="rooms-empty__sub">No se encontraron habitaciones que coincidan con tu búsqueda.</p>
+      <button type="button" class="rooms-empty__btn" @click="clearSearch">
+        Limpiar búsqueda
+      </button>
+    </div>
+
+    <div v-else class="rooms-empty" role="status">
+      <v-icon icon="mdi-door-closed" size="48" class="rooms-empty__icon" aria-hidden="true" />
+      <p class="rooms-empty__title">Sin habitaciones</p>
+      <p class="rooms-empty__sub">Aún no hay habitaciones en este hogar.</p>
+      <button type="button" class="rooms-empty__btn" @click="emit('add-room')">
+        Agregar primera habitación
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRoomsStore } from '@/stores/rooms'
+import RoomCard from './RoomCard.vue'
+
+const props = defineProps({
+  viewMode: { type: String, default: 'grid' },
+})
+
+const emit = defineEmits(['view-details', 'add-room'])
+
+const store = useRoomsStore()
+
+const filteredRooms = computed(() => store.filteredRooms)
+const hasSearch = computed(() => store.searchQuery.trim() !== '')
+
+function clearSearch() {
+  store.searchQuery = ''
+}
+</script>
+
+<style scoped>
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rooms-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  gap: 12px;
+}
+
+.rooms-empty__icon {
+  color: var(--sh-text-light);
+}
+
+.rooms-empty__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--sh-text-main);
+  font-family: 'Inter', sans-serif;
+}
+
+.rooms-empty__sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--sh-text-muted);
+  font-family: 'Inter', sans-serif;
+  max-width: 300px;
+}
+
+.rooms-empty__btn {
+  margin-top: 4px;
+  height: 40px;
+  padding: 0 24px;
+  background: var(--sh-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+
+.rooms-empty__btn:hover { background: var(--sh-primary-dark); }
+
+.rooms-empty__btn:focus-visible {
+  outline: 2px solid var(--sh-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1200px) {
+  .rooms-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+</style>
