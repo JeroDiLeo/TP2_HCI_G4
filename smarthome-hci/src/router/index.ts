@@ -27,7 +27,6 @@ const router = createRouter({
       name: 'forgot',
       component: () => import('@/views/ForgotPasswordView.vue'),
     },
-
     {
       path: '/verify-account',
       name: 'verify-account',
@@ -45,10 +44,36 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('@/views/DashboardView.vue'),
+      path: '/',
+      component: () => import('@/layouts/AppLayout.vue'),
       meta: { requiresAuth: true },
+      children: [
+        {
+          path: 'dashboard',
+          name: 'dashboard',
+          component: () => import('@/views/DashboardView.vue'),
+        },
+        {
+          path: 'rooms',
+          name: 'rooms',
+          component: () => import('@/views/RoomsView.vue'),
+        },
+        {
+          path: 'devices',
+          name: 'devices',
+          component: () => import('@/views/DashboardView.vue'),
+        },
+        {
+          path: 'stats',
+          name: 'stats',
+          component: () => import('@/views/DashboardView.vue'),
+        },
+        {
+          path: 'settings',
+          name: 'settings',
+          component: () => import('@/views/DashboardView.vue'),
+        },
+      ],
     },
     {
       path: '/homes/:homeId',

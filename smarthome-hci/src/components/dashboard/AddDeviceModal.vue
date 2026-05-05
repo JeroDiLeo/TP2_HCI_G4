@@ -1009,13 +1009,4 @@ watch(showNewRoomForm, (val) => {
   .adm__device-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .adm__btn,
-  .adm__device-card,
-  .adm__room-row,
-  .adm__chip,
-  .adm__input,
-  .adm__step-circle,
-  .adm__step-line { transition-duration: 0ms; }
-}
 </style>

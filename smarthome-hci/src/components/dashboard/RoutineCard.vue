@@ -182,10 +182,4 @@ const visibleActions = computed(() => props.routine.actions.slice(0, 2))
   outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .toggle,
-  .toggle__thumb {
-    transition-duration: 0ms;
-  }
-}
 </style>
