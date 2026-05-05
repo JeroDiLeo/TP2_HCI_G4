@@ -73,13 +73,12 @@ const router = createRouter({
           name: 'settings',
           component: () => import('@/views/DashboardView.vue'),
         },
+        {
+          path: 'homes/:homeId',
+          name: 'home-detail',
+          component: () => import('@/views/DashboardView.vue'),
+        },
       ],
-    },
-    {
-      path: '/homes/:homeId',
-      name: 'home-detail',
-      component: () => import('@/views/DashboardView.vue'),
-      meta: { requiresAuth: true },
     },
   ],
 })
