@@ -614,9 +614,11 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
+    const metadata = { type: form.value.type }
+    if (resolvedImage.value) metadata.image = resolvedImage.value
     const newHome = await homesStore.addHome({
       name: form.value.name.trim(),
-      metadata: resolvedImage.value ? { image: resolvedImage.value } : {},
+      metadata,
     })
     // Enviar invitaciones si el usuario agregó emails en el paso de compartir
     if (pendingEmails.value.length > 0 && newHome?.id) {

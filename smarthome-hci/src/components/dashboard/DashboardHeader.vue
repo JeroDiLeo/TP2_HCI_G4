@@ -1,10 +1,50 @@
 <template>
   <header class="dash-header" role="banner">
-    <button type="button" class="dash-header__house" aria-label="Cambiar casa activa">
-      <v-icon icon="mdi-home-outline" size="18" class="dash-header__house-icon" aria-hidden="true" />
-      <span class="dash-header__house-name">Casa Principal</span>
-      <v-icon icon="mdi-chevron-down" size="18" aria-hidden="true" />
-    </button>
+    <v-menu location="bottom start" offset="8" content-class="homes-dropdown-menu">
+      <template #activator="{ props: menuProps }">
+        <button
+          v-bind="menuProps"
+          type="button"
+          class="dash-header__house"
+          aria-label="Cambiar casa activa"
+        >
+          <v-icon icon="mdi-home-outline" size="18" class="dash-header__house-icon" aria-hidden="true" />
+          <span class="dash-header__house-name">{{ currentHomeName }}</span>
+          <v-icon icon="mdi-chevron-down" size="18" aria-hidden="true" />
+        </button>
+      </template>
+
+      <div class="homes-menu">
+        <div v-if="homesStore.loading" class="homes-menu__loading">
+          <v-progress-circular size="16" width="2" indeterminate color="#6366f1" />
+          <span>Cargando…</span>
+        </div>
+
+        <template v-else>
+          <button
+            v-for="home in homesStore.homes"
+            :key="home.id"
+            type="button"
+            class="homes-menu__item"
+            :class="{ 'homes-menu__item--active': home.id === currentHomeId }"
+            :disabled="home.id === currentHomeId"
+            @click="goToHome(home.id)"
+          >
+            <span class="homes-menu__thumb" aria-hidden="true">
+              <v-icon :icon="homeTypeIcon(home)" size="18" />
+            </span>
+            <span class="homes-menu__name">{{ home.name }}</span>
+            <v-icon
+              v-if="home.id === currentHomeId"
+              icon="mdi-check"
+              size="16"
+              class="homes-menu__check"
+              aria-hidden="true"
+            />
+          </button>
+        </template>
+      </div>
+    </v-menu>
 
     <div class="dash-header__search">
       <v-icon icon="mdi-magnify" size="18" class="dash-header__search-icon" aria-hidden="true" />
@@ -51,13 +91,46 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useHomesStore } from '@/stores/homes'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+const homesStore = useHomesStore()
 const searchQuery = ref('')
+
+const currentHomeId = computed(() => route.params.homeId as string | undefined)
+
+const currentHomeName = computed(() => {
+  if (!currentHomeId.value) return 'Seleccionar hogar'
+  const found = homesStore.homes.find(h => h.id === currentHomeId.value)
+  return found?.name ?? 'Seleccionar hogar'
+})
+
+onMounted(() => {
+  if (homesStore.homes.length === 0) {
+    homesStore.fetchHomes()
+  }
+})
+
+const TYPE_ICONS: Record<string, string> = {
+  casa:         'mdi-home-outline',
+  departamento: 'mdi-office-building-outline',
+  oficina:      'mdi-briefcase-outline',
+  otro:         'mdi-dots-horizontal',
+}
+
+function homeTypeIcon(home: { metadata?: Record<string, unknown> }): string {
+  const type = home.metadata?.type as string | undefined
+  return TYPE_ICONS[type ?? ''] ?? 'mdi-home-outline'
+}
+
+function goToHome(homeId: string) {
+  router.push({ name: 'home-detail', params: { homeId } })
+}
 
 function handleLogout() {
   auth.logout()
@@ -255,6 +328,89 @@ function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Homes dropdown (teleported) */
+:deep(.homes-dropdown-menu) {
+  border-radius: 14px !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.12) !important;
+  overflow: hidden !important;
+}
+
+.homes-menu {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 8px;
+  min-width: 200px;
+  font-family: 'Inter', sans-serif;
+}
+
+.homes-menu__loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.homes-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  cursor: pointer;
+  transition: background-color 120ms;
+  text-align: left;
+}
+
+.homes-menu__item:hover:not(:disabled) {
+  background-color: #f1f5f9;
+}
+
+.homes-menu__item--active {
+  color: #6366f1;
+  cursor: default;
+}
+
+.homes-menu__item:disabled {
+  cursor: default;
+}
+
+.homes-menu__thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #eef2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6366f1;
+}
+
+
+.homes-menu__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.homes-menu__check {
+  color: #6366f1;
   flex-shrink: 0;
 }
 </style>
