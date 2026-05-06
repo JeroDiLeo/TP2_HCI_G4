@@ -302,12 +302,27 @@ function handleExecute(id) {
 .routines-view__grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
+  grid-auto-rows: 1fr;
+  gap: 16px;
 }
 
-@media (min-width: 1280px) {
+.routines-view__grid > [role="listitem"] {
+  display: flex;
+}
+
+.routines-view__grid > [role="listitem"] > * {
+  width: 100%;
+}
+
+@media (min-width: 720px) {
   .routines-view__grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .routines-view__grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 </style>

@@ -7,13 +7,13 @@
       :aria-label="`Ejecutar rutina ${routine.name}`"
       @click="$emit('execute', routine.id)"
     >
-      <v-icon icon="mdi-play" size="20" aria-hidden="true" />
+      <v-icon icon="mdi-play" size="16" aria-hidden="true" />
     </button>
 
     <!-- Header: icon + title + badge -->
     <div class="routine-card__header">
       <div class="routine-card__icon-wrap" aria-hidden="true">
-        <v-icon :icon="routine.icon" size="24" color="white" />
+        <v-icon :icon="routine.icon" size="20" color="white" />
       </div>
       <div class="routine-card__title-group">
         <h3 class="routine-card__name">{{ routine.name }}</h3>
@@ -102,8 +102,8 @@ const CATEGORY_KEYS = {
 
 const categoryKey = computed(() => CATEGORY_KEYS[props.routine.category] ?? 'custom')
 
-const visibleActions = computed(() => props.routine.actions.slice(0, 3))
-const hiddenCount    = computed(() => Math.max(0, props.routine.actions.length - 3))
+const visibleActions = computed(() => props.routine.actions.slice(0, 2))
+const hiddenCount    = computed(() => Math.max(0, props.routine.actions.length - 2))
 
 const formattedTime = computed(() => {
   if (props.routine.trigger.type !== 'schedule') return ''
@@ -119,14 +119,13 @@ const formattedTime = computed(() => {
 .routine-card {
   position: relative;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid var(--sh-border);
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
-  padding: 24px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  min-height: 360px;
+  gap: 8px;
   transition: box-shadow 200ms;
 }
 .routine-card:hover {
@@ -136,10 +135,10 @@ const formattedTime = computed(() => {
 /* ── Play button ─────────────────────────────────────── */
 .routine-card__play {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 40px;
-  height: 40px;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--sh-primary);
   color: #ffffff;
@@ -166,15 +165,15 @@ const formattedTime = computed(() => {
 .routine-card__header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   /* leave space for the absolute play button */
-  padding-right: 52px;
+  padding-right: 38px;
 }
 
 .routine-card__icon-wrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   background: var(--sh-primary);
   display: flex;
   align-items: center;
@@ -189,12 +188,13 @@ const formattedTime = computed(() => {
 .routine-card__title-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  min-width: 0;
 }
 
 .routine-card__name {
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--sh-text-main);
   font-family: 'Inter', sans-serif;
@@ -204,9 +204,9 @@ const formattedTime = computed(() => {
 /* ── Category badge ──────────────────────────────────── */
 .routine-card__badge {
   display: inline-block;
-  padding: 2px 10px;
+  padding: 1px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   width: fit-content;
@@ -232,22 +232,26 @@ const formattedTime = computed(() => {
 /* ── Description ─────────────────────────────────────── */
 .routine-card__desc {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--sh-text-muted);
   font-family: 'Inter', sans-serif;
-  line-height: 1.5;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* ── Trigger pill ────────────────────────────────────── */
 .routine-card__trigger {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
+  gap: 4px;
+  padding: 3px 10px;
   border-radius: 999px;
   background: #F8FAFC;
   border: 1px solid var(--sh-border);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--sh-text-muted);
   font-family: 'Inter', sans-serif;
@@ -262,48 +266,51 @@ const formattedTime = computed(() => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
 }
 
 .routine-card__action {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 7px;
+  font-size: 12px;
   color: var(--sh-text-main);
   font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .routine-card__dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--sh-primary);
   flex-shrink: 0;
 }
 
 .routine-card__more {
-  font-size: 12px;
+  font-size: 11px;
   font-style: italic;
   color: var(--sh-text-light);
   font-family: 'Inter', sans-serif;
-  padding-left: 14px;
+  padding-left: 12px;
 }
 
 /* ── Days footer (always at bottom via margin-top: auto) */
 .routine-card__days {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
   margin-top: auto;
-  padding-top: 12px;
+  padding-top: 8px;
   border-top: 1px solid var(--sh-border);
 }
 
 .routine-card__day {
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 10px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   color: var(--sh-text-light);
