@@ -1,11 +1,19 @@
 <template>
-  <article class="routine-card">
+  <article
+    class="routine-card"
+    role="button"
+    tabindex="0"
+    :aria-label="`Editar rutina ${routine.name}`"
+    @click="$emit('edit', routine.id)"
+    @keydown.enter.prevent="$emit('edit', routine.id)"
+    @keydown.space.prevent="$emit('edit', routine.id)"
+  >
     <!-- Play button (absolute, top-right) -->
     <button
       type="button"
       class="routine-card__play"
       :aria-label="`Ejecutar rutina ${routine.name}`"
-      @click="$emit('execute', routine.id)"
+      @click.stop="$emit('execute', routine.id)"
     >
       <v-icon icon="mdi-play" size="16" aria-hidden="true" />
     </button>
@@ -80,7 +88,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['execute'])
+defineEmits(['execute', 'edit'])
 
 const ALL_DAYS = [
   { key: 'lun', label: 'Lun' },
@@ -126,10 +134,17 @@ const formattedTime = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: box-shadow 200ms;
+  cursor: pointer;
+  text-align: left;
+  transition: box-shadow 200ms, border-color 150ms;
 }
 .routine-card:hover {
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10);
+  border-color: rgba(99, 102, 241, .35);
+}
+.routine-card:focus-visible {
+  outline: 2px solid var(--sh-primary);
+  outline-offset: 2px;
 }
 
 /* ── Play button ─────────────────────────────────────── */
