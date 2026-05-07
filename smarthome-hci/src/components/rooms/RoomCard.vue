@@ -14,6 +14,19 @@
   >
     <!-- Compact (grid) layout -->
     <template v-if="!listMode">
+      <button
+        type="button"
+        class="room-card__fav"
+        :class="{ 'room-card__fav--on': room.favorite }"
+        :aria-label="room.favorite ? 'Quitar de favoritas' : 'Marcar como favorita'"
+        :aria-pressed="!!room.favorite"
+        @click.stop="emit('toggle-favorite', room.id)"
+        @keydown.enter.stop
+        @keydown.space.stop
+      >
+        <v-icon :icon="room.favorite ? 'mdi-star' : 'mdi-star-outline'" size="16" aria-hidden="true" />
+      </button>
+
       <div class="room-card__content">
         <header class="room-card__header">
           <div class="room-card__icon-wrap" aria-hidden="true">
@@ -92,7 +105,7 @@ const props = defineProps({
   listMode: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['view-details'])
+const emit = defineEmits(['view-details', 'toggle-favorite'])
 
 const ROOM_ICONS = {
   living:   'mdi-sofa-outline',
@@ -138,6 +151,7 @@ const cardAriaLabel = computed(() =>
 <style scoped>
 /* ── Card shell ── */
 .room-card {
+  position: relative;
   background: #ffffff;
   border: 1px solid var(--sh-border);
   border-radius: 14px;
@@ -153,6 +167,30 @@ const cardAriaLabel = computed(() =>
   animation: card-in 260ms cubic-bezier(.4,0,.2,1) both;
   animation-delay: var(--card-delay, 0ms);
 }
+
+/* Favorite star (compact mode only) */
+.room-card__fav {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--sh-text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 150ms, color 150ms, transform 100ms;
+  z-index: 2;
+}
+.room-card__fav:hover { background: #FEF3C7; color: #D97706; }
+.room-card__fav:active { transform: scale(0.92); }
+.room-card__fav:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.room-card__fav--on { color: #F59E0B; }
+.room-card__fav--on:hover { color: #D97706; }
 
 .room-card:hover {
   transform: translateY(-2px);
@@ -215,6 +253,7 @@ const cardAriaLabel = computed(() =>
 /* ── Donut SVG ── */
 .room-card__donut {
   flex-shrink: 0;
+  margin-right: 22px; /* leave breathing room before the favorite star */
 }
 
 .room-card__donut-bg { stroke: var(--sh-border); }

@@ -219,11 +219,17 @@
 
           <button
             type="button"
-            class="btn-add-action"
+            class="add-action-trigger"
             @click="onAddAction"
           >
-            <v-icon icon="mdi-plus" size="16" aria-hidden="true" />
-            Añadir acción
+            <span class="add-action-trigger__icon" aria-hidden="true">
+              <v-icon icon="mdi-plus" size="18" />
+            </span>
+            <span class="add-action-trigger__body">
+              <span class="add-action-trigger__title">Añadir acción</span>
+              <span class="add-action-trigger__sub">Elegí dispositivo, acción y valor</span>
+            </span>
+            <v-icon icon="mdi-chevron-right" size="18" class="add-action-trigger__chevron" aria-hidden="true" />
           </button>
         </template>
       </div>
@@ -753,25 +759,43 @@ watch(() => props.open, (val) => {
 .empty-state__title { margin: 12px 0 0; font-size: 14px; font-weight: 600; color: var(--sh-text-main); }
 .empty-state__subtitle { margin: 4px 0 0; font-size: 12px; color: var(--sh-text-muted); }
 
-/* Add action */
-.btn-add-action {
-  align-self: center;
-  display: inline-flex;
+/* Add action — full-width trigger to match AddDeviceModal style */
+.add-action-trigger {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  border-radius: 9px;
-  border: 1px dashed var(--sh-primary);
-  background: var(--sh-primary-light);
-  color: var(--sh-primary-dark);
-  font-family: var(--sh-font);
-  font-size: 13px;
-  font-weight: 600;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px dashed var(--sh-border);
+  background: #ffffff;
   cursor: pointer;
-  transition: background-color 150ms;
+  font-family: var(--sh-font);
+  text-align: left;
+  transition: border-color 150ms, background-color 150ms, color 150ms;
 }
-.btn-add-action:hover { background: #DDD6FE; }
-.btn-add-action:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.add-action-trigger:hover {
+  border-color: var(--sh-primary);
+  background: var(--sh-primary-light);
+}
+.add-action-trigger:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.add-action-trigger__icon {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  background: #F1F5F9;
+  color: var(--sh-text-muted);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 150ms, color 150ms;
+}
+.add-action-trigger:hover .add-action-trigger__icon {
+  background: var(--sh-primary);
+  color: #fff;
+}
+.add-action-trigger__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.add-action-trigger__title { font-size: 13px; font-weight: 700; color: var(--sh-text-main); }
+.add-action-trigger__sub { font-size: 11px; color: var(--sh-text-light); }
+.add-action-trigger__chevron { color: var(--sh-text-light); flex-shrink: 0; }
+.add-action-trigger:hover .add-action-trigger__chevron { color: var(--sh-primary); }
 
 /* Footer */
 .create-modal__footer {

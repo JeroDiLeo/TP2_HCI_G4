@@ -1,139 +1,246 @@
 <template>
   <div class="dashboard">
 
-    <!-- Greeting -->
-    <section class="greeting" aria-label="Saludo">
-      <h1 class="greeting__title">¡Hola, {{ auth.displayName }}!</h1>
-      <p class="greeting__subtitle">
-        Bienvenido a casa, la calidad del aire es buena y el ambiente está fresco.
-      </p>
+    <!-- ── Hero ── -->
+    <section class="hero" aria-label="Saludo">
+      <div class="hero__main">
+        <h1 class="hero__title">¡Hola, {{ auth.displayName }}!</h1>
+        <p class="hero__message">Bienvenido a tu casa inteligente.</p>
+      </div>
+      <div class="hero__stats" aria-label="Resumen del hogar">
+        <div class="hero-stat">
+          <span class="hero-stat__icon" aria-hidden="true">
+            <v-icon icon="mdi-flash" size="20" />
+          </span>
+          <div class="hero-stat__text">
+            <p class="hero-stat__value">{{ totalActiveDevices }}</p>
+            <p class="hero-stat__label">
+              {{ totalActiveDevices === 1 ? 'dispositivo encendido' : 'dispositivos encendidos' }}
+            </p>
+          </div>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat__icon" aria-hidden="true">
+            <v-icon icon="mdi-door" size="20" />
+          </span>
+          <div class="hero-stat__text">
+            <p class="hero-stat__value">{{ totalRooms }}</p>
+            <p class="hero-stat__label">
+              {{ totalRooms === 1 ? 'habitación' : 'habitaciones' }}
+            </p>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <!-- Category filters -->
-    <div class="dashboard__filters" role="group" aria-label="Filtrar por categoría">
-      <p class="dashboard__filter-label">Filtrar por categoría</p>
-      <div class="dashboard__chips">
-        <button
-          v-for="filter in filters"
-          :key="filter.id"
-          type="button"
-          class="filter-chip"
-          :class="{ 'filter-chip--active': activeFilter === filter.id }"
-          :aria-pressed="activeFilter === filter.id"
-          @click="activeFilter = filter.id"
-        >
-          <v-icon :icon="filter.icon" size="14" aria-hidden="true" />
-          {{ filter.label }}
-          <span class="filter-chip__count">{{ filterCounts[filter.id] }}</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Rooms -->
-    <section aria-labelledby="rooms-heading">
-      <div class="section-header">
-        <div>
-          <h2 id="rooms-heading" class="section-header__title">Habitaciones</h2>
-          <p class="section-header__sub">{{ filteredRooms.length }} habitaciones</p>
+    <!-- ── Habitaciones favoritas ── -->
+    <section class="block" aria-labelledby="rooms-heading">
+      <header class="block__header">
+        <div class="block__heading">
+          <h2 id="rooms-heading" class="block__title">Habitaciones favoritas</h2>
+          <p class="block__subtitle">
+            Creá nuevas habitaciones o sumá dispositivos a las que ya tenés.
+          </p>
         </div>
-        <button type="button" class="btn-add" aria-label="Agregar nueva habitación" @click="addDeviceOpen = true">
+        <button
+          type="button"
+          class="btn-add"
+          aria-label="Crear habitación o sumar dispositivos a una existente"
+          title="Crear habitación o agregar dispositivos a una existente"
+          @click="addDeviceOpen = true"
+        >
           <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
-          Agregar habitación
+          Crear habitación
+        </button>
+      </header>
+
+      <!-- Estado A: usuario sin habitaciones -->
+      <div v-if="rooms.length === 0" class="onboard">
+        <div class="onboard__icon" aria-hidden="true">
+          <v-icon icon="mdi-home-plus-outline" size="32" />
+        </div>
+        <div class="onboard__body">
+          <p class="onboard__title">Empezá creando tu primera habitación</p>
+          <p class="onboard__sub">
+            Después podrás sumarle dispositivos. Todo desde el botón
+            <strong>+ Agregar habitación</strong>.
+          </p>
+        </div>
+        <button type="button" class="onboard__cta" @click="addDeviceOpen = true">
+          Crear habitación
         </button>
       </div>
-      <div class="rooms-grid">
+
+      <!-- Estado B: hay habitaciones pero ninguna favorita -->
+      <div v-else-if="favoriteRooms.length === 0" class="hint-empty">
+        <span class="hint-empty__icon" aria-hidden="true">
+          <v-icon icon="mdi-star-outline" size="20" />
+        </span>
+        <p class="hint-empty__text">
+          Marcá tus habitaciones más usadas con la
+          <v-icon icon="mdi-star" size="13" class="hint-empty__star" aria-hidden="true" />
+          desde <RouterLink to="/rooms" class="hint-empty__link">Habitaciones</RouterLink>
+          para tenerlas siempre a mano.
+        </p>
+      </div>
+
+      <!-- Estado C: con favoritas -->
+      <div v-else class="rooms-grid">
         <RoomCard
-          v-for="room in filteredRooms"
+          v-for="(room, idx) in favoriteRooms"
           :key="room.id"
           :room="room"
+          :style="{ '--card-delay': `${idx * 30}ms` }"
+          @view-details="goToRooms"
+          @toggle-favorite="roomsStore.toggleFavorite($event)"
         />
       </div>
-      <p v-if="filteredRooms.length === 0" class="empty-state" role="status">
-        No hay habitaciones en esta categoría.
-      </p>
     </section>
 
-    <!-- Routines -->
-    <section aria-labelledby="routines-heading">
-      <div class="section-header">
-        <div>
-          <h2 id="routines-heading" class="section-header__title">Rutinas</h2>
-          <p class="section-header__sub">Automatizá acciones según tu horario</p>
+    <!-- ── Rutinas favoritas ── -->
+    <section class="block" aria-labelledby="routines-heading">
+      <header class="block__header">
+        <div class="block__heading">
+          <h2 id="routines-heading" class="block__title">Rutinas favoritas</h2>
+          <p class="block__subtitle">
+            Automatizá las acciones que más usás. Marcá favoritas para verlas acá.
+          </p>
         </div>
-        <button type="button" class="btn-add" aria-label="Agregar nueva rutina">
+        <button
+          type="button"
+          class="btn-add"
+          aria-label="Crear nueva rutina"
+          @click="createRoutineOpen = true"
+        >
           <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
-          Agregar Rutina
+          Crear rutina
+        </button>
+      </header>
+
+      <!-- Estado A: usuario sin rutinas -->
+      <div v-if="routines.length === 0" class="onboard">
+        <div class="onboard__icon" aria-hidden="true">
+          <v-icon icon="mdi-flash-outline" size="32" />
+        </div>
+        <div class="onboard__body">
+          <p class="onboard__title">Tu primera rutina automatiza el resto</p>
+          <p class="onboard__sub">
+            Encendé luces al amanecer, bloqueá la puerta al salir, lo que quieras.
+          </p>
+        </div>
+        <button type="button" class="onboard__cta" @click="createRoutineOpen = true">
+          Crear rutina
         </button>
       </div>
-      <div class="routines-grid">
+
+      <!-- Estado B: rutinas sin favoritas -->
+      <div v-else-if="favoriteRoutines.length === 0" class="hint-empty">
+        <span class="hint-empty__icon" aria-hidden="true">
+          <v-icon icon="mdi-star-outline" size="20" />
+        </span>
+        <p class="hint-empty__text">
+          Marcá tus rutinas favoritas con la
+          <v-icon icon="mdi-star" size="13" class="hint-empty__star" aria-hidden="true" />
+          desde <RouterLink to="/rutinas" class="hint-empty__link">Rutinas</RouterLink>
+          para tenerlas a un click.
+        </p>
+      </div>
+
+      <!-- Estado C: con favoritas -->
+      <div v-else class="routines-grid" role="list">
         <RoutineCard
-          v-for="routine in routines"
+          v-for="routine in favoriteRoutines"
           :key="routine.id"
           :routine="routine"
+          role="listitem"
+          @execute="routinesStore.executeRoutine($event)"
+          @edit="handleEditRoutine"
+          @toggle-favorite="routinesStore.toggleFavorite($event)"
         />
       </div>
     </section>
 
+    <!-- ── Modales ── -->
     <AddDeviceModal
       v-model:open="addDeviceOpen"
-      :rooms="rooms"
+      :rooms="modalRooms"
       @confirm="handleAddDevice"
+    />
+
+    <CreateRoutineModal
+      :open="createRoutineOpen"
+      @update:open="createRoutineOpen = $event"
+    />
+
+    <EditRoutineModal
+      :routine-id="editingRoutineId"
+      :open="editRoutineOpen"
+      @update:open="onEditRoutineOpenChange"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, inject, watch } from 'vue'
-import type { Ref } from 'vue'
-import RoomCard from '@/components/dashboard/RoomCard.vue'
-import RoutineCard from '@/components/dashboard/RoutineCard.vue'
-import AddDeviceModal from '@/components/dashboard/AddDeviceModal.vue'
-import type { Room, Routine, Device } from '@/types/dashboard'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useRoomsStore } from '@/stores/rooms'
+import { useRoutinesStore } from '@/stores/routines'
+import RoomCard from '@/components/rooms/RoomCard.vue'
+import RoutineCard from '@/components/routines/RoutineCard.vue'
+import AddDeviceModal from '@/components/dashboard/AddDeviceModal.vue'
+import CreateRoutineModal from '@/components/routines/CreateRoutineModal.vue'
+import EditRoutineModal from '@/components/routines/EditRoutineModal.vue'
 
-const auth = useAuthStore()
-const activeFilter  = ref('todas')
-const addDeviceOpen = ref(false)
+const auth          = useAuthStore()
+const roomsStore    = useRoomsStore()
+const routinesStore = useRoutinesStore()
+const router        = useRouter()
 
-// Search injected from AppLayout
-const layoutSearch = inject<Ref<string>>('layoutSearchQuery', ref(''))
+// ── Reactive views ──
+const rooms            = computed(() => roomsStore.rooms)
+const routines         = computed(() => routinesStore.routines)
+const favoriteRooms    = computed(() => roomsStore.favoriteRooms)
+const favoriteRoutines = computed(() => routinesStore.favoriteRoutines)
 
-// ── Device creation constants ──
+// ── Stats ──
+const totalActiveDevices = computed(() =>
+  rooms.value.reduce((acc, r) => acc + (r.devicesActive ?? 0), 0),
+)
+const totalRooms = computed(() => rooms.value.length)
 
-const CATEGORY_ICONS: Record<string, string> = {
-  sala:       'mdi-sofa',
-  habitacion: 'mdi-bed',
-  cocina:     'mdi-silverware-fork-knife',
-  bano:       'mdi-shower',
-  otro:       'mdi-home-variant',
+// ── Modals ──
+const addDeviceOpen     = ref(false)
+const createRoutineOpen = ref(false)
+const editRoutineOpen   = ref(false)
+const editingRoutineId  = ref<string | null>(null)
+
+// AddDeviceModal expects a Room shape { id, name, icon, devices[] }; we adapt from store.
+const ROOM_TYPE_ICONS: Record<string, string> = {
+  living:   'mdi-sofa-outline',
+  bedroom:  'mdi-bed-king-outline',
+  kitchen:  'mdi-silverware-fork-knife',
+  bathroom: 'mdi-shower',
+  office:   'mdi-briefcase-outline',
+  other:    'mdi-home-variant',
 }
 
-const DEVICE_LABELS: Record<string, string> = {
-  vacuum:  'Aspiradora',
-  speaker: 'Parlante',
-  faucet:  'Grifo',
-  blind:   'Persiana',
-  light:   'Lámpara',
-  oven:    'Horno',
-  ac:      'Aire Acond.',
-  door:    'Puerta',
-  alarm:   'Alarma',
-  fridge:  'Heladera',
-}
+const modalRooms = computed(() =>
+  rooms.value.map(r => ({
+    id:       Number(r.id),
+    name:     r.name,
+    icon:     ROOM_TYPE_ICONS[r.type ?? 'other'] ?? 'mdi-home-variant',
+    category: r.type ?? 'other',
+    devices:  Array.from({ length: r.devicesTotal ?? 0 }, (_, i) => ({ id: i })) as any,
+  })),
+)
 
-type DeviceDefaults = Omit<Device, 'id' | 'name'>
-
-const DEVICE_DEFAULTS: Record<string, DeviceDefaults> = {
-  vacuum:  { type: 'vacuum',  value: 0,   unit: '',   hasSlider: false, active: false },
-  speaker: { type: 'speaker', value: 5,   unit: '',   hasSlider: true,  active: false, min: 0,  max: 10,  step: 1  },
-  faucet:  { type: 'faucet',  value: 0,   unit: 'L',  hasSlider: true,  active: false, min: 0,  max: 50,  step: 1  },
-  blind:   { type: 'blind',   value: 0,   unit: '%',  hasSlider: true,  active: false, min: 0,  max: 100, step: 5  },
-  light:   { type: 'light',   value: 75,  unit: '%',  hasSlider: true,  active: false, min: 0,  max: 100, step: 5  },
-  oven:    { type: 'oven',    value: 180, unit: '°C', hasSlider: true,  active: false, min: 90, max: 230, step: 10 },
-  ac:      { type: 'ac',      value: 22,  unit: '°C', hasSlider: true,  active: false, min: 18, max: 38,  step: 1  },
-  door:    { type: 'door',    value: 0,   unit: '',   hasSlider: false, active: false },
-  alarm:   { type: 'alarm',   value: 0,   unit: '',   hasSlider: false, active: false },
-  fridge:  { type: 'fridge',  value: 4,   unit: '°C', hasSlider: true,  active: false, min: 2,  max: 8,   step: 1  },
+const TYPE_FROM_CATEGORY: Record<string, string> = {
+  sala:       'living',
+  habitacion: 'bedroom',
+  cocina:     'kitchen',
+  bano:       'bathroom',
+  otro:       'other',
 }
 
 function handleAddDevice(payload: {
@@ -141,199 +248,143 @@ function handleAddDevice(payload: {
   newRoom:      { name: string; category: string } | null
   devices:      { type: string; name: string }[]
 }) {
-  const maxRoomId   = rooms.reduce((m, r) => Math.max(m, r.id), 0)
-  const maxDeviceId = rooms.flatMap(r => r.devices).reduce((m, d) => Math.max(m, d.id), 0)
-  let nextDeviceId = maxDeviceId + 1
-
-  let targetRoom: Room | undefined
+  let targetId: number | string | null = payload.targetRoomId
   if (payload.newRoom) {
-    targetRoom = {
-      id:       maxRoomId + 1,
-      name:     payload.newRoom.name,
-      icon:     CATEGORY_ICONS[payload.newRoom.category] ?? 'mdi-home-variant',
-      category: payload.newRoom.category,
-      devices:  [],
-    }
-    rooms.push(targetRoom)
-  } else if (payload.targetRoomId !== null) {
-    targetRoom = rooms.find(r => r.id === payload.targetRoomId)
+    const created = roomsStore.addRoom({
+      name: payload.newRoom.name,
+      type: TYPE_FROM_CATEGORY[payload.newRoom.category] ?? 'other',
+    })
+    targetId = created.id
   }
-
-  if (!targetRoom) return
-
-  for (const dev of payload.devices) {
-    const defaults = DEVICE_DEFAULTS[dev.type]
-    if (!defaults) continue
-    targetRoom.devices.push({
-      id:   nextDeviceId++,
-      name: dev.name || DEVICE_LABELS[dev.type] || dev.type,
-      ...defaults,
-    } as Device)
+  if (targetId !== null && payload.devices.length > 0) {
+    roomsStore.addDevicesToRoom(targetId, payload.devices.length, payload.devices.length)
   }
 }
 
-const filters = [
-  { id: 'todas',      icon: 'mdi-apps',                  label: 'Todas'      },
-  { id: 'sala',       icon: 'mdi-sofa',                  label: 'Sala'       },
-  { id: 'habitacion', icon: 'mdi-bed',                   label: 'Habitación' },
-  { id: 'cocina',     icon: 'mdi-silverware-fork-knife', label: 'Cocina'     },
-  { id: 'bano',       icon: 'mdi-shower',                label: 'Baño'       },
-]
+function handleEditRoutine(id: string) {
+  editingRoutineId.value = id
+  editRoutineOpen.value = true
+}
 
-const rooms = reactive<Room[]>([
-  {
-    id: 1, name: 'Sala de Estar', icon: 'mdi-sofa', category: 'sala',
-    devices: [
-      { id: 101, name: 'Luz Principal',  type: 'light',     value: 75, unit: '%', hasSlider: true,  active: true  },
-      { id: 102, name: 'Luz Secundaria', type: 'light',     value: 75, unit: '%', hasSlider: true,  active: true  },
-      { id: 103, name: 'Aspiradora',     type: 'appliance', value: 0,  unit: '',  hasSlider: false, active: true  },
-    ],
-  },
-  {
-    id: 2, name: 'Habitación Principal', icon: 'mdi-bed', category: 'habitacion',
-    devices: [
-      { id: 201, name: 'Luz Ambiente',       type: 'light',     value: 45, unit: '%', hasSlider: true,  active: true  },
-      { id: 202, name: 'Aire acondicionado', type: 'ac',        value: 24, unit: 'C', hasSlider: true,  active: true  },
-      { id: 203, name: 'Aspiradora',         type: 'appliance', value: 0,  unit: '',  hasSlider: false, active: false },
-    ],
-  },
-  {
-    id: 3, name: 'Cocina', icon: 'mdi-silverware-fork-knife', category: 'cocina',
-    devices: [
-      { id: 301, name: 'Luz Principal',      type: 'light',     value: 100, unit: '%', hasSlider: true,  active: true },
-      { id: 302, name: 'Campana Extractora', type: 'appliance', value: 0,   unit: '',  hasSlider: false, active: true },
-    ],
-  },
-  {
-    id: 4, name: 'Habitación Secundaria', icon: 'mdi-bed-outline', category: 'habitacion',
-    devices: [
-      { id: 401, name: 'Luz Principal',      type: 'light', value: 45, unit: '%', hasSlider: true, active: true },
-      { id: 402, name: 'Aire acondicionado', type: 'ac',    value: 24, unit: 'C', hasSlider: true, active: true },
-    ],
-  },
-])
+function onEditRoutineOpenChange(val: boolean) {
+  editRoutineOpen.value = val
+  if (!val) editingRoutineId.value = null
+}
 
-const routines = reactive<Routine[]>([
-  { id: 1, name: 'Buenos Días',      time: '07:00 AM',           icon: 'mdi-weather-sunny',  active: true,  actions: ['Encender sala 50%', 'Subir temperatura a 22°C', 'Abrir persianas'] },
-  { id: 2, name: 'Buenas Noches',    time: '10:00 PM',           icon: 'mdi-weather-night',  active: true,  actions: ['Apagar todas las luces', 'Bajar temperatura a 20°C', 'Cerrar persianas'] },
-  { id: 3, name: 'Llegando a Casa',  time: 'Al detectar ubicación', icon: 'mdi-map-marker', active: false, actions: ['Encender luces entrada', 'Desbloquear puerta', 'Encender AC'] },
-])
-
-const filterCounts = computed<Record<string, number>>(() => {
-  const counts: Record<string, number> = { todas: rooms.length }
-  for (const f of filters) {
-    if (f.id === 'todas') continue
-    counts[f.id] = rooms.filter(r => r.category === f.id).length
-  }
-  return counts
-})
-
-const filteredRooms = computed<Room[]>(() => {
-  const q = layoutSearch.value.trim().toLowerCase()
-  return rooms.filter(r => {
-    const matchesCategory = activeFilter.value === 'todas' || r.category === activeFilter.value
-    const matchesSearch   = !q || r.name.toLowerCase().includes(q)
-    return matchesCategory && matchesSearch
-  })
-})
+function goToRooms() {
+  router.push('/rooms')
+}
 </script>
 
 <style scoped>
 .dashboard {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
   font-family: 'Inter', sans-serif;
 }
 
-.greeting__title {
+/* ── Hero ── */
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, var(--sh-primary-light) 0%, #F5F3FF 60%, #ffffff 100%);
+  border: 1px solid rgba(99, 102, 241, .15);
+  border-radius: 18px;
+}
+.hero__main { min-width: 0; flex: 1; }
+.hero__title {
   margin: 0;
   font-size: 28px;
   font-weight: 700;
   color: var(--sh-text-main);
   line-height: 1.2;
+  letter-spacing: -0.01em;
 }
-.greeting__subtitle {
+.hero__message {
   margin: 6px 0 0;
   font-size: 15px;
   color: var(--sh-text-muted);
+  line-height: 1.4;
 }
-
-/* ── Filters (mismo estilo que /rutinas) ── */
-.dashboard__filters { margin-bottom: 4px; }
-.dashboard__filter-label {
-  margin: 0 0 10px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--sh-text-muted);
-  font-family: 'Inter', sans-serif;
-}
-.dashboard__chips {
+.hero__stats {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
+  flex-shrink: 0;
 }
-.filter-chip {
-  display: inline-flex;
+.hero-stat {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  border: 1.5px solid var(--sh-border);
+  gap: 12px;
+  padding: 10px 18px 10px 12px;
   background: #ffffff;
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--sh-text-muted);
-  cursor: pointer;
-  transition: border-color 150ms, background-color 150ms, color 150ms;
+  border: 1px solid rgba(99, 102, 241, .12);
+  border-radius: 14px;
+  box-shadow: 0 4px 12px -6px rgba(15, 23, 42, .12);
 }
-.filter-chip:hover:not(.filter-chip--active) {
-  border-color: var(--sh-text-muted);
-  background-color: #F8FAFC;
-}
-.filter-chip:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
-.filter-chip--active {
+.hero-stat__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: var(--sh-primary);
-  border-color: var(--sh-primary);
   color: #ffffff;
-}
-.filter-chip--active .filter-chip__count {
-  background: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-}
-.filter-chip__count {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--sh-primary-light);
-  color: var(--sh-primary-dark);
-  font-size: 11px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 8px -2px rgba(99, 102, 241, .35);
+}
+.hero-stat__icon :deep(.v-icon) { color: #ffffff !important; }
+.hero-stat__text { display: flex; flex-direction: column; min-width: 0; }
+.hero-stat__value {
+  margin: 0;
+  font-size: 22px;
   font-weight: 700;
+  color: var(--sh-text-main);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.hero-stat__label {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--sh-text-muted);
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.section-header {
+/* ── Block (sección) ── */
+.block { display: flex; flex-direction: column; gap: 14px; }
+
+.block__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 16px;
 }
-.section-header__title { margin: 0; font-size: 20px; font-weight: 700; color: var(--sh-text-main); font-family: 'Inter', sans-serif; }
-.section-header__sub   { margin: 4px 0 0; font-size: 13px; color: var(--sh-text-light); font-family: 'Inter', sans-serif; }
-
-.rooms-grid    { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-.routines-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.block__heading { flex: 1; min-width: 0; }
+.block__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--sh-text-main);
+}
+.block__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--sh-text-muted);
+}
 
 .btn-add {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   height: 40px;
+  min-width: 190px;
   padding: 0 20px;
   background: var(--sh-primary);
   color: #ffffff;
@@ -350,20 +401,123 @@ const filteredRooms = computed<Room[]>(() => {
 .btn-add:hover { background: var(--sh-primary-dark); }
 .btn-add:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 
-.empty-state {
-  padding: 40px 0;
-  text-align: center;
-  color: var(--sh-text-light);
+/* ── Estado A: onboarding (sin items) ── */
+.onboard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--sh-primary-light) 0%, #F5F3FF 100%);
+  border: 1px solid rgba(99, 102, 241, .18);
+}
+.onboard__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--sh-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 8px 16px -6px rgba(99, 102, 241, .45);
+}
+.onboard__icon :deep(.v-icon) { color: #fff !important; }
+.onboard__body { flex: 1; min-width: 0; }
+.onboard__title {
+  margin: 0;
   font-size: 15px;
+  font-weight: 700;
+  color: var(--sh-text-main);
+}
+.onboard__sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--sh-text-muted);
+  line-height: 1.45;
+}
+.onboard__cta {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: none;
+  background: var(--sh-primary);
+  color: #fff;
   font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 4px 8px -2px rgba(99, 102, 241, .3);
+  transition: background-color 150ms;
+}
+.onboard__cta:hover { background: var(--sh-primary-dark); }
+.onboard__cta:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
+/* ── Estado B: hint-empty (sin favoritos) ── */
+.hint-empty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px dashed var(--sh-border);
+  border-radius: 12px;
+  background: #F8FAFC;
+}
+.hint-empty__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: #FEF3C7;
+  color: #D97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.hint-empty__text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--sh-text-muted);
+  line-height: 1.45;
+}
+.hint-empty__star { color: #F59E0B; vertical-align: -2px; }
+.hint-empty__link {
+  color: var(--sh-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.hint-empty__link:hover { text-decoration: underline; }
+
+/* ── Grids ── */
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.routines-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
 }
 
-@media (max-width: 840px) {
-  .rooms-grid    { grid-template-columns: 1fr; }
-  .routines-grid { grid-template-columns: 1fr; }
+@media (max-width: 1280px) {
+  .rooms-grid    { grid-template-columns: repeat(3, 1fr); }
+  .routines-grid { grid-template-columns: repeat(3, 1fr); }
 }
-@media (min-width: 841px) and (max-width: 1100px) {
+@media (max-width: 1024px) {
+  .rooms-grid    { grid-template-columns: repeat(2, 1fr); }
   .routines-grid { grid-template-columns: repeat(2, 1fr); }
 }
-
+@media (max-width: 720px) {
+  .rooms-grid    { grid-template-columns: 1fr; }
+  .routines-grid { grid-template-columns: 1fr; }
+  .block__header { flex-direction: column; align-items: stretch; }
+  .onboard       { flex-direction: column; align-items: flex-start; }
+  .onboard__cta  { width: 100%; }
+  .hero          { padding: 20px; }
+  .hero__stats   { width: 100%; }
+  .hero-stat     { flex: 1; }
+}
 </style>

@@ -8,6 +8,20 @@
     @keydown.enter.prevent="$emit('edit', routine.id)"
     @keydown.space.prevent="$emit('edit', routine.id)"
   >
+    <!-- Favorite star (top-right) -->
+    <button
+      type="button"
+      class="routine-card__fav"
+      :class="{ 'routine-card__fav--on': routine.favorite }"
+      :aria-label="routine.favorite ? 'Quitar de favoritas' : 'Marcar como favorita'"
+      :aria-pressed="!!routine.favorite"
+      @click.stop="$emit('toggle-favorite', routine.id)"
+      @keydown.enter.stop
+      @keydown.space.stop
+    >
+      <v-icon :icon="routine.favorite ? 'mdi-star' : 'mdi-star-outline'" size="16" aria-hidden="true" />
+    </button>
+
     <!-- Play button (absolute, bottom-right) -->
     <button
       type="button"
@@ -88,7 +102,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['execute', 'edit'])
+defineEmits(['execute', 'edit', 'toggle-favorite'])
 
 const ALL_DAYS = [
   { key: 'lun', label: 'Lun' },
@@ -146,6 +160,33 @@ const formattedTime = computed(() => {
   outline: 2px solid var(--sh-primary);
   outline-offset: 2px;
 }
+
+/* ── Favorite star ───────────────────────────────────── */
+.routine-card__fav {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--sh-text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 150ms, color 150ms, transform 100ms;
+  z-index: 3;
+}
+.routine-card__fav:hover { background: #FEF3C7; color: #D97706; }
+.routine-card__fav:active { transform: scale(0.92); }
+.routine-card__fav:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.routine-card__fav--on { color: #F59E0B; }
+.routine-card__fav--on:hover { color: #D97706; }
+
+/* Reserve room in the header so name doesn't crash with the star */
+.routine-card__header { padding-right: 36px; }
 
 /* ── Play button ─────────────────────────────────────── */
 .routine-card__play {

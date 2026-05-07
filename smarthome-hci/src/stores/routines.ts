@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 export interface RoutineTrigger {
   type: 'schedule' | 'manual'
@@ -15,6 +15,7 @@ export interface Routine {
   trigger: RoutineTrigger
   actions: string[]
   days: string[]
+  favorite?: boolean
 }
 
 const MOCK_ROUTINES: Routine[] = [
@@ -29,6 +30,7 @@ const MOCK_ROUTINES: Routine[] = [
       'Parlante · Reproducir música',
     ],
     days: ['lun', 'mar', 'mie', 'jue', 'vie'],
+    favorite: true,
   },
   {
     id: 'r2', name: 'Buenas Noches', description: 'Prepara tu casa para dormir',
@@ -41,6 +43,7 @@ const MOCK_ROUTINES: Routine[] = [
       'Alarma · Activar',
     ],
     days: ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'],
+    favorite: true,
   },
   {
     id: 'r3', name: 'Modo Película', description: 'Configura la sala para una buena peli',
@@ -52,6 +55,7 @@ const MOCK_ROUTINES: Routine[] = [
       'Parlante · Encender',
     ],
     days: [],
+    favorite: true,
   },
   {
     id: 'r4', name: 'Modo Ahorro', description: 'Reduce el consumo energético',
@@ -90,6 +94,13 @@ const MOCK_ROUTINES: Routine[] = [
 export const useRoutinesStore = defineStore('routines', () => {
   const routines = ref<Routine[]>(JSON.parse(JSON.stringify(MOCK_ROUTINES)))
 
+  const favoriteRoutines = computed(() => routines.value.filter(r => r.favorite))
+
+  function toggleFavorite(id: string) {
+    const r = routines.value.find(r => r.id === id)
+    if (r) r.favorite = !r.favorite
+  }
+
   function addRoutine(data: Omit<Routine, 'id'>) {
     const routine: Routine = {
       ...JSON.parse(JSON.stringify(data)),
@@ -121,5 +132,8 @@ export const useRoutinesStore = defineStore('routines', () => {
   // No-op visual: la integración real con dispositivos viene después.
   function executeRoutine(_id: string) {}
 
-  return { routines, addRoutine, updateRoutine, removeRoutine, duplicateRoutine, executeRoutine }
+  return {
+    routines, favoriteRoutines,
+    addRoutine, updateRoutine, removeRoutine, duplicateRoutine, executeRoutine, toggleFavorite,
+  }
 })

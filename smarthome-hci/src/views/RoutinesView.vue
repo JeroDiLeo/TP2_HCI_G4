@@ -14,7 +14,7 @@
         @click="isCreateOpen = true"
       >
         <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
-        Crear Rutina
+        Crear rutina
       </button>
     </div>
 
@@ -48,6 +48,7 @@
           :routine="routine"
           @execute="handleExecute"
           @edit="handleEdit"
+          @toggle-favorite="store.toggleFavorite($event)"
         />
       </div>
     </div>

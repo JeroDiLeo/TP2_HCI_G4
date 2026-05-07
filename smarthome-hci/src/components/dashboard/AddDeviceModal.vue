@@ -22,7 +22,7 @@
             <v-icon :icon="headerIcon" size="24" />
           </div>
           <div class="add-modal__meta">
-            <p class="add-modal__eyebrow">AGREGAR DISPOSITIVOS · PASO {{ step }} DE 3</p>
+            <p class="add-modal__eyebrow">HABITACIÓN Y DISPOSITIVOS · PASO {{ step }} DE 3</p>
             <h2 id="add-modal-title" class="add-modal__title">{{ stepTitle }}</h2>
             <p class="add-modal__desc">{{ stepDesc }}</p>
           </div>
@@ -429,7 +429,7 @@ const stepTitle = computed(() => {
 })
 
 const stepDesc = computed(() => {
-  if (step.value === 1) return 'Elegí una habitación existente o creá una nueva'
+  if (step.value === 1) return 'Sumá dispositivos a una habitación existente o creá una nueva'
   if (step.value === 2) return 'Opcional — podés crear la habitación sin dispositivos'
   return 'Confirmá antes de agregar los dispositivos'
 })
