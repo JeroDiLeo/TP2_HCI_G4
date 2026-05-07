@@ -10,7 +10,6 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-routine-title"
-      aria-describedby="edit-routine-desc"
     >
       <!-- Close -->
       <button
@@ -30,39 +29,115 @@
           </div>
 
           <div class="edit-modal__meta">
-            <p class="edit-modal__eyebrow">{{ form.category.toUpperCase() }}</p>
+            <p class="edit-modal__eyebrow">EDITAR · PASO {{ step }} DE 2</p>
             <label for="edit-routine-title" class="sr-only">Nombre de la rutina</label>
+            <h2 id="edit-routine-title" class="edit-modal__title">
+              {{ step === 1 ? 'Detalles y programación' : 'Acciones de la rutina' }}
+            </h2>
+            <p class="edit-modal__subtitle">
+              {{ step === 1
+                ? 'Configurá nombre, descripción, categoría y horario'
+                : 'Definí qué hace esta rutina al ejecutarse' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Stepper indicator -->
+        <ol class="stepper" aria-label="Pasos">
+          <li class="stepper__item" :class="{ 'stepper__item--active': step === 1, 'stepper__item--done': step > 1 }">
+            <span class="stepper__dot">1</span>
+            <span class="stepper__label">Detalles</span>
+          </li>
+          <li class="stepper__bar" aria-hidden="true" />
+          <li class="stepper__item" :class="{ 'stepper__item--active': step === 2, 'stepper__item--done': step > 2 }">
+            <span class="stepper__dot">2</span>
+            <span class="stepper__label">Acciones</span>
+          </li>
+        </ol>
+      </header>
+
+      <!-- Body -->
+      <div class="edit-modal__body">
+
+        <!-- ── STEP 1: details + schedule ── -->
+        <template v-if="step === 1">
+          <div class="field">
+            <label for="edit-name" class="field__label">Nombre</label>
             <input
-              id="edit-routine-title"
+              id="edit-name"
               v-model="form.name"
               type="text"
-              class="edit-modal__title-input"
+              class="field__input"
+              :class="{ 'field__input--error': !isValidName }"
               maxlength="40"
               autocomplete="off"
               :aria-invalid="!isValidName"
             />
-            <label for="edit-routine-desc" class="sr-only">Descripción de la rutina</label>
+          </div>
+
+          <div class="field">
+            <label for="edit-desc" class="field__label">
+              Descripción <span class="field__optional">(opcional)</span>
+            </label>
             <input
-              id="edit-routine-desc"
+              id="edit-desc"
               v-model="form.description"
               type="text"
-              class="edit-modal__desc-input"
+              class="field__input"
               maxlength="80"
               autocomplete="off"
               placeholder="Sin descripción"
             />
           </div>
-        </div>
 
-      </header>
+          <div class="field">
+            <span class="field__label">Categoría</span>
+            <div class="cat-grid" role="radiogroup" aria-label="Categoría">
+              <button
+                v-for="cat in CATEGORIES"
+                :key="cat.value"
+                type="button"
+                class="cat-chip"
+                :class="{ 'cat-chip--active': form.category === cat.value }"
+                role="radio"
+                :aria-checked="form.category === cat.value"
+                @click="selectCategory(cat.value)"
+              >
+                <v-icon :icon="cat.icon" size="14" aria-hidden="true" />
+                {{ cat.value }}
+              </button>
+            </div>
+          </div>
 
-      <!-- Body -->
-      <div class="edit-modal__body">
-        <!-- Programación -->
-        <section v-if="form.trigger.type === 'schedule'" class="section">
-          <h3 class="section__title">Programación</h3>
-          <div class="schedule-grid">
-            <!-- Hora -->
+          <div class="field">
+            <span class="field__label">Activación</span>
+            <div class="trigger-toggle" role="radiogroup" aria-label="Tipo de activación">
+              <button
+                type="button"
+                class="trigger-option"
+                :class="{ 'trigger-option--active': form.trigger.type === 'schedule' }"
+                role="radio"
+                :aria-checked="form.trigger.type === 'schedule'"
+                @click="setTriggerType('schedule')"
+              >
+                <v-icon icon="mdi-clock-outline" size="16" aria-hidden="true" />
+                Por horario
+              </button>
+              <button
+                type="button"
+                class="trigger-option"
+                :class="{ 'trigger-option--active': form.trigger.type === 'manual' }"
+                role="radio"
+                :aria-checked="form.trigger.type === 'manual'"
+                @click="setTriggerType('manual')"
+              >
+                <v-icon icon="mdi-hand-pointing-right" size="16" aria-hidden="true" />
+                Manual
+              </button>
+            </div>
+          </div>
+
+          <div v-if="form.trigger.type === 'schedule'" class="schedule-grid">
             <div class="schedule-card">
               <div class="schedule-card__head">
                 <div class="schedule-card__icon" aria-hidden="true">
@@ -78,7 +153,6 @@
               />
             </div>
 
-            <!-- Repetición -->
             <div class="schedule-card">
               <div class="schedule-card__head">
                 <div class="schedule-card__icon" aria-hidden="true">
@@ -89,56 +163,99 @@
               <WeekdaySelector v-model="form.days" :editable="true" />
             </div>
           </div>
-        </section>
+        </template>
 
-        <!-- Acciones -->
-        <section class="section">
-          <h3 class="section__title">Acciones</h3>
+        <!-- ── STEP 2: actions (inline) ── -->
+        <template v-else>
+          <ul
+            v-if="form.actions.length > 0"
+            class="action-list"
+            aria-label="Acciones configuradas"
+          >
+            <li
+              v-for="(action, idx) in parsedActions"
+              :key="idx"
+              class="action-item"
+            >
+              <span class="action-item__number" aria-hidden="true">{{ idx + 1 }}</span>
+              <div
+                class="action-item__icon"
+                :style="{ background: action.visual.bg, color: action.visual.fg }"
+                aria-hidden="true"
+              >
+                <v-icon :icon="action.visual.icon" size="18" />
+              </div>
+              <div class="action-item__info">
+                <p class="action-item__device">{{ action.device || 'Dispositivo' }}</p>
+                <p v-if="action.detail" class="action-item__detail">{{ action.detail }}</p>
+              </div>
+              <button
+                type="button"
+                class="action-item__delete"
+                :aria-label="`Eliminar acción ${action.device}`"
+                @click="removeAction(idx)"
+              >
+                <v-icon icon="mdi-trash-can-outline" size="14" aria-hidden="true" />
+              </button>
+            </li>
+          </ul>
+
+          <div v-else class="empty-state" role="status">
+            <div class="empty-state__icon-wrap" aria-hidden="true">
+              <v-icon icon="mdi-flash-off-outline" size="40" />
+            </div>
+            <p class="empty-state__title">Aún no hay acciones</p>
+            <p class="empty-state__subtitle">Tocá "Añadir acción" para empezar</p>
+          </div>
+
           <button
             type="button"
-            class="actions-summary"
-            :aria-label="actionsSummaryLabel"
-            @click="openActionsSubModal"
+            class="btn-add-action"
+            @click="onAddAction"
           >
-            <div class="actions-summary__icon" aria-hidden="true">
-              <v-icon icon="mdi-flash" size="20" />
-            </div>
-            <div class="actions-summary__info">
-              <p class="actions-summary__title">{{ actionsTitle }}</p>
-              <p v-if="form.actions.length > 0" class="actions-summary__detail">
-                {{ actionsDetail }}
-              </p>
-              <div v-if="form.actions.length > 0" class="actions-summary__chips" aria-hidden="true">
-                <span
-                  v-for="(action, idx) in actionMiniIcons"
-                  :key="idx"
-                  class="actions-summary__chip"
-                  :style="{ background: action.bg, color: action.fg }"
-                >
-                  <v-icon :icon="action.icon" size="14" />
-                </span>
-              </div>
-            </div>
-            <v-icon icon="mdi-chevron-right" size="18" class="actions-summary__chevron" aria-hidden="true" />
+            <v-icon icon="mdi-plus" size="16" aria-hidden="true" />
+            Añadir acción
           </button>
-        </section>
+        </template>
       </div>
 
       <!-- Footer -->
       <footer class="edit-modal__footer">
         <div class="edit-modal__footer-left">
-          <button type="button" class="btn-text btn-text--danger" @click="handleDelete">
-            <v-icon icon="mdi-trash-can-outline" size="14" aria-hidden="true" />
-            Eliminar
+          <button
+            v-if="step === 2"
+            type="button"
+            class="btn-back"
+            @click="step = 1"
+          >
+            <v-icon icon="mdi-chevron-left" size="16" aria-hidden="true" />
+            Atrás
           </button>
-          <button type="button" class="btn-text btn-text--muted" @click="handleDuplicate">
-            <v-icon icon="mdi-content-duplicate" size="14" aria-hidden="true" />
-            Duplicar
-          </button>
+          <template v-else>
+            <button type="button" class="btn-text btn-text--danger" @click="handleDelete">
+              <v-icon icon="mdi-trash-can-outline" size="14" aria-hidden="true" />
+              Eliminar
+            </button>
+            <button type="button" class="btn-text btn-text--muted" @click="handleDuplicate">
+              <v-icon icon="mdi-content-duplicate" size="14" aria-hidden="true" />
+              Duplicar
+            </button>
+          </template>
         </div>
         <div class="edit-modal__footer-right">
           <button type="button" class="btn-cancel" @click="handleClose">Cancelar</button>
           <button
+            v-if="step === 1"
+            type="button"
+            class="btn-save"
+            :disabled="!canGoNext"
+            @click="step = 2"
+          >
+            Siguiente
+            <v-icon icon="mdi-arrow-right" size="14" aria-hidden="true" />
+          </button>
+          <button
+            v-else
             type="button"
             class="btn-save"
             :disabled="!canSave"
@@ -151,15 +268,6 @@
       </footer>
     </div>
 
-    <!-- Sub-modal de acciones -->
-    <EditActionsSubModal
-      v-if="form"
-      :open="actionsSubOpen"
-      :actions="form.actions"
-      :routine-name="form.name"
-      @update:open="actionsSubOpen = $event"
-      @update:actions="onActionsUpdated"
-    />
   </v-dialog>
 </template>
 
@@ -167,7 +275,6 @@
 import { ref, computed, watch } from 'vue'
 import { useRoutinesStore } from '@/stores/routines'
 import WeekdaySelector from './WeekdaySelector.vue'
-import EditActionsSubModal from './EditActionsSubModal.vue'
 import { getDeviceVisual, parseActionString } from '@/utils/deviceIcons.js'
 
 const props = defineProps({
@@ -178,25 +285,55 @@ const emit = defineEmits(['update:open'])
 
 const store = useRoutinesStore()
 
+const CATEGORIES = [
+  { value: 'Mañana',        icon: 'mdi-white-balance-sunny' },
+  { value: 'Noche',         icon: 'mdi-weather-night' },
+  { value: 'Confort',       icon: 'mdi-sofa-outline' },
+  { value: 'Seguridad',     icon: 'mdi-shield-check' },
+  { value: 'Personalizada', icon: 'mdi-cog-outline' },
+]
+
 const original = computed(() =>
   store.routines.find(r => r.id === props.routineId) ?? null
 )
 
 const form = ref(null)
-const actionsSubOpen = ref(false)
+const step = ref(1)
 
 watch(
   () => [props.open, props.routineId],
   ([open]) => {
     if (open && original.value) {
       form.value = JSON.parse(JSON.stringify(original.value))
+      step.value = 1
     } else if (!open) {
-      // Defer reset slightly so closing animation doesn't flash empty content.
       setTimeout(() => { if (!props.open) form.value = null }, 250)
     }
   },
   { immediate: true }
 )
+
+// ── Helpers ──
+function selectCategory(value) {
+  if (!form.value) return
+  form.value.category = value
+  // mantener icono coherente con la categoría seleccionada
+  const cat = CATEGORIES.find(c => c.value === value)
+  if (cat) form.value.icon = cat.icon
+}
+
+function setTriggerType(type) {
+  if (!form.value) return
+  if (type === 'schedule') {
+    form.value.trigger = { type: 'schedule', time: form.value.trigger.time ?? '07:00' }
+    if (!form.value.days || form.value.days.length === 0) {
+      form.value.days = ['lun', 'mar', 'mie', 'jue', 'vie']
+    }
+  } else {
+    form.value.trigger = { type: 'manual' }
+    form.value.days = []
+  }
+}
 
 // ── Validation / change detection ──
 const isValidName = computed(() => {
@@ -207,29 +344,29 @@ const hasChanges = computed(() =>
   !!form.value && !!original.value &&
   JSON.stringify(form.value) !== JSON.stringify(original.value)
 )
-const canSave = computed(() => hasChanges.value && isValidName.value)
+const canGoNext = computed(() => isValidName.value)
+const canSave   = computed(() => hasChanges.value && isValidName.value)
 
-// ── Actions summary ──
-const actionsTitle = computed(() => {
-  const n = form.value?.actions?.length ?? 0
-  if (n === 0) return 'Sin acciones configuradas'
-  return `${n} ${n === 1 ? 'acción configurada' : 'acciones configuradas'}`
-})
-
-const actionsDetail = computed(() => {
-  const list = (form.value?.actions ?? []).map(a => parseActionString(a).device)
-  const visible = list.slice(0, 2).filter(Boolean).join(' · ')
-  const extra = list.length > 2 ? ` y ${list.length - 2} más` : ''
-  return visible + extra
-})
-
-const actionsSummaryLabel = computed(() =>
-  `Editar acciones — ${actionsTitle.value}`
+// ── Actions list (inline) ──
+const parsedActions = computed(() =>
+  (form.value?.actions ?? []).map(a => {
+    const { device, detail } = parseActionString(a)
+    return { device, detail, visual: getDeviceVisual(device) }
+  })
 )
 
-const actionMiniIcons = computed(() =>
-  (form.value?.actions ?? []).slice(0, 4).map(a => getDeviceVisual(parseActionString(a).device))
-)
+function removeAction(idx) {
+  if (!form.value) return
+  const action = parsedActions.value[idx]
+  const label = action?.device || `acción ${idx + 1}`
+  if (!window.confirm(`¿Eliminar "${label}"?`)) return
+  form.value.actions.splice(idx, 1)
+}
+
+function onAddAction() {
+  // TODO: builder de acciones (dispositivo + acción + valor)
+  window.alert('Builder de acciones — próximamente')
+}
 
 // ── Handlers ──
 function close() { emit('update:open', false) }
@@ -262,11 +399,6 @@ function handleDuplicate() {
   close()
 }
 
-function openActionsSubModal() { actionsSubOpen.value = true }
-
-function onActionsUpdated(newActions) {
-  if (form.value) form.value.actions = newActions
-}
 </script>
 
 <style scoped>
@@ -278,9 +410,9 @@ function onActionsUpdated(newActions) {
   white-space: nowrap;
 }
 
-/* Modal shell */
 .edit-modal {
   position: relative;
+  width: 100%;
   background: #ffffff;
   border-radius: 18px;
   box-shadow:
@@ -290,7 +422,7 @@ function onActionsUpdated(newActions) {
   font-family: var(--sh-font);
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
+  max-height: 94vh;
 }
 
 :deep(.v-overlay__scrim) {
@@ -298,7 +430,6 @@ function onActionsUpdated(newActions) {
   backdrop-filter: blur(2px);
 }
 
-/* Close */
 .edit-modal__close {
   position: absolute;
   top: 18px;
@@ -328,7 +459,7 @@ function onActionsUpdated(newActions) {
 /* Header */
 .edit-modal__header {
   background: linear-gradient(135deg, var(--sh-primary-light) 0%, #F5F3FF 100%);
-  padding: 24px 28px;
+  padding: 18px 28px 12px;
   border-radius: 18px 18px 0 0;
 }
 .edit-modal__header-row {
@@ -359,105 +490,179 @@ function onActionsUpdated(newActions) {
   letter-spacing: 0.1em;
   color: var(--sh-primary);
 }
-
-/* Title input (inline-editable) */
-.edit-modal__title-input,
-.edit-modal__desc-input {
-  width: 100%;
-  border: 1.5px solid transparent;
-  background: transparent;
-  font-family: var(--sh-font);
-  color: var(--sh-text-main);
-  outline: none;
-  border-radius: 8px;
-  margin-left: -8px;
-  transition: background-color 150ms, border-color 150ms, box-shadow 150ms;
-}
-.edit-modal__title-input {
-  font-size: 24px;
+.edit-modal__title {
+  margin: 4px 0 4px;
+  font-size: 20px;
   font-weight: 700;
+  color: var(--sh-text-main);
   line-height: 1.2;
-  padding: 4px 10px 4px 8px;
-  margin-top: 2px;
 }
-.edit-modal__desc-input {
+.edit-modal__subtitle {
+  margin: 0;
   font-size: 13px;
   color: var(--sh-text-muted);
-  line-height: 1.4;
-  padding: 4px 10px 4px 8px;
-  margin-top: 2px;
 }
-.edit-modal__title-input:hover,
-.edit-modal__desc-input:hover {
-  background: rgba(255, 255, 255, .5);
+
+/* Stepper */
+.stepper {
+  margin: 16px auto 2px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 14px;
 }
-.edit-modal__title-input:focus,
-.edit-modal__desc-input:focus {
-  background: #ffffff;
-  border-color: var(--sh-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
+.stepper__item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sh-text-light);
 }
-.edit-modal__title-input[aria-invalid="true"]:focus {
-  border-color: var(--sh-error);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, .12);
+.stepper__label { line-height: 1; }
+.stepper__dot {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.7);
+  color: var(--sh-text-light);
+  border: 1.5px solid var(--sh-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: background-color 150ms, color 150ms, border-color 150ms, box-shadow 150ms;
+}
+.stepper__item--active .stepper__dot,
+.stepper__item--done .stepper__dot {
+  background: #A5B4FC;
+  color: #fff;
+  border-color: #A5B4FC;
+  box-shadow: 0 3px 8px -2px rgba(165, 180, 252, .5);
+}
+.stepper__item--active .stepper__label,
+.stepper__item--done .stepper__label {
+  color: #6366F1;
+}
+.stepper__bar {
+  flex: 0 0 90px;
+  height: 2px;
+  background: var(--sh-border);
+  border-radius: 2px;
+  margin-top: 15px; /* center on the 32px dot */
+  transition: background-color 200ms;
+}
+.stepper:has(.stepper__item--done) .stepper__bar {
+  background: #A5B4FC;
 }
 
 /* Body */
 .edit-modal__body {
-  padding: 22px 28px;
+  padding: 16px 28px 18px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  overflow-y: auto;
+  gap: 12px;
+  overflow: visible;
+  min-height: 440px; /* keep both steps the same modal height */
 }
 
-.section__title {
-  margin: 0 0 12px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+/* Field */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field__label { font-size: 12px; font-weight: 600; color: var(--sh-text-main); }
+.field__optional { color: var(--sh-text-light); font-weight: 400; }
+.field__input {
+  width: 100%;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--sh-border);
+  border-radius: 10px;
+  font-family: var(--sh-font);
+  font-size: 14px;
+  color: var(--sh-text-main);
+  background: #ffffff;
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.field__input::placeholder { color: var(--sh-text-light); }
+.field__input:focus {
+  border-color: var(--sh-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
+}
+.field__input--error { border-color: var(--sh-error); }
+
+/* Category chips */
+.cat-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--sh-border);
+  background: #ffffff;
+  font-family: var(--sh-font);
+  font-size: 13px;
+  font-weight: 500;
   color: var(--sh-text-muted);
+  cursor: pointer;
+  transition: border-color 150ms, background-color 150ms, color 150ms;
+}
+.cat-chip:hover:not(.cat-chip--active) {
+  border-color: var(--sh-text-muted);
+  color: var(--sh-text-main);
+}
+.cat-chip:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.cat-chip--active {
+  background: var(--sh-primary-light);
+  border-color: var(--sh-primary);
+  color: var(--sh-primary-dark);
+}
+
+/* Trigger toggle */
+.trigger-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.trigger-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--sh-border);
+  background: #ffffff;
+  font-family: var(--sh-font);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sh-text-muted);
+  cursor: pointer;
+  transition: border-color 150ms, background-color 150ms, color 150ms;
+}
+.trigger-option:hover:not(.trigger-option--active) {
+  border-color: var(--sh-text-muted);
+  color: var(--sh-text-main);
+}
+.trigger-option--active {
+  background: var(--sh-primary-light);
+  border-color: var(--sh-primary);
+  color: var(--sh-primary-dark);
 }
 
 /* Schedule grid */
-.schedule-grid {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 12px;
-}
-
-.schedule-card {
-  border: 1px solid var(--sh-border);
-  border-radius: 12px;
-  padding: 14px;
-}
-.schedule-card__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
+.schedule-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px; }
+.schedule-card { border: 1px solid var(--sh-border); border-radius: 12px; padding: 10px 12px; }
+.schedule-card__head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .schedule-card__icon {
-  width: 26px;
-  height: 26px;
+  width: 26px; height: 26px;
   border-radius: 7px;
   background: var(--sh-primary-light);
   color: var(--sh-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
 }
-.schedule-card__label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--sh-text-muted);
-}
+.schedule-card__label { font-size: 12px; font-weight: 500; color: var(--sh-text-muted); }
 
-/* Time input */
 .time-input {
   width: 100%;
-  display: block;
   background: #F8FAFC;
   border: 1px solid var(--sh-border);
   border-radius: 8px;
@@ -476,59 +681,50 @@ function onActionsUpdated(newActions) {
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
 }
-.time-input::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  opacity: .6;
-  transition: opacity 150ms;
-}
-.time-input:hover::-webkit-calendar-picker-indicator,
-.time-input:focus::-webkit-calendar-picker-indicator {
-  opacity: 1;
-}
 
-/* Actions summary card */
-.actions-summary {
+/* Action list (inline) */
+.action-list { list-style: none; margin: 0; padding: 0; }
+.action-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  width: 100%;
+  gap: 12px;
+  padding: 12px 14px;
   border: 1px solid var(--sh-border);
   border-radius: 12px;
-  padding: 14px;
-  background: #ffffff;
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--sh-font);
-  transition: border-color 150ms, box-shadow 150ms;
+  margin-bottom: 8px;
+  transition: border-color 150ms;
 }
-.actions-summary:hover {
-  border-color: var(--sh-primary);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, .08);
+.action-item:last-child { margin-bottom: 0; }
+.action-item:hover { border-color: var(--sh-text-muted); }
+.action-item:hover .action-item__delete,
+.action-item:focus-within .action-item__delete { opacity: 1; }
+.action-item__number {
+  width: 24px; height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #F1F5F9;
+  color: var(--sh-text-light);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
 }
-.actions-summary:focus-visible {
-  outline: 2px solid var(--sh-primary);
-  outline-offset: 2px;
-}
-.actions-summary__icon {
-  width: 44px;
-  height: 44px;
+.action-item__icon {
+  width: 36px; height: 36px;
   border-radius: 10px;
-  background: var(--sh-primary);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.actions-summary__icon :deep(.v-icon) { color: #ffffff !important; }
-.actions-summary__info { flex: 1; min-width: 0; }
-.actions-summary__title {
+.action-item__info { flex: 1; min-width: 0; }
+.action-item__device {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--sh-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.actions-summary__detail {
+.action-item__detail {
   margin: 2px 0 0;
   font-size: 12px;
   color: var(--sh-text-muted);
@@ -536,23 +732,55 @@ function onActionsUpdated(newActions) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.actions-summary__chips {
-  display: flex;
-  gap: 4px;
-  margin-top: 8px;
-}
-.actions-summary__chip {
-  width: 24px;
-  height: 24px;
+.action-item__delete {
+  width: 28px; height: 28px;
   border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--sh-text-light);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity 150ms, background-color 150ms, color 150ms;
+}
+.action-item__delete:hover { background: rgba(239, 68, 68, .12); color: var(--sh-error); }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 24px 16px;
+}
+.empty-state__icon-wrap {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: #F1F5F9;
+  color: var(--sh-text-light);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto;
+}
+.empty-state__title { margin: 12px 0 0; font-size: 14px; font-weight: 600; color: var(--sh-text-main); }
+.empty-state__subtitle { margin: 4px 0 0; font-size: 12px; color: var(--sh-text-muted); }
+
+/* Add action button */
+.btn-add-action {
+  align-self: center;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  border: 1px dashed var(--sh-primary);
+  background: var(--sh-primary-light);
+  color: var(--sh-primary-dark);
+  font-family: var(--sh-font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms;
 }
-.actions-summary__chevron {
-  color: var(--sh-text-light);
-  flex-shrink: 0;
-}
+.btn-add-action:hover { background: #DDD6FE; }
+.btn-add-action:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 
 /* Footer */
 .edit-modal__footer {
@@ -572,33 +800,26 @@ function onActionsUpdated(newActions) {
 }
 
 .btn-text {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 12px;
-  border: none;
-  border-radius: 8px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 12px; border: none; border-radius: 8px;
   background: transparent;
   font-family: var(--sh-font);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13px; font-weight: 600;
   cursor: pointer;
   transition: background-color 150ms, color 150ms;
 }
-.btn-text:focus-visible {
-  outline: 2px solid var(--sh-primary);
-  outline-offset: 2px;
-}
+.btn-text:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 .btn-text--danger { color: var(--sh-error); }
 .btn-text--danger:hover { background: rgba(239, 68, 68, .12); }
 .btn-text--muted { color: var(--sh-text-muted); }
 .btn-text--muted:hover { background: #F1F5F9; color: var(--sh-text-main); }
 
-.btn-cancel {
-  padding: 9px 16px;
-  border-radius: 9px;
-  background: #ffffff;
-  border: 1px solid var(--sh-border);
+.btn-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
   color: var(--sh-text-muted);
   font-family: var(--sh-font);
   font-size: 13px;
@@ -606,32 +827,31 @@ function onActionsUpdated(newActions) {
   cursor: pointer;
   transition: background-color 150ms, color 150ms;
 }
-.btn-cancel:hover { background: #F8FAFC; color: var(--sh-text-main); }
-.btn-cancel:focus-visible {
-  outline: 2px solid var(--sh-primary);
-  outline-offset: 2px;
+.btn-back:hover { background: #F1F5F9; color: var(--sh-text-main); }
+.btn-back:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
+.btn-cancel {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: 9px;
+  background: #ffffff; border: 1px solid var(--sh-border);
+  color: var(--sh-text-muted);
+  font-family: var(--sh-font);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background-color 150ms, color 150ms;
 }
+.btn-cancel:hover { background: #F8FAFC; color: var(--sh-text-main); }
+.btn-cancel:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 
 .btn-save {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  border-radius: 9px;
-  border: none;
-  background: var(--sh-primary);
-  color: #ffffff;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: 9px; border: none;
+  background: var(--sh-primary); color: #ffffff;
   font-family: var(--sh-font);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
+  font-size: 13px; font-weight: 600; cursor: pointer;
   box-shadow: 0 4px 8px -2px rgba(99, 102, 241, .3);
   transition: background-color 150ms;
 }
 .btn-save:hover:not(:disabled) { background: var(--sh-primary-dark); }
 .btn-save:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
-.btn-save:focus-visible {
-  outline: 2px solid var(--sh-primary);
-  outline-offset: 2px;
-}
+.btn-save:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 </style>

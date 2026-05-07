@@ -116,10 +116,8 @@ function onEditOpenChange(val) {
 // ── Create modal ──
 const isCreateOpen = ref(false)
 
-function handleCreated(id) {
-  // Abrir el modal de edición sobre la rutina recién creada parapoder  configurarle las acciones
-  editingRoutineId.value = id
-  isEditOpen.value = true
+function handleCreated(_id) {
+  // El modal de creación ahora incluye el paso de acciones; no abrimos edición automáticamente.
 }
 
 function handleExecute(id) {

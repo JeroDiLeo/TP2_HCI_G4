@@ -23,15 +23,6 @@
         </header>
 
         <p class="room-card__activity-label">{{ activityLabel }}</p>
-
-        <button
-          type="button"
-          class="room-card__details-link"
-          @click.stop="emit('view-details', room.id)"
-        >
-          <span>Ver Detalles</span>
-          <v-icon icon="mdi-chevron-right" size="14" class="room-card__details-chevron" aria-hidden="true" />
-        </button>
       </div>
 
       <svg
@@ -219,44 +210,6 @@ const cardAriaLabel = computed(() =>
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   color: var(--sh-text-muted);
-}
-
-.room-card:not(.room-card--active) .room-card__activity-label {
-  /* When totalDevices === 0 the label text is "Sin dispositivos vinculados".
-     Soften its tone so the empty state reads as truly empty. */
-}
-
-/* ── Details link ── */
-.room-card__details-link {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px 0;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--sh-primary);
-  cursor: pointer;
-  transition: color 150ms cubic-bezier(.4,0,.2,1);
-}
-
-.room-card__details-link:hover { color: var(--sh-primary-dark); }
-
-.room-card__details-chevron {
-  transition: transform 150ms cubic-bezier(.4,0,.2,1);
-}
-
-.room-card__details-link:hover .room-card__details-chevron {
-  transform: translateX(2px);
-}
-
-.room-card__details-link:focus-visible {
-  outline: 2px solid var(--sh-primary);
-  outline-offset: 2px;
 }
 
 /* ── Donut SVG ── */

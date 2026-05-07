@@ -8,14 +8,14 @@
     @keydown.enter.prevent="$emit('edit', routine.id)"
     @keydown.space.prevent="$emit('edit', routine.id)"
   >
-    <!-- Play button (absolute, top-right) -->
+    <!-- Play button (absolute, bottom-right) -->
     <button
       type="button"
       class="routine-card__play"
       :aria-label="`Ejecutar rutina ${routine.name}`"
       @click.stop="$emit('execute', routine.id)"
     >
-      <v-icon icon="mdi-play" size="16" aria-hidden="true" />
+      <v-icon icon="mdi-play" size="22" aria-hidden="true" />
     </button>
 
     <!-- Header: icon + title + badge -->
@@ -150,10 +150,10 @@ const formattedTime = computed(() => {
 /* ── Play button ─────────────────────────────────────── */
 .routine-card__play {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 30px;
-  height: 30px;
+  bottom: 14px;
+  right: 14px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: var(--sh-primary);
   color: #ffffff;
@@ -162,14 +162,18 @@ const formattedTime = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
   transition: background-color 150ms, transform 150ms, box-shadow 150ms;
   flex-shrink: 0;
+  z-index: 2;
 }
 .routine-card__play:hover {
   background: var(--sh-primary-dark);
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.45);
+  transform: scale(1.06);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+}
+.routine-card__play :deep(.v-icon) {
+  margin-left: 2px; /* optical centering of play glyph */
 }
 .routine-card__play:focus-visible {
   outline: 2px solid var(--sh-primary);
@@ -181,8 +185,6 @@ const formattedTime = computed(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  /* leave space for the absolute play button */
-  padding-right: 38px;
 }
 
 .routine-card__icon-wrap {
@@ -319,6 +321,7 @@ const formattedTime = computed(() => {
   gap: 3px;
   margin-top: auto;
   padding-top: 8px;
+  padding-right: 56px; /* leave room for play button */
   border-top: 1px solid var(--sh-border);
 }
 

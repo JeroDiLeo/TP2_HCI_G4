@@ -157,7 +157,7 @@ const visibleActions = computed(() => props.routine.actions.slice(0, 2))
 }
 
 .toggle--on {
-  background: #6366f1;
+  background: #A5B4FC;
 }
 
 .toggle__thumb {

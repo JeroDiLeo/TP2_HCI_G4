@@ -9,37 +9,10 @@
       </p>
     </section>
 
-    <!-- Quick Actions -->
-    <section class="quick-section" aria-labelledby="quick-actions-heading">
-      <p id="quick-actions-heading" class="quick-section__label">Acciones Rápidas</p>
-      <div class="quick-section__card">
-        <div class="quick-action">
-          <v-icon
-            :icon="doorLocked ? 'mdi-lock' : 'mdi-lock-open-outline'"
-            size="22"
-            class="quick-action__icon"
-            aria-hidden="true"
-          />
-          <div class="quick-action__text">
-            <p class="quick-action__name">Puerta Principal</p>
-            <p class="quick-action__status">{{ doorLocked ? 'Bloqueada' : 'Desbloqueada' }}</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          class="btn-action"
-          :class="doorLocked ? 'btn-action--primary' : 'btn-action--ghost'"
-          @click="doorLocked = !doorLocked"
-        >
-          {{ doorLocked ? 'Desbloquear' : 'Bloquear' }}
-        </button>
-      </div>
-    </section>
-
     <!-- Category filters -->
-    <div class="filters" role="group" aria-label="Filtrar por categoría">
-      <span class="filters__label" aria-hidden="true">Filtrar:</span>
-      <div class="filters__row">
+    <div class="dashboard__filters" role="group" aria-label="Filtrar por categoría">
+      <p class="dashboard__filter-label">Filtrar por categoría</p>
+      <div class="dashboard__chips">
         <button
           v-for="filter in filters"
           :key="filter.id"
@@ -49,8 +22,9 @@
           :aria-pressed="activeFilter === filter.id"
           @click="activeFilter = filter.id"
         >
-          <v-icon :icon="filter.icon" size="15" aria-hidden="true" />
+          <v-icon :icon="filter.icon" size="14" aria-hidden="true" />
           {{ filter.label }}
+          <span class="filter-chip__count">{{ filterCounts[filter.id] }}</span>
         </button>
       </div>
     </div>
@@ -62,9 +36,9 @@
           <h2 id="rooms-heading" class="section-header__title">Habitaciones</h2>
           <p class="section-header__sub">{{ filteredRooms.length }} habitaciones</p>
         </div>
-        <button type="button" class="btn-add" aria-label="Agregar nuevo dispositivo" @click="addDeviceOpen = true">
+        <button type="button" class="btn-add" aria-label="Agregar nueva habitación" @click="addDeviceOpen = true">
           <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
-          Agregar Dispositivo
+          Agregar habitación
         </button>
       </div>
       <div class="rooms-grid">
@@ -119,7 +93,6 @@ import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const activeFilter  = ref('todas')
-const doorLocked    = ref(true)
 const addDeviceOpen = ref(false)
 
 // Search injected from AppLayout
@@ -164,33 +137,38 @@ const DEVICE_DEFAULTS: Record<string, DeviceDefaults> = {
 }
 
 function handleAddDevice(payload: {
-  deviceTypes:   string[]
-  targetRoomIds: number[]
-  newRooms:      { name: string; category: string }[]
+  targetRoomId: number | null
+  newRoom:      { name: string; category: string } | null
+  devices:      { type: string; name: string }[]
 }) {
   const maxRoomId   = rooms.reduce((m, r) => Math.max(m, r.id), 0)
   const maxDeviceId = rooms.flatMap(r => r.devices).reduce((m, d) => Math.max(m, d.id), 0)
-  let nextRoomId   = maxRoomId + 1
   let nextDeviceId = maxDeviceId + 1
 
-  const created: Room[] = payload.newRooms.map((def, i) => ({
-    id:       nextRoomId + i,
-    name:     def.name,
-    icon:     CATEGORY_ICONS[def.category] ?? 'mdi-home-variant',
-    category: def.category,
-    devices:  [],
-  }))
-  rooms.push(...created)
-
-  const allTargetIds = [...payload.targetRoomIds, ...created.map(r => r.id)]
-  for (const roomId of allTargetIds) {
-    const room = rooms.find(r => r.id === roomId)
-    if (!room) continue
-    for (const deviceType of payload.deviceTypes) {
-      const defaults = DEVICE_DEFAULTS[deviceType]
-      if (!defaults) continue
-      room.devices.push({ id: nextDeviceId++, name: DEVICE_LABELS[deviceType] ?? deviceType, ...defaults } as Device)
+  let targetRoom: Room | undefined
+  if (payload.newRoom) {
+    targetRoom = {
+      id:       maxRoomId + 1,
+      name:     payload.newRoom.name,
+      icon:     CATEGORY_ICONS[payload.newRoom.category] ?? 'mdi-home-variant',
+      category: payload.newRoom.category,
+      devices:  [],
     }
+    rooms.push(targetRoom)
+  } else if (payload.targetRoomId !== null) {
+    targetRoom = rooms.find(r => r.id === payload.targetRoomId)
+  }
+
+  if (!targetRoom) return
+
+  for (const dev of payload.devices) {
+    const defaults = DEVICE_DEFAULTS[dev.type]
+    if (!defaults) continue
+    targetRoom.devices.push({
+      id:   nextDeviceId++,
+      name: dev.name || DEVICE_LABELS[dev.type] || dev.type,
+      ...defaults,
+    } as Device)
   }
 }
 
@@ -241,6 +219,15 @@ const routines = reactive<Routine[]>([
   { id: 3, name: 'Llegando a Casa',  time: 'Al detectar ubicación', icon: 'mdi-map-marker', active: false, actions: ['Encender luces entrada', 'Desbloquear puerta', 'Encender AC'] },
 ])
 
+const filterCounts = computed<Record<string, number>>(() => {
+  const counts: Record<string, number> = { todas: rooms.length }
+  for (const f of filters) {
+    if (f.id === 'todas') continue
+    counts[f.id] = rooms.filter(r => r.category === f.id).length
+  }
+  return counts
+})
+
 const filteredRooms = computed<Room[]>(() => {
   const q = layoutSearch.value.trim().toLowerCase()
   return rooms.filter(r => {
@@ -272,79 +259,27 @@ const filteredRooms = computed<Room[]>(() => {
   color: var(--sh-text-muted);
 }
 
-.quick-section__label {
-  margin: 0 0 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--sh-text-light);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-family: 'Inter', sans-serif;
-}
-.quick-section__card {
-  background: #ffffff;
-  border-radius: 14px;
-  border: 1px solid var(--sh-border);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, .06);
-  padding: 18px 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.quick-action {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-.quick-action__icon { color: var(--sh-primary); flex-shrink: 0; }
-.quick-action__name {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--sh-text-main);
-  font-family: 'Inter', sans-serif;
-}
-.quick-action__status {
-  margin: 2px 0 0;
+/* ── Filters (mismo estilo que /rutinas) ── */
+.dashboard__filters { margin-bottom: 4px; }
+.dashboard__filter-label {
+  margin: 0 0 10px;
   font-size: 13px;
-  color: var(--sh-text-light);
+  font-weight: 500;
+  color: var(--sh-text-muted);
   font-family: 'Inter', sans-serif;
 }
-
-.btn-action {
-  height: 40px;
-  padding: 0 24px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background-color 150ms;
-}
-.btn-action--primary { background: var(--sh-primary); color: #ffffff; border-color: var(--sh-primary); }
-.btn-action--primary:hover { background: var(--sh-primary-dark); border-color: var(--sh-primary-dark); }
-.btn-action--ghost { background: #f1f5f9; color: var(--sh-text-muted); border-color: var(--sh-border); }
-.btn-action--ghost:hover { background: #e2e8f0; }
-.btn-action:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
-
-.filters {
+.dashboard__chips {
   display: flex;
-  align-items: center;
-  gap: 14px;
   flex-wrap: wrap;
+  gap: 8px;
 }
-.filters__label { font-size: 14px; font-weight: 500; color: var(--sh-text-muted); flex-shrink: 0; }
-.filters__row { display: flex; gap: 8px; flex-wrap: wrap; }
 .filter-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 16px;
+  padding: 7px 14px;
   border-radius: 999px;
-  border: 1px solid var(--sh-border);
+  border: 1.5px solid var(--sh-border);
   background: #ffffff;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
@@ -353,9 +288,33 @@ const filteredRooms = computed<Room[]>(() => {
   cursor: pointer;
   transition: border-color 150ms, background-color 150ms, color 150ms;
 }
-.filter-chip:hover:not(.filter-chip--active) { border-color: var(--sh-text-muted); color: var(--sh-text-main); }
+.filter-chip:hover:not(.filter-chip--active) {
+  border-color: var(--sh-text-muted);
+  background-color: #F8FAFC;
+}
 .filter-chip:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
-.filter-chip--active { background: var(--sh-primary); border-color: var(--sh-primary); color: #ffffff; }
+.filter-chip--active {
+  background: var(--sh-primary);
+  border-color: var(--sh-primary);
+  color: #ffffff;
+}
+.filter-chip--active .filter-chip__count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+.filter-chip__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--sh-primary-light);
+  color: var(--sh-primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+}
 
 .section-header {
   display: flex;
@@ -402,7 +361,6 @@ const filteredRooms = computed<Room[]>(() => {
 @media (max-width: 840px) {
   .rooms-grid    { grid-template-columns: 1fr; }
   .routines-grid { grid-template-columns: 1fr; }
-  .quick-section__card { flex-direction: column; align-items: flex-start; gap: 14px; }
 }
 @media (min-width: 841px) and (max-width: 1100px) {
   .routines-grid { grid-template-columns: repeat(2, 1fr); }
