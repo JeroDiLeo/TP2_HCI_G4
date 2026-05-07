@@ -26,6 +26,7 @@ const PLACEHOLDERS = {
   'rooms':     'Buscar habitaciones...',
   'devices':   'Buscar dispositivos...',
   'stats':     'Buscar estadísticas...',
+  'profile':   'Buscar en perfil...',
   'settings':  'Buscar configuración...',
 }
 

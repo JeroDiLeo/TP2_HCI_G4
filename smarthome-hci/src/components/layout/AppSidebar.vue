@@ -28,21 +28,6 @@
       </router-link>
     </nav>
 
-    <div class="app-sidebar__bottom">
-      <router-link to="/settings" custom v-slot="{ isActive, navigate }">
-        <button
-          type="button"
-          class="app-sidebar__btn"
-          :class="{ 'app-sidebar__btn--active': isActive }"
-          aria-label="Configuración"
-          :aria-current="isActive ? 'page' : undefined"
-          @click="navigate"
-        >
-          <span class="sr-only">Configuración</span>
-          <v-icon icon="mdi-cog-outline" size="22" aria-hidden="true" />
-        </button>
-      </router-link>
-    </div>
   </aside>
 </template>
 
@@ -133,15 +118,6 @@ const navItems = [
 .app-sidebar__btn--active:hover {
   background-color: var(--sh-primary-dark);
   color: #ffffff;
-}
-
-.app-sidebar__bottom {
-  padding: 16px 0;
-  border-top: 1px solid var(--sh-border);
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  flex-shrink: 0;
 }
 
 .sr-only {
