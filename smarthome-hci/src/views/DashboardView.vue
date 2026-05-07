@@ -246,7 +246,7 @@ const TYPE_FROM_CATEGORY: Record<string, string> = {
 function handleAddDevice(payload: {
   targetRoomId: number | null
   newRoom:      { name: string; category: string } | null
-  devices:      { type: string; name: string }[]
+  devices:      { type: string; name: string; customIcon?: string }[]
 }) {
   let targetId: number | string | null = payload.targetRoomId
   if (payload.newRoom) {
