@@ -36,6 +36,7 @@ const navItems = [
   { to: '/dashboard', icon: 'mdi-home-outline',           label: 'Inicio'        },
   { to: '/rooms',     icon: 'mdi-door-open',              label: 'Habitaciones'  },
   { to: '/rutinas',   icon: 'mdi-lightning-bolt-outline', label: 'Rutinas'       },
+  { to: '/historial', icon: 'mdi-history',                label: 'Historial'     },
   { to: '/stats',     icon: 'mdi-chart-line',             label: 'Estadísticas'  },
 ]
 </script>

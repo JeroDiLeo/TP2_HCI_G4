@@ -28,6 +28,7 @@ const PLACEHOLDERS = {
   'stats':     'Buscar estadísticas...',
   'profile':   'Buscar en perfil...',
   'settings':  'Buscar configuración...',
+  'historial': 'Buscar dispositivos, acciones, rutinas...',
 }
 
 const searchPlaceholder = computed(() =>

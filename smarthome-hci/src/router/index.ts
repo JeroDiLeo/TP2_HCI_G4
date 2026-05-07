@@ -88,6 +88,11 @@ const router = createRouter({
           name: 'rutinas',
           component: () => import('@/views/RoutinesView.vue'),
         },
+        {
+          path: 'historial',
+          name: 'historial',
+          component: () => import('@/views/HistorialView.vue'),
+        },
       ],
     },
   ],
