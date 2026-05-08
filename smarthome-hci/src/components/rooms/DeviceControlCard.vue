@@ -1,8 +1,13 @@
 <template>
   <article
     class="dcc"
-    :class="{ 'dcc--off': !d.active && NEEDS_TOGGLE[device.type] }"
+    :class="{
+      'dcc--off': !d.active && NEEDS_TOGGLE[device.type],
+      'dcc--busy': isExecuting,
+      'dcc--error': !!actionError,
+    }"
     :aria-label="`${device.name}, ${d.active ? 'activo' : 'inactivo'}`"
+    :aria-busy="isExecuting ? 'true' : 'false'"
   >
     <!-- ── Header ── -->
     <div class="dcc__header">
@@ -12,7 +17,9 @@
         </div>
         <div class="dcc__names">
           <span class="dcc__name">{{ device.name }}</span>
-          <span class="dcc__room">{{ device.roomName }}</span>
+          <span class="dcc__room" :class="{ 'dcc__room--error': !!actionError }">
+            <span :title="actionError || undefined">{{ statusText }}</span>
+          </span>
         </div>
       </div>
 
@@ -24,6 +31,7 @@
           :aria-label="`${d.active ? 'Apagar' : 'Encender'} ${device.name}`"
           :aria-checked="d.active"
           :checked="d.active"
+          :disabled="isExecuting"
           @change="onPowerToggle"
         />
         <span class="toggle__track" />
@@ -517,13 +525,28 @@
       </div>
 
       <div class="dcc__section dcc__section--actions dcc__section--col">
-        <button type="button" class="dcc__action-btn" @click="action('arm', ['armedStay'])">
+        <button
+          type="button"
+          class="dcc__action-btn"
+          :disabled="isExecuting || d.alarmMode === 'modo casa'"
+          @click="action('arm', ['armedStay'])"
+        >
           <v-icon icon="mdi-home-lock" size="16" /> Modo Casa
         </button>
-        <button type="button" class="dcc__action-btn" @click="action('arm', ['armedAway'])">
+        <button
+          type="button"
+          class="dcc__action-btn"
+          :disabled="isExecuting || d.alarmMode === 'modo regular'"
+          @click="action('arm', ['armedAway'])"
+        >
           <v-icon icon="mdi-shield-check" size="16" /> Modo Regular
         </button>
-        <button type="button" class="dcc__action-btn dcc__action-btn--ghost" @click="action('disarm')">
+        <button
+          type="button"
+          class="dcc__action-btn dcc__action-btn--ghost"
+          :disabled="isExecuting || d.alarmMode === 'desactivada'"
+          @click="action('disarm')"
+        >
           <v-icon icon="mdi-shield-off-outline" size="16" /> Desactivar
         </button>
       </div>
@@ -565,9 +588,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { RoomDevice } from '@/types/rooms'
 import { useDevicesStore } from '@/stores/devices'
+import { useDeviceTypesStore } from '@/stores/deviceTypes'
 import {
   AC_MODE_FRONT_TO_API,
   AC_SWING_FRONT_TO_API,
@@ -582,8 +606,25 @@ import {
 
 const props = defineProps<{ device: RoomDevice }>()
 const devicesStore = useDevicesStore()
+const deviceTypesStore = useDeviceTypesStore()
 
 const deviceId = computed(() => String(props.device.id))
+const supportedActionNames = computed(() => {
+  const deviceType = deviceTypesStore.getByFrontType(props.device.type)
+  return new Set((deviceType?.actions ?? []).map(action => action.name))
+})
+const isExecuting = computed(() => devicesStore.isActionLoading(deviceId.value))
+const actionError = computed(() => devicesStore.getActionError(deviceId.value))
+const statusText = computed(() => {
+  if (isExecuting.value) return 'Actualizando...'
+  if (actionError.value) return actionError.value
+  return props.device.roomName
+})
+
+watch(deviceId, (id, previousId) => {
+  if (previousId) devicesStore.clearActionError(previousId)
+  devicesStore.clearActionError(id)
+})
 
 // ── Live reactive read from store ────────────────────────────────────
 // d always reflects current store state
@@ -594,6 +635,15 @@ const d = computed<Record<string, any>>(() => {
 
 // ── Action helper — calls the API and refetches state ───────────────
 async function action(actionName: string, params: unknown[] = []) {
+  if (isExecuting.value) return
+  if (
+    deviceTypesStore.loaded &&
+    !supportedActionNames.value.has(actionName)
+  ) {
+    devicesStore.setActionError(deviceId.value, 'Acción no disponible para este dispositivo')
+    return
+  }
+
   try {
     await devicesStore.executeAction(deviceId.value, actionName, params)
   } catch (err) {
@@ -603,6 +653,8 @@ async function action(actionName: string, params: unknown[] = []) {
 
 // ── Power toggle ─────────────────────────────────────────────────────
 function onPowerToggle() {
+  if (isExecuting.value) return
+
   const next = !d.value.active
   if (props.device.type === 'vacuum') {
     action(next ? 'start' : 'dock')
@@ -729,6 +781,13 @@ const faucetUnit = ref('ml')
 }
 .dcc:hover { box-shadow: 0 4px 12px rgba(15, 23, 42, .08); }
 .dcc--off { opacity: .82; }
+.dcc--busy .dcc__body {
+  pointer-events: none;
+  opacity: .72;
+}
+.dcc--error {
+  border-color: rgba(239, 68, 68, .35);
+}
 
 /* ── Body (all content below header) ── */
 .dcc__body {
@@ -773,6 +832,9 @@ const faucetUnit = ref('ml')
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.dcc__room--error {
+  color: var(--sh-error);
 }
 
 /* ── Toggle switch ── */

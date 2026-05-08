@@ -20,19 +20,43 @@ import { useHomesStore } from '@/stores/homes'
 import { useRoomsStore } from '@/stores/rooms'
 import { useDeviceTypesStore } from '@/stores/deviceTypes'
 import { useDevicesStore } from '@/stores/devices'
+import { useRoutinesStore } from '@/stores/routines'
 
 const route = useRoute()
 const homesStore = useHomesStore()
 const roomsStore = useRoomsStore()
 const deviceTypesStore = useDeviceTypesStore()
 const devicesStore = useDevicesStore()
+const routinesStore = useRoutinesStore()
+let initializing = true
+
+async function loadActiveHomeData(homeId) {
+  if (!homeId) {
+    roomsStore.clearRooms()
+    return
+  }
+
+  await Promise.all([
+    roomsStore.fetchRoomsByHome(homeId),
+    devicesStore.fetchAll(),
+    routinesStore.fetchRoutines(),
+  ])
+}
 
 onMounted(async () => {
-  deviceTypesStore.fetchAll()
+  await deviceTypesStore.fetchAll()
 
   // Cargar homes si no están cargados
   if (homesStore.homes.length === 0) {
     await homesStore.fetchHomes()
+  }
+
+  const routeHomeId = typeof route.params.homeId === 'string'
+    ? route.params.homeId
+    : null
+
+  if (routeHomeId && homesStore.homes.some(home => home.id === routeHomeId)) {
+    homesStore.selectHome(routeHomeId)
   }
 
   // Si no hay home seleccionado, auto-seleccionar el primero
@@ -40,12 +64,8 @@ onMounted(async () => {
     homesStore.selectHome(homesStore.homes[0].id)
   }
 
-  // Cargar rooms y devices del home activo
-  const homeId = homesStore.selectedHomeId
-  if (homeId) {
-    roomsStore.fetchRoomsByHome(homeId)
-    devicesStore.fetchAll()
-  }
+  await loadActiveHomeData(homesStore.selectedHomeId)
+  initializing = false
 })
 
 const searchQuery = ref('')
@@ -67,6 +87,14 @@ const searchPlaceholder = computed(() =>
 
 // Reset search when navigating between views
 watch(() => route.name, () => { searchQuery.value = '' })
+
+watch(
+  () => homesStore.selectedHomeId,
+  (homeId) => {
+    if (initializing) return
+    loadActiveHomeData(homeId)
+  }
+)
 
 // Provide search to child views so they can sync to their store
 provide('layoutSearchQuery', searchQuery)

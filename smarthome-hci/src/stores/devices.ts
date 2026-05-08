@@ -17,6 +17,7 @@ import {
 } from '@/utils/deviceMapper'
 import type { RoomDevice, RoomDeviceType, RoomId } from '@/types/rooms'
 import { useRoomsStore } from '@/stores/rooms'
+import { useHomesStore } from '@/stores/homes'
 
 function extractList(data: unknown): unknown[] {
   if (Array.isArray(data)) return data
@@ -52,6 +53,8 @@ export const useDevicesStore = defineStore('devices', () => {
   const devices = ref<RoomDevice[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const actionLoadingById = ref<Record<string, boolean>>({})
+  const actionErrorById = ref<Record<string, string | null>>({})
 
   // ── Computed ────────────────────────────────────────────────────────
 
@@ -59,8 +62,23 @@ export const useDevicesStore = defineStore('devices', () => {
     return devices.value.filter(d => String(d.roomId) === String(roomId))
   }
 
+  const devicesForActiveHome = computed(() => {
+    const homesStore = useHomesStore()
+    const roomsStore = useRoomsStore()
+
+    if (!homesStore.selectedHomeId) return devices.value
+
+    const activeHomeRoomIds = new Set(
+      roomsStore.rooms.map(room => String(room.id)),
+    )
+
+    return devices.value.filter(device =>
+      activeHomeRoomIds.has(String(device.roomId)),
+    )
+  })
+
   const activeDevices = computed(() =>
-    devices.value.filter(d => d.active),
+    devicesForActiveHome.value.filter(d => d.active),
   )
 
   // ── Fetch ──────────────────────────────────────────────────────────
@@ -143,26 +161,32 @@ export const useDevicesStore = defineStore('devices', () => {
   // ── Acciones de dispositivo ────────────────────────────────────────
 
   async function executeAction(deviceId: string, actionName: string, params: unknown[] = []) {
+    const id = String(deviceId)
+    if (actionLoadingById.value[id]) return
+
     error.value = null
+    actionErrorById.value = { ...actionErrorById.value, [id]: null }
+    actionLoadingById.value = { ...actionLoadingById.value, [id]: true }
+
     try {
-      await apiExecuteAction(deviceId, actionName, params)
+      await apiExecuteAction(id, actionName, params)
       // Después de ejecutar la acción, refrescamos el state del device
-      await refreshDeviceState(deviceId)
+      await refreshDeviceState(id)
     } catch (err: any) {
-      error.value = err.message || 'Error al ejecutar la acción'
+      const message = err.message || 'Error al ejecutar la acción'
+      error.value = message
+      actionErrorById.value = { ...actionErrorById.value, [id]: message }
       throw err
+    } finally {
+      actionLoadingById.value = { ...actionLoadingById.value, [id]: false }
     }
   }
 
   async function refreshDeviceState(deviceId: string) {
-    try {
-      const data = await apiGetDevice(deviceId)
-      const mapped = mapDevice(extractOne(data) as ApiDevice)
-      const idx = devices.value.findIndex(d => String(d.id) === String(deviceId))
-      if (idx !== -1) devices.value.splice(idx, 1, mapped)
-    } catch (_) {
-      // Si falla el refresh, no rompemos el flujo
-    }
+    const data = await apiGetDevice(deviceId)
+    const mapped = mapDevice(extractOne(data) as ApiDevice)
+    const idx = devices.value.findIndex(d => String(d.id) === String(deviceId))
+    if (idx !== -1) devices.value.splice(idx, 1, mapped)
   }
 
   // ── Helpers ────────────────────────────────────────────────────────
@@ -171,15 +195,42 @@ export const useDevicesStore = defineStore('devices', () => {
     return devices.value.find(d => String(d.id) === id)
   }
 
+  function isActionLoading(deviceId: string): boolean {
+    return !!actionLoadingById.value[String(deviceId)]
+  }
+
+  function getActionError(deviceId: string): string | null {
+    return actionErrorById.value[String(deviceId)] ?? null
+  }
+
+  function setActionError(deviceId: string, message: string) {
+    actionErrorById.value = {
+      ...actionErrorById.value,
+      [String(deviceId)]: message,
+    }
+  }
+
+  function clearActionError(deviceId: string) {
+    actionErrorById.value = {
+      ...actionErrorById.value,
+      [String(deviceId)]: null,
+    }
+  }
+
   function clear() {
     devices.value = []
     error.value = null
+    actionLoadingById.value = {}
+    actionErrorById.value = {}
   }
 
   return {
     devices,
     loading,
     error,
+    actionLoadingById,
+    actionErrorById,
+    devicesForActiveHome,
     activeDevices,
     devicesByRoom,
     fetchAll,
@@ -190,6 +241,10 @@ export const useDevicesStore = defineStore('devices', () => {
     executeAction,
     refreshDeviceState,
     getDeviceById,
+    isActionLoading,
+    getActionError,
+    setActionError,
+    clearActionError,
     clear,
   }
 })

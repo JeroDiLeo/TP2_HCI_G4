@@ -21,6 +21,17 @@ async function parseErrorBody(response) {
   try { return await response.json() } catch (_) { return {} }
 }
 
+async function parseResponseBody(response) {
+  const text = await response.text()
+  if (!text) return null
+
+  try {
+    return JSON.parse(text)
+  } catch (_) {
+    return text
+  }
+}
+
 // ── List / Get ──────────────────────────────────────────────────────
 
 export async function getAllDevices() {
@@ -33,7 +44,7 @@ export async function getAllDevices() {
       throw handleError(await parseErrorBody(response), response.status)
     }
 
-    return await response.json()
+    return await parseResponseBody(response)
   } catch (error) {
     console.log(`Unexpected error: ${error.message}`)
     throw error
@@ -50,7 +61,7 @@ export async function getDevice(deviceId) {
       throw handleError(await parseErrorBody(response), response.status)
     }
 
-    return await response.json()
+    return await parseResponseBody(response)
   } catch (error) {
     console.log(`Unexpected error: ${error.message}`)
     throw error
@@ -67,7 +78,7 @@ export async function getDevicesByRoom(roomId) {
       throw handleError(await parseErrorBody(response), response.status)
     }
 
-    return await response.json()
+    return await parseResponseBody(response)
   } catch (error) {
     console.log(`Unexpected error: ${error.message}`)
     throw error
@@ -93,7 +104,7 @@ export async function addDevice({ name, type, room, metadata = {} }) {
       throw handleError(await parseErrorBody(response), response.status)
     }
 
-    return await response.json()
+    return await parseResponseBody(response)
   } catch (error) {
     console.log(`Unexpected error: ${error.message}`)
     throw error
@@ -118,7 +129,7 @@ export async function updateDevice(deviceId, { name, metadata }) {
       throw handleError(await parseErrorBody(response), response.status)
     }
 
-    return await response.json()
+    return await parseResponseBody(response)
   } catch (error) {
     console.log(`Unexpected error: ${error.message}`)
     throw error
@@ -153,7 +164,7 @@ export async function getDeviceState(deviceId) {
       throw handleError(await parseErrorBody(response), response.status)
     }
 
-    return await response.json()
+    return await parseResponseBody(response)
   } catch (error) {
     console.log(`Unexpected error: ${error.message}`)
     throw error
@@ -174,7 +185,7 @@ export async function executeAction(deviceId, actionName, params = []) {
       throw handleError(await parseErrorBody(response), response.status)
     }
 
-    return await response.json()
+    return await parseResponseBody(response)
   } catch (error) {
     console.log(`Unexpected error: ${error.message}`)
     throw error

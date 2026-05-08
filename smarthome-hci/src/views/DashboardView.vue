@@ -206,12 +206,14 @@ const router        = useRouter()
 
 // ── Reactive views ──
 const rooms            = computed(() => roomsStore.rooms)
-const routines         = computed(() => routinesStore.routines)
+const routines         = computed(() => routinesStore.filteredRoutines)
 const favoriteRooms    = computed(() => roomsStore.favoriteRooms)
 const favoriteRoutines = computed(() => routinesStore.favoriteRoutines)
 
 // ── Stats ──
-const totalActiveDevices = computed(() => devicesStore.activeDevices.length)
+const totalActiveDevices = computed(() =>
+  devicesStore.devicesForActiveHome.filter(device => device.active).length
+)
 const totalRooms = computed(() => rooms.value.length)
 
 // ── Modals ──
