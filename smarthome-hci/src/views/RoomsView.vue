@@ -46,6 +46,7 @@
 
 <script setup>
 import { ref, inject, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useRoomsStore } from '@/stores/rooms'
 import RoomStatsCard  from '@/components/rooms/RoomStatsCard.vue'
 import ViewModeToggle from '@/components/rooms/ViewModeToggle.vue'
@@ -53,6 +54,7 @@ import RoomsGrid     from '@/components/rooms/RoomsGrid.vue'
 import AddRoomModal  from '@/components/rooms/AddRoomModal.vue'
 
 const roomsStore     = useRoomsStore()
+const router         = useRouter()
 const viewMode       = ref('grid')
 const isAddModalOpen = ref(false)
 
@@ -61,8 +63,7 @@ const layoutSearch = inject('layoutSearchQuery', ref(''))
 watch(layoutSearch, (q) => { roomsStore.searchQuery = q }, { immediate: true })
 
 function handleViewDetails(roomId) {
-  // Placeholder: navegación a detalle de habitación
-  console.info('Ver detalles de habitación:', roomId)
+  router.push({ name: 'room-detail', params: { roomId } })
 }
 </script>
 

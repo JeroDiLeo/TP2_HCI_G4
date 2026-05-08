@@ -22,11 +22,12 @@ const route = useRoute()
 const searchQuery = ref('')
 
 const PLACEHOLDERS = {
-  'dashboard': 'Buscar dispositivos...',
-  'rooms':     'Buscar habitaciones...',
-  'devices':   'Buscar dispositivos...',
-  'stats':     'Buscar estadísticas...',
-  'settings':  'Buscar configuración...',
+  'dashboard':   'Buscar dispositivos...',
+  'rooms':       'Buscar habitaciones...',
+  'room-detail': 'Buscar dispositivos...',
+  'devices':     'Buscar dispositivos...',
+  'stats':       'Buscar estadísticas...',
+  'settings':    'Buscar configuración...',
 }
 
 const searchPlaceholder = computed(() =>
