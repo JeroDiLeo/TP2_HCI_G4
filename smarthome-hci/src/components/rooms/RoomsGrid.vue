@@ -13,6 +13,7 @@
         :style="{ '--card-delay': `${idx * 30}ms` }"
         role="listitem"
         @view-details="emit('view-details', $event)"
+        @toggle-favorite="store.toggleFavorite($event)"
       />
     </div>
 

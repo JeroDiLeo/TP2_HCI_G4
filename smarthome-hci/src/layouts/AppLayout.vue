@@ -23,11 +23,12 @@ const searchQuery = ref('')
 
 const PLACEHOLDERS = {
   'dashboard': 'Buscar dispositivos...',
-  'rooms':     'Buscar habitaciones...',
-  'devices':   'Buscar dispositivos...',
-  'stats':     'Buscar estadísticas...',
-  'profile':   'Buscar en perfil...',
-  'settings':  'Buscar configuración...',
+  'rooms': 'Buscar habitaciones...',
+  'room-detail': 'Buscar dispositivos...',
+  'devices': 'Buscar dispositivos...',
+  'stats': 'Buscar estadísticas...',
+  'profile': 'Buscar en perfil...',
+  'settings': 'Buscar configuración...',
 }
 
 const searchPlaceholder = computed(() =>
