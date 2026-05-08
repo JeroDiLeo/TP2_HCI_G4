@@ -11,9 +11,8 @@
           aria-label="Cambiar hogar activo"
           aria-haspopup="menu"
         >
-          <v-icon icon="mdi-home-outline" size="16" class="app-topbar__home-icon" aria-hidden="true" />
           <span class="app-topbar__home-name">{{ activeHomeName }}</span>
-          <v-icon icon="mdi-chevron-down" size="16" aria-hidden="true" />
+          <v-icon icon="mdi-chevron-down" size="20" class="app-topbar__home-chevron" aria-hidden="true" />
         </button>
       </template>
 
@@ -239,43 +238,52 @@ async function handleLogout() {
   align-items: center;
   gap: 20px;
   padding: 0 32px;
+  /* needed so the absolutely-centered search aligns to topbar bounds */
 }
 
 /* ── Home selector ── */
 .app-topbar__home-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
+  gap: 6px;
+  padding: 6px 10px;
   background: transparent;
-  border: 1px solid var(--sh-border);
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
   color: var(--sh-text-main);
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background-color 150ms cubic-bezier(.4,0,.2,1), border-color 150ms cubic-bezier(.4,0,.2,1);
+  transition: background-color 150ms cubic-bezier(.4,0,.2,1);
 }
 .app-topbar__home-btn:hover {
   background-color: var(--sh-primary-light);
-  border-color: var(--sh-primary);
 }
 .app-topbar__home-btn:focus-visible {
   outline: 2px solid var(--sh-primary);
   outline-offset: 2px;
 }
-.app-topbar__home-icon  { color: var(--sh-primary); }
-.app-topbar__home-name  { font-weight: 500; color: var(--sh-text-main); }
-.app-topbar__no-homes   { color: var(--sh-text-muted); font-style: italic; }
+.app-topbar__home-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--sh-text-main);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.app-topbar__home-chevron {
+  color: var(--sh-text-muted);
+  margin-top: 1px;
+}
+.app-topbar__no-homes { color: var(--sh-text-muted); font-style: italic; }
 
-/* ── Search ── */
+/* ── Search (centered horizontally in topbar) ── */
 .app-topbar__search {
-  flex: 1;
-  max-width: 360px;
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, 38vw);
 }
 .app-topbar__search-icon {
   position: absolute;

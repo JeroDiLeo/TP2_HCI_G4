@@ -50,7 +50,7 @@
 const navItems = [
   { to: '/dashboard', icon: 'mdi-home-outline',           label: 'Inicio'        },
   { to: '/rooms',     icon: 'mdi-door-open',              label: 'Habitaciones'  },
-  { to: '/devices',   icon: 'mdi-lightning-bolt-outline', label: 'Dispositivos'  },
+  { to: '/rutinas',   icon: 'mdi-lightning-bolt-outline', label: 'Rutinas'       },
   { to: '/stats',     icon: 'mdi-chart-line',             label: 'Estadísticas'  },
 ]
 </script>

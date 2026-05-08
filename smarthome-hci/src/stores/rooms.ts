@@ -9,21 +9,13 @@ export interface Room {
   type?: string
   devicesTotal?: number
   devicesActive?: number
+  favorite?: boolean
   home?: { id: string }
   metadata?: Record<string, unknown>
 }
 
-// ── Initial device data ──────────────────────────────────────────────
-// active = true means the device is currently operational and counts
-// toward devicesActive. Semantics per type:
-//   light / ac / oven / speaker / vacuum → powered on
-//   door                                 → locked (security actively engaged)
-//   alarm                                → alarmMode !== 'desactivada'
-//   faucet                               → open (valve is open)
-//   blind                                → position > 0 (open or partially open)
-//   fridge                               → false by default (always running but not "in use")
 const INITIAL_DEVICES: Record<string, RoomDevice[]> = {
-  '1': [ // Sala de Estar → 3 active
+  '1': [
     {
       id: 101, name: 'Lámpara Principal', type: 'light', active: true,
       roomId: 1, roomName: 'Sala de Estar', color: '#FCD34D', intensity: 75,
@@ -46,7 +38,7 @@ const INITIAL_DEVICES: Record<string, RoomDevice[]> = {
     },
   ],
 
-  '2': [ // Habitación Principal → 2 active
+  '2': [
     {
       id: 201, name: 'Lámpara Ambiente', type: 'light', active: true,
       roomId: 2, roomName: 'Habitación Principal', color: '#93C5FD', intensity: 45,
@@ -69,7 +61,7 @@ const INITIAL_DEVICES: Record<string, RoomDevice[]> = {
     },
   ],
 
-  '3': [ // Cocina → 1 active
+  '3': [
     {
       id: 301, name: 'Horno', type: 'oven', active: true,
       roomId: 3, roomName: 'Cocina',
@@ -92,7 +84,7 @@ const INITIAL_DEVICES: Record<string, RoomDevice[]> = {
     },
   ],
 
-  '4': [ // Habitación de Tomi → 0 active
+  '4': [
     {
       id: 401, name: 'Lámpara', type: 'light', active: false,
       roomId: 4, roomName: 'Habitación de Tomi', color: '#FCD34D', intensity: 50,
@@ -115,7 +107,7 @@ const INITIAL_DEVICES: Record<string, RoomDevice[]> = {
     },
   ],
 
-  '5': [ // Baño Principal → 0 active (door unlocked/inactive)
+  '5': [
     {
       id: 501, name: 'Lámpara', type: 'light', active: false,
       roomId: 5, roomName: 'Baño Principal', color: '#FFFFFF', intensity: 100,
@@ -135,7 +127,7 @@ const INITIAL_DEVICES: Record<string, RoomDevice[]> = {
     },
   ],
 
-  '6': [ // Oficina → 2 active (door locked + alarm armed)
+  '6': [
     {
       id: 601, name: 'Puerta', type: 'door', active: true,
       roomId: 6, roomName: 'Oficina', open: false, locked: true,
@@ -157,56 +149,75 @@ const INITIAL_DEVICES: Record<string, RoomDevice[]> = {
   ],
 }
 
-// Base room list without stats — counts are derived reactively from roomDevices
 const ROOM_BASES: Room[] = [
-  { id: 1, name: 'Sala de Estar',        type: 'living'   },
-  { id: 2, name: 'Habitación Principal', type: 'bedroom'  },
-  { id: 3, name: 'Cocina',               type: 'kitchen'  },
-  { id: 4, name: 'Habitación de Tomi',   type: 'bedroom'  },
-  { id: 5, name: 'Baño Principal',       type: 'bathroom' },
-  { id: 6, name: 'Oficina',              type: 'office'   },
+  { id: 1, name: 'Sala de Estar',        type: 'living',   favorite: true  },
+  { id: 2, name: 'Habitación Principal', type: 'bedroom',  favorite: true  },
+  { id: 3, name: 'Cocina',               type: 'kitchen',  favorite: false },
+  { id: 4, name: 'Habitación de Tomi',   type: 'bedroom',  favorite: false },
+  { id: 5, name: 'Baño Principal',       type: 'bathroom', favorite: false },
+  { id: 6, name: 'Oficina',              type: 'office',   favorite: false },
 ]
 
-// ── Store ────────────────────────────────────────────────────────────
+function makePlaceholderDevice(
+  roomId: number | string,
+  roomName: string,
+  id: number,
+  active: boolean,
+): RoomDevice {
+  return {
+    id,
+    name: `Dispositivo ${id}`,
+    type: 'light',
+    active,
+    roomId,
+    roomName,
+    color: '#FFFFFF',
+    intensity: active ? 100 : 0,
+  }
+}
+
 export const useRoomsStore = defineStore('rooms', () => {
   const rooms = ref<Room[]>([...ROOM_BASES])
   const searchQuery = ref('')
+  const categoryFilter = ref<string>('todas')
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // String-keyed so ids are compared as strings throughout
   const roomDevices = ref<Record<string, RoomDevice[]>>(
     Object.fromEntries(
-      Object.entries(INITIAL_DEVICES).map(([k, v]) => [k, v.map(d => ({ ...d }))])
-    )
+      Object.entries(INITIAL_DEVICES).map(([k, v]) => [k, v.map(d => ({ ...d }))]),
+    ),
   )
 
-  // ── Stats derived reactively from roomDevices ──
   function getRoomDeviceStats(id: number | string) {
     const list = roomDevices.value[String(id)] ?? []
     return { total: list.length, active: list.filter(d => d.active).length }
   }
 
-  // rooms exposed to the rest of the app include live stats
   const roomsWithStats = computed<Room[]>(() =>
     rooms.value.map(r => {
       const stats = getRoomDeviceStats(r.id)
       return { ...r, devicesTotal: stats.total, devicesActive: stats.active }
-    })
+    }),
   )
 
   const totalRooms = computed(() => rooms.value.length)
 
   const activeDevices = computed(() =>
-    Object.values(roomDevices.value).flat().filter(d => d.active).length
+    Object.values(roomDevices.value).flat().filter(d => d.active).length,
   )
 
   const filteredRooms = computed(() => {
     const q = searchQuery.value.trim().toLowerCase()
-    const source = roomsWithStats.value
-    if (!q) return source
-    return source.filter(r => r.name.toLowerCase().includes(q))
+    const cat = categoryFilter.value
+    return roomsWithStats.value.filter(r => {
+      const matchesSearch = !q || r.name.toLowerCase().includes(q)
+      const matchesCategory = cat === 'todas' || (r.type ?? 'other') === cat
+      return matchesSearch && matchesCategory
+    })
   })
+
+  const favoriteRooms = computed(() => roomsWithStats.value.filter(r => r.favorite))
 
   function getRoomById(id: number | string): Room | undefined {
     return roomsWithStats.value.find(r => String(r.id) === String(id))
@@ -219,7 +230,7 @@ export const useRoomsStore = defineStore('rooms', () => {
   function updateRoomDevice(
     roomId: number | string,
     deviceId: number,
-    patch: Partial<RoomDevice>
+    patch: Partial<RoomDevice>,
   ) {
     const list = roomDevices.value[String(roomId)]
     if (!list) return
@@ -227,12 +238,38 @@ export const useRoomsStore = defineStore('rooms', () => {
     if (idx !== -1) Object.assign(list[idx], patch)
   }
 
-  function addRoom({ name, type }: { name: string; type?: string }) {
-    rooms.value.push({ id: Date.now(), name, type })
+  function addRoom({ name, type }: { name: string; type?: string }): Room {
+    const created: Room = {
+      id: Date.now(),
+      name,
+      type,
+      favorite: false,
+    }
+    rooms.value.push(created)
+    roomDevices.value[String(created.id)] = []
+    return created
   }
 
   function removeRoom(id: number | string) {
     rooms.value = rooms.value.filter(r => String(r.id) !== String(id))
+    delete roomDevices.value[String(id)]
+  }
+
+  function toggleFavorite(id: number | string) {
+    const room = rooms.value.find(r => String(r.id) === String(id))
+    if (room) room.favorite = !room.favorite
+  }
+
+  function addDevicesToRoom(id: number | string, count: number, activeCount = 0) {
+    const room = rooms.value.find(r => String(r.id) === String(id))
+    if (!room) return
+    const key = String(id)
+    const list = roomDevices.value[key] ?? []
+    const nextIdBase = Date.now()
+    for (let i = 0; i < count; i += 1) {
+      list.push(makePlaceholderDevice(id, room.name, nextIdBase + i, i < activeCount))
+    }
+    roomDevices.value[key] = list
   }
 
   async function fetchRoomsByHome(homeId: string) {
@@ -255,9 +292,23 @@ export const useRoomsStore = defineStore('rooms', () => {
 
   return {
     rooms: roomsWithStats,
-    searchQuery, loading, error,
-    totalRooms, activeDevices, filteredRooms,
-    getRoomById, getRoomDevices, getRoomDeviceStats, updateRoomDevice,
-    addRoom, removeRoom, fetchRoomsByHome, clearRooms,
+    searchQuery,
+    categoryFilter,
+    loading,
+    error,
+    totalRooms,
+    activeDevices,
+    filteredRooms,
+    favoriteRooms,
+    getRoomById,
+    getRoomDevices,
+    getRoomDeviceStats,
+    updateRoomDevice,
+    addRoom,
+    removeRoom,
+    toggleFavorite,
+    addDevicesToRoom,
+    fetchRoomsByHome,
+    clearRooms,
   }
 })

@@ -83,6 +83,11 @@ const router = createRouter({
           name: 'home-detail',
           component: () => import('@/views/DashboardView.vue'),
         },
+        {
+          path: 'rutinas',
+          name: 'rutinas',
+          component: () => import('@/views/RoutinesView.vue'),
+        },
       ],
     },
   ],
