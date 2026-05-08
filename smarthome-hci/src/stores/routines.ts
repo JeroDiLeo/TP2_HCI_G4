@@ -1,139 +1,204 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import {
+  getAllRoutines,
+  addRoutine as apiAddRoutine,
+  updateRoutine as apiUpdateRoutine,
+  deleteRoutine as apiDeleteRoutine,
+  executeRoutine as apiExecuteRoutine,
+} from '@/services/api/routineApi'
+import { fromApi, toApi, type FrontRoutine, type FrontRoutineAction } from '@/utils/routineMapper'
+import { useHomesStore } from '@/stores/homes'
+
+export type { FrontRoutineAction }
+export type Routine = FrontRoutine
 
 export interface RoutineTrigger {
   type: 'schedule' | 'manual'
   time?: string
 }
 
-export interface Routine {
-  id: string
-  name: string
-  description: string
-  category: string
-  icon: string
-  trigger: RoutineTrigger
-  actions: string[]
-  days: string[]
-  favorite?: boolean
-}
-
+// mock anterior, queda comentado por si hay que hacer rollback
+/*
 const MOCK_ROUTINES: Routine[] = [
   {
     id: 'r1', name: 'Buenos Días', description: 'Despierta con el ambiente perfecto',
     category: 'Mañana', icon: 'mdi-white-balance-sunny',
     trigger: { type: 'schedule', time: '07:00' },
-    actions: [
-      'Luces Sala · Encender (50%)',
-      'Aire Acond. · Ajustar a 22°C',
-      'Persiana · Abrir (100%)',
-      'Parlante · Reproducir música',
-    ],
+    actions: [],
     days: ['lun', 'mar', 'mie', 'jue', 'vie'],
-    favorite: true,
+    favorite: true, homeId: null,
   },
   {
     id: 'r2', name: 'Buenas Noches', description: 'Prepara tu casa para dormir',
     category: 'Noche', icon: 'mdi-weather-night',
     trigger: { type: 'schedule', time: '22:00' },
-    actions: [
-      'Todas las luces · Apagar',
-      'Aire Acond. · Ajustar a 20°C',
-      'Puerta principal · Bloquear',
-      'Alarma · Activar',
-    ],
+    actions: [],
     days: ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'],
-    favorite: true,
+    favorite: true, homeId: null,
   },
   {
     id: 'r3', name: 'Modo Película', description: 'Configura la sala para una buena peli',
     category: 'Confort', icon: 'mdi-movie-open',
     trigger: { type: 'manual' },
-    actions: [
-      'Luces Sala · Atenuar (20%)',
-      'Persiana · Cerrar',
-      'Parlante · Encender',
-    ],
+    actions: [],
     days: [],
-    favorite: true,
+    favorite: true, homeId: null,
   },
   {
     id: 'r4', name: 'Modo Ahorro', description: 'Reduce el consumo energético',
     category: 'Personalizada', icon: 'mdi-leaf',
     trigger: { type: 'schedule', time: '23:00' },
-    actions: [
-      'Luces · Atenuar (50%)',
-      'Aire Acond. · Ajustar a 25°C',
-      'Heladera · Modo eco (6°C)',
-    ],
+    actions: [],
     days: ['mie', 'jue', 'vie'],
+    homeId: null,
   },
   {
     id: 'r5', name: 'Seguridad Nocturna', description: 'Asegura la casa antes de dormir',
     category: 'Seguridad', icon: 'mdi-shield-check',
     trigger: { type: 'schedule', time: '23:00' },
-    actions: [
-      'Alarma · Activar',
-      'Puerta · Bloquear',
-      'Luces exteriores · Encender (30%)',
-    ],
+    actions: [],
     days: ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'],
+    homeId: null,
   },
   {
     id: 'r6', name: 'Hora del Café', description: 'Prepara el ambiente para tu café',
     category: 'Confort', icon: 'mdi-coffee',
     trigger: { type: 'schedule', time: '15:00' },
-    actions: [
-      'Luces Cocina · Encender (70%)',
-      'Parlante · Reproducir música',
-    ],
+    actions: [],
     days: ['sab', 'dom'],
+    homeId: null,
   },
 ]
+*/
+
+function extractList(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data
+  if (data && typeof data === 'object' && Array.isArray((data as any).result)) {
+    return (data as any).result
+  }
+  return []
+}
+
+function extractOne(data: unknown): unknown {
+  if (data && typeof data === 'object' && 'result' in (data as any)) {
+    return (data as any).result
+  }
+  return data
+}
+
 
 export const useRoutinesStore = defineStore('routines', () => {
-  const routines = ref<Routine[]>(JSON.parse(JSON.stringify(MOCK_ROUTINES)))
+  const routines = ref<FrontRoutine[]>([])
+  const loading = ref(false)
+  const error = ref<string | null>(null)
 
-  const favoriteRoutines = computed(() => routines.value.filter(r => r.favorite))
+  const filteredRoutines = computed(() => {
+    const homesStore = useHomesStore()
+    const homeId = homesStore.selectedHomeId
+    if (!homeId) return routines.value
+    return routines.value.filter(r => r.homeId === homeId)
+  })
 
-  function toggleFavorite(id: string) {
-    const r = routines.value.find(r => r.id === id)
-    if (r) r.favorite = !r.favorite
-  }
+  const favoriteRoutines = computed(() =>
+    filteredRoutines.value.filter(r => r.favorite),
+  )
 
-  function addRoutine(data: Omit<Routine, 'id'>) {
-    const routine: Routine = {
-      ...JSON.parse(JSON.stringify(data)),
-      id: `r${Date.now()}`,
+  async function fetchRoutines() {
+    loading.value = true
+    error.value = null
+    try {
+      const data = await getAllRoutines()
+      routines.value = extractList(data).map(r => fromApi(r as any))
+    } catch (err: any) {
+      error.value = err.message || 'Error al cargar las rutinas'
+    } finally {
+      loading.value = false
     }
-    routines.value.push(routine)
-    return routine
   }
 
-  function updateRoutine(id: string, patch: Partial<Routine>) {
-    const idx = routines.value.findIndex(r => r.id === id)
-    if (idx >= 0) routines.value[idx] = { ...routines.value[idx], ...patch }
+  async function addRoutine(data: Omit<FrontRoutine, 'id'>) {
+    error.value = null
+    try {
+      const homesStore = useHomesStore()
+      const withHome: Omit<FrontRoutine, 'id'> = {
+        ...data,
+        homeId: data.homeId ?? homesStore.selectedHomeId,
+      }
+      const payload = toApi(withHome)
+      const response = await apiAddRoutine(payload)
+      const mapped = fromApi(extractOne(response) as any)
+      routines.value.push(mapped)
+      return mapped
+    } catch (err: any) {
+      error.value = err.message || 'Error al crear la rutina'
+      throw err
+    }
   }
 
-  function removeRoutine(id: string) {
-    routines.value = routines.value.filter(r => r.id !== id)
+  async function updateRoutine(id: string, patch: Partial<FrontRoutine>) {
+    error.value = null
+    try {
+      const idx = routines.value.findIndex(r => r.id === id)
+      if (idx === -1) return
+      const merged: Omit<FrontRoutine, 'id'> = { ...routines.value[idx], ...patch }
+      const payload = toApi(merged)
+      const response = await apiUpdateRoutine(id, payload)
+      const mapped = fromApi(extractOne(response) as any)
+      routines.value.splice(idx, 1, mapped)
+      return mapped
+    } catch (err: any) {
+      error.value = err.message || 'Error al actualizar la rutina'
+      throw err
+    }
   }
 
-  function duplicateRoutine(id: string) {
+  async function removeRoutine(id: string) {
+    error.value = null
+    try {
+      await apiDeleteRoutine(id)
+      routines.value = routines.value.filter(r => r.id !== id)
+    } catch (err: any) {
+      error.value = err.message || 'Error al eliminar la rutina'
+      throw err
+    }
+  }
+
+  async function executeRoutine(id: string) {
+    error.value = null
+    try {
+      return await apiExecuteRoutine(id)
+    } catch (err: any) {
+      error.value = err.message || 'Error al ejecutar la rutina'
+      throw err
+    }
+  }
+
+  async function duplicateRoutine(id: string) {
     const orig = routines.value.find(r => r.id === id)
     if (!orig) return
-    routines.value.push({
-      ...JSON.parse(JSON.stringify(orig)),
-      id: `r${Date.now()}`,
-      name: `${orig.name} (copia)`,
-    })
+    const { id: _id, ...rest } = orig
+    return await addRoutine({ ...rest, name: `${orig.name} (copia)` })
   }
 
-  // No-op visual: la integración real con dispositivos viene después.
-  function executeRoutine(_id: string) {}
+  async function toggleFavorite(id: string) {
+    const routine = routines.value.find(r => r.id === id)
+    if (!routine) return
+    return await updateRoutine(id, { favorite: !routine.favorite })
+  }
 
   return {
-    routines, favoriteRoutines,
-    addRoutine, updateRoutine, removeRoutine, duplicateRoutine, executeRoutine, toggleFavorite,
+    routines,
+    loading,
+    error,
+    filteredRoutines,
+    favoriteRoutines,
+    fetchRoutines,
+    addRoutine,
+    updateRoutine,
+    removeRoutine,
+    executeRoutine,
+    duplicateRoutine,
+    toggleFavorite,
   }
 })

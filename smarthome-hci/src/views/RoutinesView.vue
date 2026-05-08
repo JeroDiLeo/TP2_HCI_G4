@@ -46,7 +46,6 @@
       >
         <RoutineCard
           :routine="routine"
-          @execute="handleExecute"
           @edit="handleEdit"
           @toggle-favorite="store.toggleFavorite($event)"
         />
@@ -71,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import RoutineCard from '@/components/routines/RoutineCard.vue'
 import EditRoutineModal from '@/components/routines/EditRoutineModal.vue'
@@ -79,7 +78,9 @@ import CreateRoutineModal from '@/components/routines/CreateRoutineModal.vue'
 import { useRoutinesStore } from '@/stores/routines'
 
 const store = useRoutinesStore()
-const { routines } = storeToRefs(store)
+const { filteredRoutines: storeFilteredRoutines } = storeToRefs(store)
+
+onMounted(() => store.fetchRoutines())
 
 // ── Filter logic ──
 const CATEGORIES = ['Todas', 'Mañana', 'Noche', 'Confort', 'Seguridad', 'Personalizada']
@@ -87,17 +88,17 @@ const CATEGORIES = ['Todas', 'Mañana', 'Noche', 'Confort', 'Seguridad', 'Person
 const selectedCategory = ref('Todas')
 
 const filteredRoutines = computed(() => {
-  if (selectedCategory.value === 'Todas') return routines.value
-  return routines.value.filter(r => r.category === selectedCategory.value)
+  if (selectedCategory.value === 'Todas') return storeFilteredRoutines.value
+  return storeFilteredRoutines.value.filter(r => r.category === selectedCategory.value)
 })
 
 const categoryCounts = computed(() => ({
-  Todas:        routines.value.length,
-  Mañana:       routines.value.filter(r => r.category === 'Mañana').length,
-  Noche:        routines.value.filter(r => r.category === 'Noche').length,
-  Confort:      routines.value.filter(r => r.category === 'Confort').length,
-  Seguridad:    routines.value.filter(r => r.category === 'Seguridad').length,
-  Personalizada: routines.value.filter(r => r.category === 'Personalizada').length,
+  Todas:         storeFilteredRoutines.value.length,
+  Mañana:        storeFilteredRoutines.value.filter(r => r.category === 'Mañana').length,
+  Noche:         storeFilteredRoutines.value.filter(r => r.category === 'Noche').length,
+  Confort:       storeFilteredRoutines.value.filter(r => r.category === 'Confort').length,
+  Seguridad:     storeFilteredRoutines.value.filter(r => r.category === 'Seguridad').length,
+  Personalizada: storeFilteredRoutines.value.filter(r => r.category === 'Personalizada').length,
 }))
 
 // ── Edit modal ──
@@ -119,10 +120,6 @@ const isCreateOpen = ref(false)
 
 function handleCreated(_id) {
   // El modal de creación ahora incluye el paso de acciones; no abrimos edición automáticamente.
-}
-
-function handleExecute(id) {
-  store.executeRoutine(id)
 }
 </script>
 

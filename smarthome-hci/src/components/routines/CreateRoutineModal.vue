@@ -217,6 +217,13 @@
             <p class="empty-state__subtitle">Tocá "Añadir acción" para empezar</p>
           </div>
 
+          <!-- La API requiere al menos una acción -->
+          <!-- Conectar cuando esté el store de devices -->
+          <div class="actions-notice" role="note">
+            <v-icon icon="mdi-information-outline" size="14" aria-hidden="true" />
+            <span>Las acciones se configurarán cuando los dispositivos estén conectados. Por ahora la API requiere al menos una acción para guardar.</span>
+          </div>
+
           <button
             type="button"
             class="add-action-trigger"
@@ -232,6 +239,12 @@
             <v-icon icon="mdi-chevron-right" size="18" class="add-action-trigger__chevron" aria-hidden="true" />
           </button>
         </template>
+      </div>
+
+      <!-- API error -->
+      <div v-if="apiError" class="create-modal__api-error" role="alert">
+        <v-icon icon="mdi-alert-circle-outline" size="14" aria-hidden="true" />
+        {{ apiError }}
       </div>
 
       <!-- Footer -->
@@ -263,11 +276,18 @@
             v-else
             type="button"
             class="btn-save"
-            :disabled="!isValid"
+            :disabled="!isValid || saving"
             @click="handleCreate"
           >
-            <v-icon icon="mdi-plus" size="14" aria-hidden="true" />
-            Crear rutina
+            <v-progress-circular
+              v-if="saving"
+              indeterminate
+              size="14"
+              width="2"
+              color="white"
+            />
+            <v-icon v-else icon="mdi-plus" size="14" aria-hidden="true" />
+            {{ saving ? 'Guardando...' : 'Crear rutina' }}
           </button>
         </div>
       </footer>
@@ -296,7 +316,9 @@ const CATEGORIES = [
 ]
 
 const nameInputRef = ref(null)
-const step = ref(1)
+const step    = ref(1)
+const saving  = ref(false)
+const apiError = ref('')
 
 function makeEmptyForm() {
   return {
@@ -356,6 +378,8 @@ function reset() {
   form.value = makeEmptyForm()
   touched.value = { name: false }
   step.value = 1
+  saving.value = false
+  apiError.value = ''
 }
 
 function close() { emit('update:open', false) }
@@ -384,22 +408,32 @@ function goNext() {
   step.value = 2
 }
 
-function handleCreate() {
-  if (!isValid.value) return
-  const created = store.addRoutine({
-    name:        nameTrimmed.value,
-    description: form.value.description.trim(),
-    category:    form.value.category,
-    icon:        selectedIcon.value,
-    trigger:     form.value.trigger.type === 'manual'
-      ? { type: 'manual' }
-      : { type: 'schedule', time: form.value.trigger.time },
-    actions:     [...form.value.actions],
-    days:        form.value.trigger.type === 'manual' ? [] : form.value.days,
-  })
-  emit('created', created.id)
-  close()
-  setTimeout(reset, 250)
+async function handleCreate() {
+  if (!isValid.value || saving.value) return
+  saving.value = true
+  apiError.value = ''
+  try {
+    const created = await store.addRoutine({
+      name:        nameTrimmed.value,
+      description: form.value.description.trim(),
+      category:    form.value.category,
+      icon:        selectedIcon.value,
+      trigger:     form.value.trigger.type === 'manual'
+        ? { type: 'manual' }
+        : { type: 'schedule', time: form.value.trigger.time },
+      actions:     [...form.value.actions],
+      days:        form.value.trigger.type === 'manual' ? [] : form.value.days,
+      favorite:    false,
+      homeId:      null,
+    })
+    emit('created', created.id)
+    close()
+    setTimeout(reset, 250)
+  } catch (err) {
+    apiError.value = err.message || 'Hubo un problema al crear la rutina.'
+  } finally {
+    saving.value = false
+  }
 }
 
 watch(() => props.open, (val) => {
@@ -859,4 +893,30 @@ watch(() => props.open, (val) => {
 .btn-save:hover:not(:disabled) { background: var(--sh-primary-dark); }
 .btn-save:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 .btn-save:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
+.actions-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #FEF9C3;
+  border: 1px solid #FDE047;
+  font-size: 12px;
+  color: #854D0E;
+  font-family: var(--sh-font);
+  line-height: 1.4;
+}
+
+.create-modal__api-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 28px;
+  background: #FEF2F2;
+  border-top: 1px solid #FECACA;
+  font-size: 12px;
+  color: var(--sh-error, #DC2626);
+  font-family: var(--sh-font);
+}
 </style>

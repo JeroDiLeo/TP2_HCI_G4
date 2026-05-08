@@ -264,14 +264,27 @@
             v-else
             type="button"
             class="btn-save"
-            :disabled="!canSave"
+            :disabled="!canSave || saving"
             @click="handleSave"
           >
-            <v-icon icon="mdi-check" size="14" aria-hidden="true" />
-            Guardar cambios
+            <v-progress-circular
+              v-if="saving"
+              indeterminate
+              size="14"
+              width="2"
+              color="white"
+            />
+            <v-icon v-else icon="mdi-check" size="14" aria-hidden="true" />
+            {{ saving ? 'Guardando...' : 'Guardar cambios' }}
           </button>
         </div>
       </footer>
+
+      <!-- API error -->
+      <div v-if="apiError" class="edit-modal__api-error" role="alert">
+        <v-icon icon="mdi-alert-circle-outline" size="14" aria-hidden="true" />
+        {{ apiError }}
+      </div>
     </div>
 
   </v-dialog>
@@ -375,6 +388,9 @@ function onAddAction() {
 }
 
 // ── Handlers ──
+const saving  = ref(false)
+const apiError = ref('')
+
 function close() { emit('update:open', false) }
 
 function handleClose() {
@@ -386,23 +402,39 @@ function onDialogUpdate(val) {
   if (!val) handleClose()
 }
 
-function handleSave() {
-  if (!canSave.value || !form.value) return
-  store.updateRoutine(form.value.id, JSON.parse(JSON.stringify(form.value)))
-  close()
+async function handleSave() {
+  if (!canSave.value || !form.value || saving.value) return
+  saving.value = true
+  apiError.value = ''
+  try {
+    await store.updateRoutine(form.value.id, JSON.parse(JSON.stringify(form.value)))
+    close()
+  } catch (err) {
+    apiError.value = err.message || 'Hubo un problema al guardar la rutina.'
+  } finally {
+    saving.value = false
+  }
 }
 
-function handleDelete() {
+async function handleDelete() {
   if (!form.value) return
   if (!window.confirm(`¿Eliminar la rutina "${form.value.name}"?`)) return
-  store.removeRoutine(form.value.id)
-  close()
+  try {
+    await store.removeRoutine(form.value.id)
+    close()
+  } catch (err) {
+    apiError.value = err.message || 'Hubo un problema al eliminar la rutina.'
+  }
 }
 
-function handleDuplicate() {
+async function handleDuplicate() {
   if (!form.value) return
-  store.duplicateRoutine(form.value.id)
-  close()
+  try {
+    await store.duplicateRoutine(form.value.id)
+    close()
+  } catch (err) {
+    apiError.value = err.message || 'Hubo un problema al duplicar la rutina.'
+  }
 }
 
 </script>
@@ -878,4 +910,17 @@ function handleDuplicate() {
 .btn-save:hover:not(:disabled) { background: var(--sh-primary-dark); }
 .btn-save:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 .btn-save:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
+.edit-modal__api-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 28px;
+  background: #FEF2F2;
+  border-top: 1px solid #FECACA;
+  border-radius: 0 0 18px 18px;
+  font-size: 12px;
+  color: var(--sh-error, #DC2626);
+  font-family: var(--sh-font);
+}
 </style>

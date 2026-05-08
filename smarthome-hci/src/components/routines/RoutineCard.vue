@@ -26,10 +26,21 @@
     <button
       type="button"
       class="routine-card__play"
+      :class="`routine-card__play--${executeStatus}`"
       :aria-label="`Ejecutar rutina ${routine.name}`"
-      @click.stop="$emit('execute', routine.id)"
+      :disabled="executeStatus === 'loading'"
+      @click.stop="handleExecute"
     >
-      <v-icon icon="mdi-play" size="22" aria-hidden="true" />
+      <v-progress-circular
+        v-if="executeStatus === 'loading'"
+        indeterminate
+        size="20"
+        width="2"
+        color="white"
+      />
+      <v-icon v-else-if="executeStatus === 'success'" icon="mdi-check" size="22" aria-hidden="true" />
+      <v-icon v-else-if="executeStatus === 'error'" icon="mdi-alert-outline" size="22" aria-hidden="true" />
+      <v-icon v-else icon="mdi-play" size="22" aria-hidden="true" />
     </button>
 
     <!-- Header: icon + title + badge -->
@@ -68,7 +79,7 @@
         class="routine-card__action"
       >
         <span class="routine-card__dot" aria-hidden="true" />
-        {{ action }}
+        {{ displayAction(action) }}
       </li>
       <li v-if="hiddenCount > 0" class="routine-card__more">
         +{{ hiddenCount }} acción{{ hiddenCount > 1 ? 'es' : '' }} más
@@ -93,7 +104,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import { useRoutinesStore } from '@/stores/routines'
 
 const props = defineProps({
   routine: {
@@ -102,7 +114,25 @@ const props = defineProps({
   },
 })
 
-defineEmits(['execute', 'edit', 'toggle-favorite'])
+defineEmits(['edit', 'toggle-favorite'])
+
+const routinesStore = useRoutinesStore()
+
+// ── Execute feedback ──
+const executeStatus = ref('idle')
+
+async function handleExecute() {
+  if (executeStatus.value === 'loading') return
+  executeStatus.value = 'loading'
+  try {
+    await routinesStore.executeRoutine(props.routine.id)
+    executeStatus.value = 'success'
+  } catch {
+    executeStatus.value = 'error'
+  } finally {
+    setTimeout(() => { executeStatus.value = 'idle' }, 1800)
+  }
+}
 
 const ALL_DAYS = [
   { key: 'lun', label: 'Lun' },
@@ -126,6 +156,13 @@ const categoryKey = computed(() => CATEGORY_KEYS[props.routine.category] ?? 'cus
 
 const visibleActions = computed(() => props.routine.actions.slice(0, 2))
 const hiddenCount    = computed(() => Math.max(0, props.routine.actions.length - 2))
+
+
+function displayAction(action) {
+  if (typeof action === 'string') return action
+  if (action?.actionName) return action.actionName
+  return ''
+}
 
 const formattedTime = computed(() => {
   if (props.routine.trigger.type !== 'schedule') return ''
@@ -219,6 +256,19 @@ const formattedTime = computed(() => {
 .routine-card__play:focus-visible {
   outline: 2px solid var(--sh-primary);
   outline-offset: 3px;
+}
+.routine-card__play:disabled {
+  cursor: default;
+  transform: none;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+.routine-card__play--success {
+  background: #16A34A;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+}
+.routine-card__play--error {
+  background: var(--sh-error, #DC2626);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
 }
 
 /* ── Header row ──────────────────────────────────────── */
