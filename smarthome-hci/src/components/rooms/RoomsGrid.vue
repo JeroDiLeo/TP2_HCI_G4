@@ -26,6 +26,11 @@
       </button>
     </div>
 
+    <div v-else-if="store.loading" class="rooms-empty" role="status">
+      <v-progress-circular indeterminate color="var(--sh-primary)" size="40" />
+      <p class="rooms-empty__title">Cargando habitaciones…</p>
+    </div>
+
     <div v-else class="rooms-empty" role="status">
       <v-icon icon="mdi-door-closed" size="48" class="rooms-empty__icon" aria-hidden="true" />
       <p class="rooms-empty__title">Sin habitaciones</p>

@@ -21,6 +21,44 @@ async function parseErrorBody(response) {
   try { return await response.json() } catch (_) { return {} }
 }
 
+export async function createRoom(body) {
+  const init = {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(body),
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/rooms`, init)
+
+    if (!response.ok) {
+      throw handleError(await parseErrorBody(response), response.status)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.log(`Unexpected error: ${error.message}`)
+    throw error
+  }
+}
+
+export async function deleteRoom(roomId) {
+  const init = { method: 'DELETE', headers: getHeaders() }
+
+  try {
+    const response = await fetch(`${BASE_URL}/rooms/${roomId}`, init)
+
+    if (!response.ok) {
+      throw handleError(await parseErrorBody(response), response.status)
+    }
+
+    return response.status === 204 ? null : await response.json()
+  } catch (error) {
+    console.log(`Unexpected error: ${error.message}`)
+    throw error
+  }
+}
+
 export async function getRoomsByHome(homeId) {
   const init = { method: 'GET', headers: getHeaders() }
 

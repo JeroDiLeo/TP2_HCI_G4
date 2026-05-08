@@ -309,11 +309,15 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import type { Room } from '@/types/dashboard'
+import { useDevicesStore } from '@/stores/devices'
+import { resolveTypeId } from '@/utils/deviceMapper'
 
 const props = defineProps<{
   open: boolean
   rooms: Room[]
 }>()
+
+const devicesStore = useDevicesStore()
 
 const emit = defineEmits<{
   (e: 'update:open', val: boolean): void
@@ -354,7 +358,7 @@ interface Instance { id: string; type: string; name: string; customIcon?: string
 const step = ref<1 | 2 | 3>(1)
 
 const roomMode = ref<'existing' | 'new'>('existing')
-const selectedRoomId = ref<number | null>(null)
+const selectedRoomId = ref<number | string | null>(null)
 const showNewRoomForm = ref(false)
 const newRoom = ref<{ name: string; category: string }>({ name: '', category: 'sala' })
 const newRoomNameRef = ref<HTMLInputElement | null>(null)
@@ -382,7 +386,7 @@ function defaultNameFor(type: string) {
 
 // ── Step 1 actions ──────────────────────────────────────────────────────────
 
-function selectExistingRoom(id: number) {
+function selectExistingRoom(id: number | string) {
   roomMode.value = 'existing'
   selectedRoomId.value = id
   stepError.value = ''
@@ -505,7 +509,7 @@ function prevStep() {
 
 // ── Confirm / close ─────────────────────────────────────────────────────────
 
-function handleConfirm() {
+async function handleConfirm() {
   emit('confirm', {
     targetRoomId: roomMode.value === 'existing' ? selectedRoomId.value : null,
     newRoom:      roomMode.value === 'new'

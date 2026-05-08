@@ -33,7 +33,7 @@ export type MusicGenre =
 //   alarm   → active ↔ alarmMode   !== 'desactivada'
 //   faucet  → `active` tracks device power; `open` tracks valve state
 interface RoomDeviceBase {
-  id: number
+  id: number | string
   name: string
   type: RoomDeviceType
   active: boolean

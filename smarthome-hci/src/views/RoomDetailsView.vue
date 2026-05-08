@@ -29,20 +29,32 @@
             <p class="room-detail__subtitle">Gestioná los dispositivos de esta habitación</p>
           </div>
 
-          <!-- Compact inline stats -->
-          <div class="room-detail__stats-inline" aria-label="Estadísticas de la habitación">
-            <span class="stat-badge">
-              <v-icon icon="mdi-devices" size="13" aria-hidden="true" />
-              {{ stats.total }} total
-            </span>
-            <span class="stat-badge stat-badge--active">
-              <v-icon icon="mdi-flash" size="13" aria-hidden="true" />
-              {{ stats.active }} activos
-            </span>
-            <span class="stat-badge stat-badge--inactive">
-              <v-icon icon="mdi-power-sleep" size="13" aria-hidden="true" />
-              {{ stats.total - stats.active }} inactivos
-            </span>
+          <div class="room-detail__header-actions">
+            <!-- Compact inline stats -->
+            <div class="room-detail__stats-inline" aria-label="Estadísticas de la habitación">
+              <span class="stat-badge">
+                <v-icon icon="mdi-devices" size="13" aria-hidden="true" />
+                {{ stats.total }} total
+              </span>
+              <span class="stat-badge stat-badge--active">
+                <v-icon icon="mdi-flash" size="13" aria-hidden="true" />
+                {{ stats.active }} activos
+              </span>
+              <span class="stat-badge stat-badge--inactive">
+                <v-icon icon="mdi-power-sleep" size="13" aria-hidden="true" />
+                {{ stats.total - stats.active }} inactivos
+              </span>
+            </div>
+            <button
+              type="button"
+              class="btn-add-device"
+              aria-label="Agregar dispositivos a esta habitación"
+              title="Agregar dispositivos"
+              @click="addDeviceOpen = true"
+            >
+              <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
+              Agregar dispositivo
+            </button>
           </div>
         </div>
       </div>
@@ -136,6 +148,12 @@
         </div>
       </template>
 
+      <!-- Loading -->
+      <div v-else-if="devicesStore.loading" class="room-detail__empty" role="status">
+        <v-progress-circular indeterminate color="var(--sh-primary)" size="40" />
+        <p class="room-detail__empty-title">Cargando dispositivos…</p>
+      </div>
+
       <!-- Empty: no devices in room -->
       <div v-else-if="allDevices.length === 0" class="room-detail__empty" role="status">
         <v-icon icon="mdi-devices" size="52" class="room-detail__empty-icon" aria-hidden="true" />
@@ -155,6 +173,15 @@
         </button>
       </div>
 
+    <!-- Modal: agregar dispositivos -->
+    <AddRoomDeviceModal
+      v-model:open="addDeviceOpen"
+      :room-id="roomId"
+      :room-name="room.name"
+      :room-icon="roomIcon"
+      @added="devicesStore.fetchAll()"
+    />
+
     </template>
   </div>
 </template>
@@ -164,11 +191,14 @@ import { computed, inject, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { Ref } from 'vue'
 import { useRoomsStore } from '@/stores/rooms'
+import { useDevicesStore } from '@/stores/devices'
 import DeviceControlCard from '@/components/rooms/DeviceControlCard.vue'
+import AddRoomDeviceModal from '@/components/rooms/AddRoomDeviceModal.vue'
 
 const router = useRouter()
 const route  = useRoute()
 const store  = useRoomsStore()
+const devicesStore = useDevicesStore()
 
 const roomId = computed(() => String(route.params.roomId))
 const room   = computed(() => store.getRoomById(roomId.value))
@@ -182,8 +212,13 @@ const ROOM_ICONS: Record<string, string> = {
 }
 const roomIcon = computed(() => ROOM_ICONS[room.value?.type ?? ''] ?? 'mdi-door')
 
-const allDevices = computed(() => store.getRoomDevices(roomId.value))
-const stats      = computed(() => store.getRoomDeviceStats(roomId.value))
+const addDeviceOpen = ref(false)
+
+const allDevices = computed(() => devicesStore.devicesByRoom(roomId.value))
+const stats      = computed(() => {
+  const list = devicesStore.devicesByRoom(roomId.value)
+  return { total: list.length, active: list.filter(d => d.active).length }
+})
 
 // Search injected from AppLayout
 const layoutSearch = inject<Ref<string>>('layoutSearchQuery', ref(''))
@@ -360,10 +395,41 @@ function goBack() {
   line-height: 1.2;
 }
 
+.btn-add-device {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  background: var(--sh-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 8px -2px rgba(99, 102, 241, .3);
+  transition: background-color 150ms;
+  margin-left: auto;
+}
+.btn-add-device:hover { background: var(--sh-primary-dark); }
+.btn-add-device:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
 .room-detail__subtitle {
   margin: 0;
   font-size: 15px;
   color: var(--sh-text-muted);
+}
+
+.room-detail__header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  align-self: flex-start;
+  flex-wrap: wrap;
 }
 
 /* ── Compact inline stats ── */
@@ -372,8 +438,6 @@ function goBack() {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  align-self: flex-start;
-  padding-top: 6px;
 }
 
 .stat-badge {
@@ -406,7 +470,7 @@ function goBack() {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 28px;
   flex-wrap: wrap;
 }
 
@@ -597,7 +661,7 @@ function goBack() {
 @media (max-width: 700px) {
   .room-detail__grid { grid-template-columns: 1fr !important; }
   .room-detail__heading-row { flex-direction: column; gap: 10px; }
-  .room-detail__stats-inline { padding-top: 0; }
+  .room-detail__header-actions { justify-content: flex-start; }
   .room-detail__controls { gap: 10px; }
   /* Mobile: reduce min-height to avoid excessive empty space in single-column layout */
   .room-detail__grid--pagination :deep(.dcc) {

@@ -201,7 +201,9 @@ export const useHomesStore = defineStore('homes', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  const selectedHomeId = ref<string | null>(null)
+  const selectedHomeId = ref<string | null>(
+    localStorage.getItem('selectedHomeId'),
+  )
 
   const selectedHome = computed(
     () => homes.value.find(h => h.id === selectedHomeId.value) ?? null
@@ -209,6 +211,7 @@ export const useHomesStore = defineStore('homes', () => {
 
   function selectHome(id: string) {
     selectedHomeId.value = id
+    localStorage.setItem('selectedHomeId', id)
   }
 
   async function fetchHomes() {
@@ -325,6 +328,7 @@ export const useHomesStore = defineStore('homes', () => {
       }
       if (selectedHomeId.value === homeId) {
         selectedHomeId.value = null
+        localStorage.removeItem('selectedHomeId')
       }
     } catch (err: any) {
       error.value = err.message || 'Error al eliminar el hogar'
@@ -335,6 +339,7 @@ export const useHomesStore = defineStore('homes', () => {
   function clearHomes() {
     homes.value = []
     selectedHomeId.value = null
+    localStorage.removeItem('selectedHomeId')
   }
 
   return {

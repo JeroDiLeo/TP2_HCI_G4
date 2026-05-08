@@ -54,8 +54,13 @@
         </button>
       </header>
 
+      <!-- Cargando -->
+      <div v-if="roomsStore.loading" class="onboard" style="justify-content: center;">
+        <v-progress-circular indeterminate color="var(--sh-primary)" size="40" />
+      </div>
+
       <!-- Estado A: usuario sin habitaciones -->
-      <div v-if="rooms.length === 0" class="onboard">
+      <div v-else-if="rooms.length === 0" class="onboard">
         <div class="onboard__icon" aria-hidden="true">
           <v-icon icon="mdi-home-plus-outline" size="32" />
         </div>
@@ -186,6 +191,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRoomsStore } from '@/stores/rooms'
 import { useRoutinesStore } from '@/stores/routines'
+import { useDevicesStore } from '@/stores/devices'
 import RoomCard from '@/components/rooms/RoomCard.vue'
 import RoutineCard from '@/components/routines/RoutineCard.vue'
 import AddDeviceModal from '@/components/dashboard/AddDeviceModal.vue'
@@ -195,6 +201,7 @@ import EditRoutineModal from '@/components/routines/EditRoutineModal.vue'
 const auth          = useAuthStore()
 const roomsStore    = useRoomsStore()
 const routinesStore = useRoutinesStore()
+const devicesStore  = useDevicesStore()
 const router        = useRouter()
 
 // ── Reactive views ──
@@ -204,9 +211,7 @@ const favoriteRooms    = computed(() => roomsStore.favoriteRooms)
 const favoriteRoutines = computed(() => routinesStore.favoriteRoutines)
 
 // ── Stats ──
-const totalActiveDevices = computed(() =>
-  rooms.value.reduce((acc, r) => acc + (r.devicesActive ?? 0), 0),
-)
+const totalActiveDevices = computed(() => devicesStore.activeDevices.length)
 const totalRooms = computed(() => rooms.value.length)
 
 // ── Modals ──
@@ -243,21 +248,33 @@ const TYPE_FROM_CATEGORY: Record<string, string> = {
   otro:       'other',
 }
 
-function handleAddDevice(payload: {
+async function handleAddDevice(payload: {
   targetRoomId: number | null
   newRoom:      { name: string; category: string } | null
   devices:      { type: string; name: string; customIcon?: string }[]
 }) {
   let targetId: number | string | null = payload.targetRoomId
+
+  // Primero crear la room si es nueva
   if (payload.newRoom) {
-    const created = roomsStore.addRoom({
+    const created = await roomsStore.addRoom({
       name: payload.newRoom.name,
       type: TYPE_FROM_CATEGORY[payload.newRoom.category] ?? 'other',
     })
     targetId = created.id
   }
-  if (targetId !== null && payload.devices.length > 0) {
-    roomsStore.addDevicesToRoom(targetId, payload.devices.length, payload.devices.length)
+
+  // Luego crear los devices con el roomId correcto
+  for (const dev of payload.devices) {
+    try {
+      await devicesStore.addDevice({
+        name: dev.name,
+        type: dev.type as any,
+        ...(targetId ? { roomId: String(targetId) } : {}),
+      })
+    } catch (err) {
+      console.error(`Error al crear dispositivo "${dev.name}":`, err)
+    }
   }
 }
 

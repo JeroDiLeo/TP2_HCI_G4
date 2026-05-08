@@ -57,7 +57,7 @@
             :style="{ backgroundColor: c }"
             :aria-label="`Color ${c}`"
             :disabled="!d.active"
-            @click="update('color', c); hexDraft = c"
+            @click="action('setColor', [c.replace('#', '')]); hexDraft = c"
           />
         </div>
         <div class="dcc__color-input-row">
@@ -91,7 +91,7 @@
             :disabled="!d.active"
             aria-label="Intensidad de la lámpara"
             class="dcc__slider"
-            @update:model-value="update('intensity', $event)"
+            @update:model-value="action('setBrightness', [$event])"
           />
           <v-icon icon="mdi-brightness-7" size="16" class="dcc__slider-icon" />
         </div>
@@ -129,7 +129,7 @@
           :disabled="!d.active"
           aria-label="Temperatura del aire acondicionado (18–38°C)"
           class="dcc__slider"
-          @update:model-value="update('temperature', $event)"
+          @update:model-value="action('setTemperature', [$event])"
         />
       </div>
 
@@ -139,7 +139,7 @@
           <button v-for="m in AC_MODES" :key="m.value" type="button" class="dcc__seg-btn"
             :class="{ 'dcc__seg-btn--active': d.mode === m.value }"
             :disabled="!d.active"
-            @click="update('mode', m.value)">{{ m.label }}</button>
+            @click="action('setMode', [AC_MODE_FRONT_TO_API[m.value] ?? m.value])">{{ m.label }}</button>
         </div>
       </div>
 
@@ -149,7 +149,7 @@
           <button v-for="v in AC_VERT" :key="v.value" type="button" class="dcc__chip"
             :class="{ 'dcc__chip--active': d.verticalBlades === v.value }"
             :disabled="!d.active"
-            @click="update('verticalBlades', v.value)">{{ v.label }}</button>
+            @click="action('setVerticalSwing', [AC_SWING_FRONT_TO_API[v.value] ?? v.value])">{{ v.label }}</button>
         </div>
       </div>
 
@@ -159,7 +159,7 @@
           <button v-for="h in AC_HORIZ" :key="h.value" type="button" class="dcc__chip"
             :class="{ 'dcc__chip--active': d.horizontalBlades === h.value }"
             :disabled="!d.active"
-            @click="update('horizontalBlades', h.value)">{{ h.label }}</button>
+            @click="action('setHorizontalSwing', [AC_SWING_FRONT_TO_API[h.value] ?? h.value])">{{ h.label }}</button>
         </div>
       </div>
 
@@ -169,7 +169,7 @@
           <button v-for="f in AC_FAN" :key="f.value" type="button" class="dcc__chip"
             :class="{ 'dcc__chip--active': d.fanSpeed === f.value }"
             :disabled="!d.active"
-            @click="update('fanSpeed', f.value)">{{ f.label }}</button>
+            @click="action('setFanSpeed', [AC_FAN_FRONT_TO_API[f.value] ?? f.value])">{{ f.label }}</button>
         </div>
       </div>
     </template>
@@ -185,10 +185,6 @@
             'dcc__badge--warn': d.vacuumStatus === 'pausada',
             'dcc__badge--off':  d.vacuumStatus === 'apagada',
           }">{{ d.vacuumStatus }}</span>
-          <span class="dcc__panel-meta">
-            <v-icon icon="mdi-map-marker-outline" size="12" aria-hidden="true" />
-            {{ d.targetRoomName }}
-          </span>
         </div>
       </div>
 
@@ -198,36 +194,22 @@
           <button v-for="m in ['aspirar','trapear']" :key="m" type="button" class="dcc__seg-btn"
             :class="{ 'dcc__seg-btn--active': d.vacuumMode === m }"
             :disabled="!d.active"
-            @click="update('vacuumMode', m)">{{ m }}</button>
-        </div>
-      </div>
-
-      <div class="dcc__section">
-        <span class="dcc__section-label">HABITACIÓN OBJETIVO</span>
-        <div class="dcc__chips" role="group">
-          <button v-for="r in ROOM_OPTIONS" :key="r.id" type="button" class="dcc__chip"
-            :class="{ 'dcc__chip--active': d.targetRoomId === r.id }"
-            :disabled="!d.active"
-            @click="update('targetRoomId', r.id); update('targetRoomName', r.name)">
-            {{ r.name }}
-          </button>
+            @click="action('setMode', [VACUUM_MODE_FRONT_TO_API[m] ?? m])">{{ m }}</button>
         </div>
       </div>
 
       <div class="dcc__section dcc__section--actions">
-        <!-- paused → active stays true (only apagada = inactive) -->
         <button v-if="d.vacuumStatus === 'encendida'" type="button" class="dcc__action-btn"
           :disabled="!d.active"
-          @click="update('vacuumStatus', 'pausada')">
+          @click="action('pause')">
           <v-icon icon="mdi-pause" size="16" /> Pausar
         </button>
         <button v-if="d.vacuumStatus === 'pausada'" type="button" class="dcc__action-btn"
-          @click="update('vacuumStatus', 'encendida')">
+          @click="action('start')">
           <v-icon icon="mdi-play" size="16" /> Reanudar
         </button>
-        <!-- returning to base = fully off -->
         <button type="button" class="dcc__action-btn dcc__action-btn--ghost"
-          @click="update('vacuumStatus', 'apagada'); update('active', false)">
+          @click="action('dock')">
           <v-icon icon="mdi-home-import-outline" size="16" /> Regresar a base
         </button>
       </div>
@@ -238,9 +220,12 @@
     ══════════════════════════════════════════════ -->
     <template v-else-if="device.type === 'speaker'">
       <div class="dcc__status-panel">
-        <div class="dcc__now-playing">
-          <span class="dcc__now-playing__song">{{ d.currentSong }}</span>
-          <span class="dcc__now-playing__meta">{{ d.genre }} · {{ d.timestamp }}</span>
+        <div class="dcc__stat-col">
+          <span class="dcc__badge" :class="{
+            'dcc__badge--on':  d.playing,
+            'dcc__badge--off': !d.playing,
+          }">{{ d.playing ? 'Reproduciendo' : 'Detenido' }}</span>
+          <span class="dcc__panel-meta">{{ d.genre }}</span>
         </div>
       </div>
 
@@ -257,29 +242,21 @@
           :disabled="!d.active"
           aria-label="Volumen del parlante"
           class="dcc__slider"
-          @update:model-value="update('volume', $event)"
+          @update:model-value="action('setVolume', [$event * 10])"
         />
       </div>
 
       <div class="dcc__section">
         <span class="dcc__section-label">CONTROLES</span>
         <div class="dcc__player-controls">
-          <button type="button" class="dcc__player-btn" aria-label="Canción anterior"
-            :disabled="!d.active" @click="prevSong">
-            <v-icon icon="mdi-skip-previous" size="22" />
-          </button>
           <button type="button" class="dcc__player-btn dcc__player-btn--main"
             :aria-label="d.playing ? 'Pausar' : 'Reproducir'" :disabled="!d.active"
-            @click="update('playing', !d.playing)">
+            @click="action(d.playing ? 'pause' : 'play')">
             <v-icon :icon="d.playing ? 'mdi-pause' : 'mdi-play'" size="22" />
           </button>
           <button type="button" class="dcc__player-btn" aria-label="Detener" :disabled="!d.active"
-            @click="update('playing', false); update('timestamp', '0:00')">
+            @click="action('stop')">
             <v-icon icon="mdi-stop" size="22" />
-          </button>
-          <button type="button" class="dcc__player-btn" aria-label="Siguiente canción"
-            :disabled="!d.active" @click="nextSong">
-            <v-icon icon="mdi-skip-next" size="22" />
           </button>
         </div>
       </div>
@@ -290,7 +267,7 @@
           <button v-for="g in SPEAKER_GENRES" :key="g" type="button" class="dcc__chip"
             :class="{ 'dcc__chip--active': d.genre === g }"
             :disabled="!d.active"
-            @click="update('genre', g)">{{ g }}</button>
+            @click="action('setGenre', [SPEAKER_GENRE_FRONT_TO_API[g] ?? g])">{{ g }}</button>
         </div>
       </div>
     </template>
@@ -304,11 +281,6 @@
           <span class="dcc__badge" :class="d.open ? 'dcc__badge--on' : 'dcc__badge--off'">
             {{ d.open ? 'Abierto' : 'Cerrado' }}
           </span>
-          <span v-if="d.open" class="dcc__panel-meta">
-            <v-icon icon="mdi-water" size="12" aria-hidden="true" />
-            {{ d.dispensed }} {{ d.unit }} dispensados
-          </span>
-          <span v-else class="dcc__panel-meta">sin actividad</span>
         </div>
       </div>
 
@@ -316,36 +288,35 @@
         <span class="dcc__section-label">VÁLVULA</span>
         <div class="dcc__segment" role="group" aria-label="Estado de la válvula">
           <button type="button" class="dcc__seg-btn" :class="{ 'dcc__seg-btn--active': d.open }"
-            @click="update('open', true); update('active', true)">Abierto</button>
+            @click="action('open')">Abierto</button>
           <button type="button" class="dcc__seg-btn" :class="{ 'dcc__seg-btn--active': !d.open }"
-            @click="update('open', false); update('active', false)">Cerrado</button>
+            @click="action('close')">Cerrado</button>
         </div>
       </div>
 
       <div class="dcc__section">
         <div class="dcc__section-label-row">
-          <span class="dcc__section-label">CANTIDAD</span>
-          <span class="dcc__section-value">{{ d.quantity }} {{ d.unit }}</span>
+          <span class="dcc__section-label">DISPENSAR</span>
+          <span class="dcc__section-value">{{ faucetQuantity }} {{ faucetUnit }}</span>
         </div>
         <v-slider
-          :model-value="d.quantity"
+          v-model="faucetQuantity"
           :min="0" :max="100" :step="1"
           color="#6366F1" track-color="#E2E8F0"
           hide-details density="compact"
           aria-label="Cantidad a dispensar"
           class="dcc__slider"
-          @update:model-value="update('quantity', $event)"
         />
         <div class="dcc__chips dcc__chips--mt" role="group" aria-label="Unidad">
           <button v-for="u in ['ml','cl','dl','l']" :key="u" type="button" class="dcc__chip"
-            :class="{ 'dcc__chip--active': d.unit === u }"
-            @click="update('unit', u)">{{ u }}</button>
+            :class="{ 'dcc__chip--active': faucetUnit === u }"
+            @click="faucetUnit = u">{{ u }}</button>
         </div>
       </div>
 
       <div class="dcc__section">
         <button type="button" class="dcc__action-btn"
-          @click="update('dispensed', (d.dispensed as number) + (d.quantity as number)); update('open', true); update('active', true)">
+          @click="action('dispense', [faucetQuantity, faucetUnit])">
           <v-icon icon="mdi-water" size="16" /> Dispensar
         </button>
       </div>
@@ -383,15 +354,25 @@
           hide-details density="compact"
           aria-label="Posición de la persiana"
           class="dcc__slider"
-          @update:model-value="setBlindPosition($event)"
+          @update:model-value="action('setLevel', [$event])"
         />
       </div>
 
       <div class="dcc__section dcc__section--actions">
-        <button type="button" class="dcc__action-btn" @click="setBlindPosition(100)">
+        <button
+          type="button"
+          class="dcc__action-btn"
+          :disabled="Number(d.position) === 100"
+          @click="setBlindPosition(100)"
+        >
           <v-icon icon="mdi-arrow-up" size="16" /> Abrir
         </button>
-        <button type="button" class="dcc__action-btn dcc__action-btn--ghost" @click="setBlindPosition(0)">
+        <button
+          type="button"
+          class="dcc__action-btn dcc__action-btn--ghost"
+          :disabled="Number(d.position) === 0"
+          @click="setBlindPosition(0)"
+        >
           <v-icon icon="mdi-arrow-down" size="16" /> Cerrar
         </button>
       </div>
@@ -426,13 +407,13 @@
           :disabled="!d.active"
           aria-label="Temperatura del horno (90–230°C)"
           class="dcc__slider"
-          @update:model-value="update('temperature', $event)"
+          @update:model-value="action('setTemperature', [$event])"
         />
         <div class="dcc__chips dcc__chips--mt" role="group" aria-label="Presets de temperatura">
           <button v-for="p in OVEN_PRESETS" :key="p" type="button" class="dcc__chip"
             :class="{ 'dcc__chip--active': d.temperature === p }"
             :disabled="!d.active"
-            @click="update('temperature', p)">{{ p }}°C</button>
+            @click="action('setTemperature', [p])">{{ p }}°C</button>
         </div>
       </div>
 
@@ -442,7 +423,7 @@
           <button v-for="h in OVEN_HEAT" :key="h.value" type="button" class="dcc__seg-btn"
             :class="{ 'dcc__seg-btn--active': d.heatSource === h.value }"
             :disabled="!d.active"
-            @click="update('heatSource', h.value)">{{ h.label }}</button>
+            @click="action('setHeat', [OVEN_HEAT_FRONT_TO_API[h.value] ?? h.value])">{{ h.label }}</button>
         </div>
       </div>
 
@@ -452,7 +433,7 @@
           <button v-for="g in OVEN_MODES" :key="g.value" type="button" class="dcc__seg-btn"
             :class="{ 'dcc__seg-btn--active': d.grillMode === g.value }"
             :disabled="!d.active"
-            @click="update('grillMode', g.value)">{{ g.label }}</button>
+            @click="action('setGrill', [OVEN_GRILL_FRONT_TO_API[g.value] ?? g.value])">{{ g.label }}</button>
         </div>
       </div>
 
@@ -462,7 +443,7 @@
           <button v-for="c in OVEN_CONV" :key="c.value" type="button" class="dcc__seg-btn"
             :class="{ 'dcc__seg-btn--active': d.convectionMode === c.value }"
             :disabled="!d.active"
-            @click="update('convectionMode', c.value)">{{ c.label }}</button>
+            @click="action('setConvection', [OVEN_CONVECTION_FRONT_TO_API[c.value] ?? c.value])">{{ c.label }}</button>
         </div>
       </div>
     </template>
@@ -484,7 +465,6 @@
           </div>
           <div class="dcc__stat-group">
             <span class="dcc__stat-label">SEGURIDAD</span>
-            <!-- locked = active (security engaged) -->
             <span class="dcc__stat-value" :class="{ 'dcc__stat--warn': d.locked }">
               {{ d.locked ? 'Bloqueada' : 'Desbloqueada' }}
             </span>
@@ -493,25 +473,23 @@
       </div>
 
       <div class="dcc__section dcc__section--actions">
-        <!-- can't open a locked door -->
         <button type="button" class="dcc__action-btn" :disabled="d.open || d.locked"
-          @click="update('open', true)">
+          @click="action('open')">
           <v-icon icon="mdi-door-open" size="16" /> Abrir
         </button>
         <button type="button" class="dcc__action-btn dcc__action-btn--ghost" :disabled="!d.open"
-          @click="update('open', false)">
+          @click="action('close')">
           <v-icon icon="mdi-door-closed" size="16" /> Cerrar
         </button>
       </div>
 
       <div class="dcc__section dcc__section--actions">
-        <!-- can only lock a closed door -->
         <button type="button" class="dcc__action-btn" :disabled="d.locked || d.open"
-          @click="update('locked', true); update('active', true)">
+          @click="action('lock')">
           <v-icon icon="mdi-lock" size="16" /> Bloquear
         </button>
         <button type="button" class="dcc__action-btn dcc__action-btn--ghost" :disabled="!d.locked"
-          @click="update('locked', false); update('active', false)">
+          @click="action('unlock')">
           <v-icon icon="mdi-lock-open-outline" size="16" /> Desbloquear
         </button>
       </div>
@@ -538,41 +516,16 @@
         </div>
       </div>
 
-      <div class="dcc__section">
-        <span class="dcc__section-label">CÓDIGO</span>
-        <input
-          v-model="alarmCode"
-          type="password" class="dcc__code-input"
-          maxlength="4" placeholder="• • • •"
-          aria-label="Código de seguridad" inputmode="numeric"
-        />
-        <p v-if="alarmCodeError" class="dcc__error" role="alert">{{ alarmCodeError }}</p>
-      </div>
-
       <div class="dcc__section dcc__section--actions dcc__section--col">
-        <button type="button" class="dcc__action-btn" @click="activateAlarm('modo casa')">
+        <button type="button" class="dcc__action-btn" @click="action('arm', ['armedStay'])">
           <v-icon icon="mdi-home-lock" size="16" /> Modo Casa
         </button>
-        <button type="button" class="dcc__action-btn" @click="activateAlarm('modo regular')">
+        <button type="button" class="dcc__action-btn" @click="action('arm', ['armedAway'])">
           <v-icon icon="mdi-shield-check" size="16" /> Modo Regular
         </button>
-        <button type="button" class="dcc__action-btn dcc__action-btn--ghost" @click="deactivateAlarm">
+        <button type="button" class="dcc__action-btn dcc__action-btn--ghost" @click="action('disarm')">
           <v-icon icon="mdi-shield-off-outline" size="16" /> Desactivar
         </button>
-      </div>
-
-      <div class="dcc__section">
-        <span class="dcc__section-label">CAMBIAR CÓDIGO</span>
-        <div class="dcc__change-code">
-          <input v-model="oldCode" type="password" class="dcc__code-input"
-            maxlength="4" placeholder="Código actual" aria-label="Código actual" inputmode="numeric" />
-          <input v-model="newCode" type="password" class="dcc__code-input"
-            maxlength="4" placeholder="Código nuevo" aria-label="Código nuevo" inputmode="numeric" />
-          <button type="button" class="dcc__action-btn" @click="changeCode">Cambiar</button>
-        </div>
-        <p v-if="changeCodeMsg" class="dcc__msg" :class="changeCodeOk ? 'dcc__msg--ok' : 'dcc__msg--err'">
-          {{ changeCodeMsg }}
-        </p>
       </div>
     </template>
 
@@ -598,37 +551,11 @@
       </div>
 
       <div class="dcc__section">
-        <span class="dcc__section-label">HELADERA</span>
-        <v-slider
-          :model-value="d.fridgeTemp"
-          :min="2" :max="8" :step="1"
-          color="#6366F1" track-color="#E2E8F0"
-          hide-details density="compact"
-          aria-label="Temperatura de la heladera (2–8°C)"
-          class="dcc__slider"
-          @update:model-value="update('fridgeTemp', $event)"
-        />
-      </div>
-
-      <div class="dcc__section">
-        <span class="dcc__section-label">FREEZER</span>
-        <v-slider
-          :model-value="d.freezerTemp"
-          :min="-20" :max="-8" :step="1"
-          color="#6366F1" track-color="#E2E8F0"
-          hide-details density="compact"
-          aria-label="Temperatura del freezer (−20 a −8°C)"
-          class="dcc__slider"
-          @update:model-value="update('freezerTemp', $event)"
-        />
-      </div>
-
-      <div class="dcc__section">
         <span class="dcc__section-label">MODO</span>
         <div class="dcc__chips" role="group">
           <button v-for="m in FRIDGE_MODES" :key="m" type="button" class="dcc__chip"
             :class="{ 'dcc__chip--active': d.fridgeMode === m }"
-            @click="update('fridgeMode', m)">{{ m }}</button>
+            @click="action('setMode', [FRIDGE_MODE_FRONT_TO_API[m] ?? m])">{{ m }}</button>
         </div>
       </div>
     </template>
@@ -640,34 +567,49 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { RoomDevice } from '@/types/rooms'
-import { useRoomsStore } from '@/stores/rooms'
+import { useDevicesStore } from '@/stores/devices'
+import {
+  AC_MODE_FRONT_TO_API,
+  AC_SWING_FRONT_TO_API,
+  AC_FAN_FRONT_TO_API,
+  VACUUM_MODE_FRONT_TO_API,
+  OVEN_HEAT_FRONT_TO_API,
+  OVEN_GRILL_FRONT_TO_API,
+  OVEN_CONVECTION_FRONT_TO_API,
+  FRIDGE_MODE_FRONT_TO_API,
+  SPEAKER_GENRE_FRONT_TO_API,
+} from '@/utils/deviceMapper'
 
 const props = defineProps<{ device: RoomDevice }>()
-const store = useRoomsStore()
+const devicesStore = useDevicesStore()
+
+const deviceId = computed(() => String(props.device.id))
 
 // ── Live reactive read from store ────────────────────────────────────
-// d always reflects current store state; mutations go through update()
+// d always reflects current store state
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const d = computed<Record<string, any>>(() => {
-  const list = store.getRoomDevices(props.device.roomId)
-  return (list.find(dev => dev.id === props.device.id) ?? props.device) as Record<string, any>
+  return (devicesStore.getDeviceById(deviceId.value) ?? props.device) as Record<string, any>
 })
 
-// ── Mutation helper ──────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function update(field: string, value: any) {
-  store.updateRoomDevice(props.device.roomId, props.device.id, { [field]: value } as Partial<RoomDevice>)
+// ── Action helper — calls the API and refetches state ───────────────
+async function action(actionName: string, params: unknown[] = []) {
+  try {
+    await devicesStore.executeAction(deviceId.value, actionName, params)
+  } catch (err) {
+    console.error(`Error ejecutando ${actionName}:`, err)
+  }
 }
 
 // ── Power toggle ─────────────────────────────────────────────────────
 function onPowerToggle() {
   const next = !d.value.active
-  update('active', next)
   if (props.device.type === 'vacuum') {
-    update('vacuumStatus', next ? 'encendida' : 'apagada')
-  }
-  if (props.device.type === 'speaker' && !next) {
-    update('playing', false)
+    action(next ? 'start' : 'dock')
+  } else if (props.device.type === 'speaker') {
+    action(next ? 'play' : 'stop')
+  } else {
+    action(next ? 'turnOn' : 'turnOff')
   }
 }
 
@@ -744,25 +686,7 @@ const OVEN_CONV = [
 
 const SPEAKER_GENRES = ['clásica', 'country', 'dance', 'latina', 'pop', 'rock']
 
-const SPEAKER_SONGS: Record<string, string[]> = {
-  'clásica': ['Moonlight Sonata', 'Symphony No. 5', 'The Four Seasons'],
-  'country': ['Take Me Home', 'Jolene', 'Friends in Low Places'],
-  'dance':   ["Don't You Worry Child", 'Levels', 'Titanium'],
-  'latina':  ['Despacito', 'Bailando', 'Mi Gente'],
-  'pop':     ['Blinding Lights', 'Shape of You', 'Bad Guy'],
-  'rock':    ['Bohemian Rhapsody', 'Hotel California', "Sweet Child O'Mine"],
-}
-
 const FRIDGE_MODES = ['normal', 'fiesta', 'vacaciones']
-
-const ROOM_OPTIONS = [
-  { id: 1, name: 'Sala de Estar'        },
-  { id: 2, name: 'Habitación Principal' },
-  { id: 3, name: 'Cocina'               },
-  { id: 4, name: 'Habitación de Tomi'   },
-  { id: 5, name: 'Baño Principal'       },
-  { id: 6, name: 'Oficina'              },
-]
 
 // ── Lamp helpers ─────────────────────────────────────────────────────
 const initialColor = props.device.type === 'light' ? (props.device as { color: string }).color : '#FFFFFF'
@@ -770,21 +694,13 @@ const hexDraft = ref(initialColor)
 
 function applyHex() {
   if (/^#[0-9A-Fa-f]{6}$/.test(hexDraft.value)) {
-    update('color', hexDraft.value)
+    action('setColor', [hexDraft.value.replace('#', '')])
   }
 }
 
 // ── Blind helpers ────────────────────────────────────────────────────
-function setBlindPosition(pos: number) {
-  const prev = d.value.position as number
-  const status = pos === 0
-    ? 'cerrada'
-    : pos === 100
-      ? 'abierta'
-      : pos > prev ? 'abriéndose' : 'cerrándose'
-  update('position', pos)
-  update('blindStatus', status)
-  update('active', pos > 0)
+function setBlindPosition(position: 0 | 100) {
+  action('setLevel', [position])
 }
 
 const blindStatusLabel = computed(() => {
@@ -794,70 +710,9 @@ const blindStatusLabel = computed(() => {
   return d.value.blindStatus as string
 })
 
-// ── Speaker helpers ──────────────────────────────────────────────────
-let speakerSongIdx = 0
-
-function nextSong() {
-  const list = SPEAKER_SONGS[d.value.genre as string] ?? SPEAKER_SONGS['pop']
-  speakerSongIdx = (speakerSongIdx + 1) % list.length
-  update('currentSong', list[speakerSongIdx])
-  update('timestamp', '0:00')
-}
-
-function prevSong() {
-  const list = SPEAKER_SONGS[d.value.genre as string] ?? SPEAKER_SONGS['pop']
-  speakerSongIdx = (speakerSongIdx - 1 + list.length) % list.length
-  update('currentSong', list[speakerSongIdx])
-  update('timestamp', '0:00')
-}
-
-// ── Alarm helpers ────────────────────────────────────────────────────
-const alarmCode      = ref('')
-const alarmCodeError = ref('')
-const oldCode        = ref('')
-const newCode        = ref('')
-const changeCodeMsg  = ref('')
-const changeCodeOk   = ref(false)
-
-function activateAlarm(mode: 'modo casa' | 'modo regular') {
-  if (alarmCode.value === (d.value.code as string)) {
-    update('alarmMode', mode)
-    update('active', true)
-    alarmCodeError.value = ''
-    alarmCode.value = ''
-  } else {
-    alarmCodeError.value = 'Código incorrecto'
-  }
-}
-
-function deactivateAlarm() {
-  if (alarmCode.value === (d.value.code as string)) {
-    update('alarmMode', 'desactivada')
-    update('active', false)
-    alarmCodeError.value = ''
-    alarmCode.value = ''
-  } else {
-    alarmCodeError.value = 'Código incorrecto'
-  }
-}
-
-function changeCode() {
-  if (oldCode.value !== (d.value.code as string)) {
-    changeCodeMsg.value = 'Código actual incorrecto'
-    changeCodeOk.value = false
-    return
-  }
-  if (!/^\d{4}$/.test(newCode.value)) {
-    changeCodeMsg.value = 'El código debe tener 4 dígitos'
-    changeCodeOk.value = false
-    return
-  }
-  update('code', newCode.value)
-  oldCode.value = ''
-  newCode.value = ''
-  changeCodeMsg.value = 'Código actualizado'
-  changeCodeOk.value = true
-}
+// ── Faucet — cantidad y unidad son inputs locales para la acción ─────
+const faucetQuantity = ref(100)
+const faucetUnit = ref('ml')
 </script>
 
 <style scoped>
