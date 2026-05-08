@@ -82,7 +82,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import HistorialFilters from '@/components/historial/HistorialFilters.vue'
 import HistorialEventItem from '@/components/historial/HistorialEventItem.vue'
 
@@ -91,12 +91,16 @@ const selectedPeriod = ref('Hoy')
 const selectedAction = ref('Todas las acciones')
 const selectedOrigin = ref('Todos')
 
-const stats = ref({
-  actionsToday: 8,
-  byRoutines: 3,
-  manual: 4,
-  lastActionTime: '14:32',
-})
+function getCurrentTime() {
+  const now = new Date()
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+function getTodayDate() {
+  return new Date().toISOString().split('T')[0]
+}
 
 const events = ref([
   {
@@ -203,6 +207,35 @@ const events = ref([
   },
   {
     id: '7',
+    action: 'Rutina ejecutada',
+    device: 'Noche',
+    room: null,
+    status: '2 acciones realizadas',
+    actionType: 'Rutina',
+    actionColor: '#8B5CF6',
+    icon: 'mdi-play-circle-outline',
+    time: '22:15',
+    date: '2026-05-08',
+    isRoutine: true,
+    actions: [
+      {
+        action: 'Se apagó',
+        device: 'Luz Principal',
+        room: 'Sala de Estar',
+        detail: 'Apagado',
+        icon: 'mdi-lightbulb',
+      },
+      {
+        action: 'Se bloqueó',
+        device: 'Puerta Principal',
+        room: 'Entrada',
+        detail: 'Bloqueado',
+        icon: 'mdi-lock',
+      },
+    ],
+  },
+  {
+    id: '8',
     action: 'Se apagó',
     device: 'Televisor',
     room: 'Sala de Estar',
@@ -215,6 +248,42 @@ const events = ref([
     date: '2026-05-06',
   },
 ])
+
+const stats = computed(() => {
+  const today = new Date().toISOString().split('T')[0]
+  const todayEvents = events.value.filter((event) => event.date === today)
+
+  let actionsToday = 0
+  let byRoutines = 0
+  let manual = 0
+
+  todayEvents.forEach((event) => {
+    if (event.isRoutine) {
+      const actionCount = event.actions?.length ?? 0
+      actionsToday += actionCount
+      byRoutines += actionCount
+    } else {
+      actionsToday += 1
+      manual += 1
+    }
+  })
+
+  // Última acción muestra la hora del evento más reciente
+  const lastAction = [...events.value].sort((a, b) => {
+    const timeA = new Date(`${a.date}T${a.time}`)
+    const timeB = new Date(`${b.date}T${b.time}`)
+    return timeB - timeA
+  })[0]
+
+  const lastActionTime = lastAction?.time ?? '--:--'
+
+  return {
+    actionsToday,
+    byRoutines,
+    manual,
+    lastActionTime,
+  }
+})
 
 const filteredEvents = computed(() => {
   return events.value.filter((event) => {
@@ -298,6 +367,20 @@ function formatDateLabel(dateStr) {
     return date.toLocaleDateString('es-ES', opts).replace(/^\w/, (c) => c.toUpperCase())
   }
 }
+
+// Trigger re-render cada minuto para que la hora se actualice
+const currentTime = ref(getCurrentTime())
+let timeInterval
+
+onMounted(() => {
+  timeInterval = setInterval(() => {
+    currentTime.value = getCurrentTime()
+  }, 60000) // Actualizar cada minuto
+})
+
+onUnmounted(() => {
+  if (timeInterval) clearInterval(timeInterval)
+})
 </script>
 
 <style scoped>

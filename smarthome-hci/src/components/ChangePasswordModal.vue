@@ -151,8 +151,8 @@ const handleSubmit = async () => {
   }
 
   // Validar longitud mínima
-  if (formData.newPassword.length < 6) {
-    error.value = 'La contraseña debe tener al menos 6 caracteres'
+  if (formData.newPassword.length < 8) {
+    error.value = 'La contraseña debe tener al menos 8 caracteres'
     return
   }
 
