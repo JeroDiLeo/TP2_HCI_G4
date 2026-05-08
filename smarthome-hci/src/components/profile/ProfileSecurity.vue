@@ -1,12 +1,10 @@
 <template>
   <section class="profile-section">
-    <h2 class="profile-section__title">Seguridad</h2>
-
     <!-- Cambiar contraseña -->
     <div class="profile-security-option">
       <div class="profile-security-option__content">
         <h3 class="profile-security-option__title">Contraseña</h3>
-        <p class="profile-security-option__description">Última actualización hace 6 meses</p>
+        <p class="profile-security-option__description">Protege tu cuenta con una contraseña segura</p>
       </div>
       <button
         type="button"
@@ -14,40 +12,6 @@
         @click="$emit('change-password')"
       >
         Cambiar
-      </button>
-    </div>
-
-    <hr class="profile-divider" />
-
-    <!-- Sesiones activas -->
-    <div class="profile-security-option">
-      <div class="profile-security-option__content">
-        <h3 class="profile-security-option__title">Sesiones activas</h3>
-        <p class="profile-security-option__description">Administra tus sesiones abiertas</p>
-      </div>
-      <button
-        type="button"
-        class="btn-secondary"
-        @click="$emit('manage-sessions')"
-      >
-        Administrar
-      </button>
-    </div>
-
-    <hr class="profile-divider" />
-
-    <!-- Cerrar sesión -->
-    <div class="profile-security-option">
-      <div class="profile-security-option__content">
-        <h3 class="profile-security-option__title">Cerrar sesión</h3>
-        <p class="profile-security-option__description">Cierra tu sesión actual</p>
-      </div>
-      <button
-        type="button"
-        class="btn-secondary"
-        @click="$emit('logout')"
-      >
-        Cerrar sesión
       </button>
     </div>
 
@@ -71,22 +35,15 @@
 </template>
 
 <script setup>
-defineEmits(['change-password', 'manage-sessions', 'logout', 'delete-account'])
+defineEmits(['change-password', 'delete-account'])
 </script>
 
 <style scoped>
 .profile-section {
-  background: rgb(var(--v-theme-surface));
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
-}
-
-.profile-section__title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #0f172a;
-  margin: 0 0 20px 0;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 0;
 }
 
 .profile-security-option {
@@ -102,14 +59,14 @@ defineEmits(['change-password', 'manage-sessions', 'logout', 'delete-account'])
 }
 
 .profile-security-option__title {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: #0f172a;
   margin: 0 0 4px 0;
 }
 
 .profile-security-option__description {
-  font-size: 13px;
+  font-size: 12px;
   color: #64748b;
   margin: 0;
 }
@@ -117,16 +74,16 @@ defineEmits(['change-password', 'manage-sessions', 'logout', 'delete-account'])
 .profile-divider {
   border: none;
   border-top: 1px solid #e2e8f0;
-  margin: 0;
+  margin: 12px 0;
 }
 
 /* Buttons */
 .btn-secondary,
 .btn-danger {
-  padding: 8px 16px;
+  padding: 7px 14px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
