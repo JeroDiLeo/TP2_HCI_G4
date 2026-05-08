@@ -222,7 +222,7 @@ watch(
 }
 
 .toggle--on {
-  background: #6366f1;
+  background: #A5B4FC;
 }
 
 .toggle__thumb {

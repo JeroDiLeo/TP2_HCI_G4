@@ -1,7 +1,5 @@
 <template>
   <section class="profile-section">
-    <h2 class="profile-section__title">Apariencia</h2>
-
     <!-- Tema -->
     <div class="profile-option">
       <div class="profile-option__content">
@@ -129,17 +127,10 @@ defineExpose({
 
 <style scoped>
 .profile-section {
-  background: rgb(var(--v-theme-surface));
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
-}
-
-.profile-section__title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #0f172a;
-  margin: 0 0 20px 0;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 0;
 }
 
 .profile-option {
@@ -154,14 +145,14 @@ defineExpose({
 }
 
 .profile-option__title {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: #0f172a;
   margin: 0 0 4px 0;
 }
 
 .profile-option__description {
-  font-size: 13px;
+  font-size: 12px;
   color: #64748b;
   margin: 0;
 }
@@ -173,7 +164,7 @@ defineExpose({
 .profile-divider {
   border: none;
   border-top: 1px solid #e2e8f0;
-  margin: 0;
+  margin: 12px 0;
 }
 
 /* Theme Options */

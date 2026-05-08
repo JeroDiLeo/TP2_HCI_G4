@@ -10,25 +10,28 @@
         <ViewModeToggle v-model="viewMode" />
         <button type="button" class="btn-primary" @click="isAddModalOpen = true">
           <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
-          Agregar Habitación
+          Crear habitación
         </button>
       </div>
     </div>
 
-    <!-- Stats row -->
-    <div class="rooms-view__stats" aria-label="Estadísticas del hogar">
-      <RoomStatsCard
-        icon="mdi-door"
-        :value="roomsStore.totalRooms"
-        label="Habitaciones"
-        style="--card-delay: 0ms"
-      />
-      <RoomStatsCard
-        icon="mdi-flash"
-        :value="roomsStore.activeDevices"
-        label="Dispositivos activos"
-        style="--card-delay: 50ms"
-      />
+    <!-- Category filters -->
+    <div class="rooms-view__filters" role="group" aria-label="Filtrar por categoría">
+      <p class="rooms-view__filter-label">Filtrar por categoría</p>
+      <div class="rooms-view__chips">
+        <button
+          v-for="cat in CATEGORIES"
+          :key="cat.id"
+          type="button"
+          class="filter-chip"
+          :class="{ 'filter-chip--active': roomsStore.categoryFilter === cat.id }"
+          :aria-pressed="roomsStore.categoryFilter === cat.id"
+          @click="roomsStore.categoryFilter = cat.id"
+        >
+          {{ cat.label }}
+          <span class="filter-chip__count">{{ categoryCounts[cat.id] }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- Rooms grid -->
@@ -45,24 +48,43 @@
 </template>
 
 <script setup>
-import { ref, inject, watch } from 'vue'
+import { ref, inject, watch, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useRoomsStore } from '@/stores/rooms'
-import RoomStatsCard  from '@/components/rooms/RoomStatsCard.vue'
 import ViewModeToggle from '@/components/rooms/ViewModeToggle.vue'
 import RoomsGrid     from '@/components/rooms/RoomsGrid.vue'
 import AddRoomModal  from '@/components/rooms/AddRoomModal.vue'
 
 const roomsStore     = useRoomsStore()
+const router         = useRouter()
 const viewMode       = ref('grid')
 const isAddModalOpen = ref(false)
+
+const CATEGORIES = [
+  { id: 'todas',    label: 'Todas'      },
+  { id: 'living',   label: 'Sala'       },
+  { id: 'bedroom',  label: 'Dormitorio' },
+  { id: 'kitchen',  label: 'Cocina'     },
+  { id: 'bathroom', label: 'Baño'       },
+  { id: 'office',   label: 'Oficina'    },
+  { id: 'other',    label: 'Otro'       },
+]
+
+const categoryCounts = computed(() => {
+  const counts = { todas: roomsStore.rooms.length }
+  for (const cat of CATEGORIES) {
+    if (cat.id === 'todas') continue
+    counts[cat.id] = roomsStore.rooms.filter(r => (r.type ?? 'other') === cat.id).length
+  }
+  return counts
+})
 
 // Sync layout search → store so filteredRooms computed stays working
 const layoutSearch = inject('layoutSearchQuery', ref(''))
 watch(layoutSearch, (q) => { roomsStore.searchQuery = q }, { immediate: true })
 
 function handleViewDetails(roomId) {
-  // Placeholder: navegación a detalle de habitación
-  console.info('Ver detalles de habitación:', roomId)
+  router.push({ name: 'room-detail', params: { roomId } })
 }
 </script>
 
@@ -126,10 +148,61 @@ function handleViewDetails(roomId) {
 .btn-primary:hover { background: var(--sh-primary-dark); }
 .btn-primary:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 
-.rooms-view__stats {
+/* ── Filters (mismo estilo que /rutinas) ── */
+.rooms-view__filters { margin-bottom: 24px; }
+.rooms-view__filter-label {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sh-text-muted);
+  font-family: 'Inter', sans-serif;
+}
+.rooms-view__chips {
   display: flex;
-  gap: 24px;
-  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--sh-border);
+  background: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sh-text-muted);
+  cursor: pointer;
+  transition: border-color 150ms, background-color 150ms, color 150ms;
+}
+.filter-chip:hover:not(.filter-chip--active) {
+  border-color: var(--sh-text-muted);
+  background-color: #F8FAFC;
+}
+.filter-chip:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.filter-chip--active {
+  background: var(--sh-primary);
+  border-color: var(--sh-primary);
+  color: #ffffff;
+}
+.filter-chip--active .filter-chip__count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+.filter-chip__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--sh-primary-light);
+  color: var(--sh-primary-dark);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .rooms-view__grid {

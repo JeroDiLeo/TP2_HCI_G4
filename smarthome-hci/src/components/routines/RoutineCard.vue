@@ -1,13 +1,46 @@
 <template>
-  <article class="routine-card">
-    <!-- Play button (absolute, top-right) -->
+  <article
+    class="routine-card"
+    role="button"
+    tabindex="0"
+    :aria-label="`Editar rutina ${routine.name}`"
+    @click="$emit('edit', routine.id)"
+    @keydown.enter.prevent="$emit('edit', routine.id)"
+    @keydown.space.prevent="$emit('edit', routine.id)"
+  >
+    <!-- Favorite star (top-right) -->
+    <button
+      type="button"
+      class="routine-card__fav"
+      :class="{ 'routine-card__fav--on': routine.favorite }"
+      :aria-label="routine.favorite ? 'Quitar de favoritas' : 'Marcar como favorita'"
+      :aria-pressed="!!routine.favorite"
+      @click.stop="$emit('toggle-favorite', routine.id)"
+      @keydown.enter.stop
+      @keydown.space.stop
+    >
+      <v-icon :icon="routine.favorite ? 'mdi-star' : 'mdi-star-outline'" size="16" aria-hidden="true" />
+    </button>
+
+    <!-- Play button (absolute, bottom-right) -->
     <button
       type="button"
       class="routine-card__play"
+      :class="`routine-card__play--${executeStatus}`"
       :aria-label="`Ejecutar rutina ${routine.name}`"
-      @click="$emit('execute', routine.id)"
+      :disabled="executeStatus === 'loading'"
+      @click.stop="handleExecute"
     >
-      <v-icon icon="mdi-play" size="16" aria-hidden="true" />
+      <v-progress-circular
+        v-if="executeStatus === 'loading'"
+        indeterminate
+        size="20"
+        width="2"
+        color="white"
+      />
+      <v-icon v-else-if="executeStatus === 'success'" icon="mdi-check" size="22" aria-hidden="true" />
+      <v-icon v-else-if="executeStatus === 'error'" icon="mdi-alert-outline" size="22" aria-hidden="true" />
+      <v-icon v-else icon="mdi-play" size="22" aria-hidden="true" />
     </button>
 
     <!-- Header: icon + title + badge -->
@@ -46,7 +79,7 @@
         class="routine-card__action"
       >
         <span class="routine-card__dot" aria-hidden="true" />
-        {{ action }}
+        {{ displayAction(action) }}
       </li>
       <li v-if="hiddenCount > 0" class="routine-card__more">
         +{{ hiddenCount }} acción{{ hiddenCount > 1 ? 'es' : '' }} más
@@ -71,7 +104,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import { useRoutinesStore } from '@/stores/routines'
 
 const props = defineProps({
   routine: {
@@ -80,7 +114,25 @@ const props = defineProps({
   },
 })
 
-defineEmits(['execute'])
+defineEmits(['edit', 'toggle-favorite'])
+
+const routinesStore = useRoutinesStore()
+
+// ── Execute feedback ──
+const executeStatus = ref('idle')
+
+async function handleExecute() {
+  if (executeStatus.value === 'loading') return
+  executeStatus.value = 'loading'
+  try {
+    await routinesStore.executeRoutine(props.routine.id)
+    executeStatus.value = 'success'
+  } catch {
+    executeStatus.value = 'error'
+  } finally {
+    setTimeout(() => { executeStatus.value = 'idle' }, 1800)
+  }
+}
 
 const ALL_DAYS = [
   { key: 'lun', label: 'Lun' },
@@ -105,6 +157,13 @@ const categoryKey = computed(() => CATEGORY_KEYS[props.routine.category] ?? 'cus
 const visibleActions = computed(() => props.routine.actions.slice(0, 2))
 const hiddenCount    = computed(() => Math.max(0, props.routine.actions.length - 2))
 
+
+function displayAction(action) {
+  if (typeof action === 'string') return action
+  if (action?.actionName) return action.actionName
+  return ''
+}
+
 const formattedTime = computed(() => {
   if (props.routine.trigger.type !== 'schedule') return ''
   const [h, m] = props.routine.trigger.time.split(':').map(Number)
@@ -126,19 +185,53 @@ const formattedTime = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: box-shadow 200ms;
+  cursor: pointer;
+  text-align: left;
+  transition: box-shadow 200ms, border-color 150ms;
 }
 .routine-card:hover {
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10);
+  border-color: rgba(99, 102, 241, .35);
 }
+.routine-card:focus-visible {
+  outline: 2px solid var(--sh-primary);
+  outline-offset: 2px;
+}
+
+/* ── Favorite star ───────────────────────────────────── */
+.routine-card__fav {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--sh-text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 150ms, color 150ms, transform 100ms;
+  z-index: 3;
+}
+.routine-card__fav:hover { background: #FEF3C7; color: #D97706; }
+.routine-card__fav:active { transform: scale(0.92); }
+.routine-card__fav:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.routine-card__fav--on { color: #F59E0B; }
+.routine-card__fav--on:hover { color: #D97706; }
+
+/* Reserve room in the header so name doesn't crash with the star */
+.routine-card__header { padding-right: 36px; }
 
 /* ── Play button ─────────────────────────────────────── */
 .routine-card__play {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 30px;
-  height: 30px;
+  bottom: 14px;
+  right: 14px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: var(--sh-primary);
   color: #ffffff;
@@ -147,18 +240,35 @@ const formattedTime = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
   transition: background-color 150ms, transform 150ms, box-shadow 150ms;
   flex-shrink: 0;
+  z-index: 2;
 }
 .routine-card__play:hover {
   background: var(--sh-primary-dark);
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.45);
+  transform: scale(1.06);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+}
+.routine-card__play :deep(.v-icon) {
+  margin-left: 2px; /* optical centering of play glyph */
 }
 .routine-card__play:focus-visible {
   outline: 2px solid var(--sh-primary);
   outline-offset: 3px;
+}
+.routine-card__play:disabled {
+  cursor: default;
+  transform: none;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+.routine-card__play--success {
+  background: #16A34A;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+}
+.routine-card__play--error {
+  background: var(--sh-error, #DC2626);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
 }
 
 /* ── Header row ──────────────────────────────────────── */
@@ -166,8 +276,6 @@ const formattedTime = computed(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  /* leave space for the absolute play button */
-  padding-right: 38px;
 }
 
 .routine-card__icon-wrap {
@@ -304,6 +412,7 @@ const formattedTime = computed(() => {
   gap: 3px;
   margin-top: auto;
   padding-top: 8px;
+  padding-right: 56px; /* leave room for play button */
   border-top: 1px solid var(--sh-border);
 }
 

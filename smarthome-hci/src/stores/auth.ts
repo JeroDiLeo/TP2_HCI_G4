@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { loginUser, logoutUser } from '@/services/api/userApi'
+import { loginUser, logoutUser, updateUserProfile } from '@/services/api/userApi'
 
 export const useAuthStore = defineStore('auth', () => {
   const email = ref<string>(JSON.parse(localStorage.getItem('user') || 'null')?.email || '')
@@ -51,5 +51,15 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('token')
   }
 
-  return { email, fullName, user, token, isAuthenticated, displayName, initial, login, loginAs, logout }
+  async function updateProfile(name: string) {
+    const userData = await updateUserProfile({ name })
+    if (userData) {
+      user.value = userData
+      fullName.value = userData.name || ''
+      localStorage.setItem('user', JSON.stringify(userData))
+    }
+    return userData
+  }
+
+  return { email, fullName, user, token, isAuthenticated, displayName, initial, login, loginAs, logout, updateProfile }
 })

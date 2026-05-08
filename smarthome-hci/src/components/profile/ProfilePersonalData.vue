@@ -1,9 +1,8 @@
 <template>
   <section class="profile-section">
-    <h2 class="profile-section__title">Datos personales</h2>
     <form class="profile-form" @submit.prevent="$emit('save')">
-      <div class="profile-form__grid">
-        <!-- Nombre -->
+      <div class="profile-grid">
+        <!-- Nombre completo -->
         <div class="profile-form__field">
           <label class="profile-form__label" for="firstName">Nombre</label>
           <input
@@ -11,6 +10,7 @@
             v-model="formData.firstName"
             type="text"
             class="profile-form__input"
+            :readonly="!isEditing"
             placeholder="Tu nombre"
           />
         </div>
@@ -23,23 +23,27 @@
             v-model="formData.lastName"
             type="text"
             class="profile-form__input"
+            :readonly="!isEditing"
             placeholder="Tu apellido"
           />
         </div>
 
         <!-- Email -->
         <div class="profile-form__field">
-          <label class="profile-form__label" for="email">Correo</label>
-          <input
-            id="email"
-            v-model="formData.email"
-            type="email"
-            class="profile-form__input"
-            placeholder="tu@email.com"
-            disabled
-          />
+          <label class="profile-form__label" for="email">Correo electrónico</label>
+          <div class="profile-form__input-wrapper">
+            <input
+              id="email"
+              v-model="formData.email"
+              type="email"
+              class="profile-form__input profile-form__input--disabled"
+              readonly
+              disabled
+              placeholder="tu@email.com"
+            />
+            <i class="mdi mdi-lock"></i>
+          </div>
         </div>
-
       </div>
     </form>
   </section>
@@ -56,6 +60,10 @@ const props = defineProps({
       lastName: '',
       email: '',
     }),
+  },
+  isEditing: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -74,20 +82,13 @@ defineExpose({
 
 <style scoped>
 .profile-section {
-  background: rgb(var(--v-theme-surface));
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 0;
 }
 
-.profile-section__title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #0f172a;
-  margin: 0 0 20px 0;
-}
-
-.profile-form__grid {
+.profile-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
@@ -103,43 +104,89 @@ defineExpose({
   grid-column: 1 / -1;
 }
 
-.profile-form__label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #0f172a;
+.profile-form__field:nth-child(3) {
+  grid-column: 1;
 }
 
-.profile-form__input,
-.profile-form__select {
-  padding: 10px 12px;
+.profile-form__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-form__label-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: #94a3b8;
+  text-transform: none;
+}
+
+.profile-form__input {
+  padding: 12px 14px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   color: #0f172a;
-  background: white;
-  transition: border-color 0.2s;
+  background: #f8fafc;
+  transition: all 0.2s;
 }
 
-.profile-form__input:focus,
-.profile-form__select:focus {
+.profile-form__input:focus {
   outline: none;
+  background: white;
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
-.profile-form__input:disabled {
+.profile-form__input:readonly {
   background: #f1f5f9;
-  color: #94a3b8;
+  color: #0f172a;
   cursor: not-allowed;
+  border: 1px solid #e2e8f0;
 }
 
-.profile-form__select {
-  cursor: pointer;
+.profile-form__input:readonly:focus {
+  border: 1px solid #e2e8f0;
+  box-shadow: none;
+  background: #f1f5f9;
+}
+
+.profile-form__input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.profile-form__input-wrapper i {
+  position: absolute;
+  right: 12px;
+  color: #cbd5e1;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.profile-form__input--disabled {
+  width: 100%;
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  border-color: #e2e8f0 !important;
+  padding-right: 40px;
+}
+
+.profile-form__input--disabled:focus {
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
 }
 
 @media (max-width: 768px) {
-  .profile-form__grid {
+  .profile-grid {
     grid-template-columns: 1fr;
   }
 

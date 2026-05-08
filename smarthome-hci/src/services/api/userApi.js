@@ -193,3 +193,93 @@ export async function registerUser({ email, password, name, metadata = {} }) {
     throw error
   }
 }
+
+export async function updateUserProfile({ name }) {
+  const token = localStorage.getItem('token')
+  const init = {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-KEY': import.meta.env.VITE_API_KEY,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ name, metadata: {} }),
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/users/profile`, init)
+
+    if (!response.ok) {
+      const data = await response.json()
+      const err = new Error(data.error?.description ?? 'Error desconocido')
+      err.code = data.error?.code
+      err.status = response.status
+      throw err
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.log(`Unexpected error: ${error.message}`)
+    throw error
+  }
+}
+
+export async function changePassword({ oldPassword, newPassword }) {
+  const token = localStorage.getItem('token')
+  const init = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-KEY': import.meta.env.VITE_API_KEY,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ oldPassword, newPassword }),
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/users/change-password`, init)
+
+    if (!response.ok) {
+      const data = await response.json()
+      const err = new Error(data.error?.description ?? 'Error desconocido')
+      err.code = data.error?.code
+      err.status = response.status
+      throw err
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.log(`Unexpected error: ${error.message}`)
+    throw error
+  }
+}
+
+export async function deleteAccount({ password }) {
+  const token = localStorage.getItem('token')
+  const init = {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-KEY': import.meta.env.VITE_API_KEY,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ password }),
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/users/delete-account`, init)
+
+    if (!response.ok) {
+      const data = await response.json()
+      const err = new Error(data.error?.description ?? 'Error desconocido')
+      err.code = data.error?.code
+      err.status = response.status
+      throw err
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.log(`Unexpected error: ${error.message}`)
+    throw error
+  }
+}

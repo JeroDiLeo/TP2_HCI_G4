@@ -1,121 +1,104 @@
 <template>
   <div class="profile-view">
     <!-- Encabezado -->
-    <ProfileHeader :user="userData" />
+    <div class="profile-view__header">
+      <h1>Configuración</h1>
+      <p>Administrá tu perfil y preferencias de la aplicación.</p>
+    </div>
 
-    <!-- Menú principal -->
-    <div v-if="!activeSection" class="profile-view__menu">
-      <button
-        v-for="section in sections"
-        :key="section.id"
-        class="menu-card"
-        @click="selectSection(section.id)"
-      >
-        <div class="menu-card__icon">
+    <div class="profile-view__container">
+      <!-- Sidebar Menu Card -->
+      <aside class="profile-view__sidebar">
+        <button
+          v-for="section in sections"
+          :key="section.id"
+          class="sidebar-item"
+          :class="{ 'sidebar-item--active': activeSection === section.id }"
+          @click="selectSection(section.id)"
+        >
           <i :class="['mdi', section.icon]"></i>
+          <span>{{ section.title }}</span>
+        </button>
+
+        <!-- Cerrar sesión -->
+        <button class="sidebar-item sidebar-item--logout" @click="handleLogout">
+          <i class="mdi mdi-logout"></i>
+          <span>Cerrar sesión</span>
+        </button>
+      </aside>
+
+      <!-- Main Content Card -->
+      <main class="profile-view__content">
+        <!-- Datos personales -->
+        <div v-if="activeSection === 'personal'" class="section-wrapper">
+          <div class="section-header">
+            <h2>Información personal</h2>
+            <button class="btn-edit" @click="isEditingPersonal = !isEditingPersonal">
+              <i class="mdi mdi-pencil"></i>
+              Editar
+            </button>
+          </div>
+          <ProfilePersonalData
+            ref="personalDataRef"
+            :initial-data="personalData"
+            :is-editing="isEditingPersonal"
+          />
+          <div v-if="isEditingPersonal" class="profile-actions">
+            <button type="button" class="btn-secondary" @click="handleCancelPersonal">
+              Cancelar
+            </button>
+            <button type="button" class="btn-primary" @click="handleSavePersonal">
+              Guardar cambios
+            </button>
+          </div>
         </div>
-        <div class="menu-card__content">
-          <h3 class="menu-card__title">{{ section.title }}</h3>
-          <p class="menu-card__description">{{ section.description }}</p>
+
+        <!-- Seguridad -->
+        <div v-if="activeSection === 'security'" class="section-wrapper">
+          <h2>Seguridad</h2>
+          <ProfileSecurity
+            @change-password="handleChangePassword"
+            @delete-account="handleDeleteAccount"
+          />
         </div>
-        <i class="mdi mdi-chevron-right menu-card__chevron"></i>
-      </button>
+      </main>
     </div>
 
-    <!-- Contenido de sección -->
-    <div v-else class="profile-view__section-content">
-      <button class="back-button" @click="activeSection = null">
-        <i class="mdi mdi-chevron-left"></i>
-        Volver
-      </button>
+    <!-- Modal para cambiar contraseña -->
+    <ChangePasswordModal ref="changePasswordModalRef" />
 
-      <!-- Datos personales -->
-      <ProfilePersonalData
-        v-if="activeSection === 'personal'"
-        ref="personalDataRef"
-        :initial-data="personalData"
-      />
-
-      <!-- Apariencia -->
-      <ProfileAppearance
-        v-if="activeSection === 'appearance'"
-        ref="appearanceRef"
-        :initial-data="appearanceData"
-      />
-
-      <!-- Notificaciones -->
-      <ProfileNotifications
-        v-if="activeSection === 'notifications'"
-        ref="notificationsRef"
-        :initial-data="notificationsData"
-      />
-
-      <!-- Seguridad -->
-      <ProfileSecurity
-        v-if="activeSection === 'security'"
-        @change-password="handleChangePassword"
-        @manage-sessions="handleManageSessions"
-        @logout="handleLogout"
-        @delete-account="handleDeleteAccount"
-      />
-
-      <!-- Botones de acción (excepto para Seguridad) -->
-      <div v-if="activeSection !== 'security'" class="profile-actions">
-        <button
-          type="button"
-          class="btn-secondary"
-          @click="handleCancel"
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          class="btn-primary"
-          @click="handleSave"
-        >
-          Guardar cambios
-        </button>
-      </div>
-    </div>
+    <!-- Modal para eliminar cuenta -->
+    <DeleteAccountModal ref="deleteAccountModalRef" />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import ProfileHeader from '@/components/profile/ProfileHeader.vue'
+import { changePassword, deleteAccount } from '@/services/api/userApi'
 import ProfilePersonalData from '@/components/profile/ProfilePersonalData.vue'
-import ProfileAppearance from '@/components/profile/ProfileAppearance.vue'
-import ProfileNotifications from '@/components/profile/ProfileNotifications.vue'
 import ProfileSecurity from '@/components/profile/ProfileSecurity.vue'
+import ChangePasswordModal from '@/components/ChangePasswordModal.vue'
+import DeleteAccountModal from '@/components/DeleteAccountModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 // Estado de navegación
-const activeSection = ref(null)
+const activeSection = ref('personal')
+const isEditingPersonal = ref(false)
 
 // Definición de secciones del menú
 const sections = [
-  { id: 'personal', icon: 'mdi-account', title: 'Mi perfil', description: 'Datos personales' },
-  { id: 'appearance', icon: 'mdi-brightness-6', title: 'Apariencia', description: 'Tema y modo' },
-  { id: 'notifications', icon: 'mdi-bell-outline', title: 'Notificaciones', description: 'Avisos y alertas' },
-  { id: 'security', icon: 'mdi-lock-outline', title: 'Seguridad', description: 'Cuenta y sesión' },
+  { id: 'personal', icon: 'mdi-account', title: 'Perfil' },
+  { id: 'security', icon: 'mdi-lock-outline', title: 'Seguridad' },
 ]
 
 // Refs para acceder a los datos de los componentes
 const personalDataRef = ref(null)
-const appearanceRef = ref(null)
-const notificationsRef = ref(null)
-
-// Datos del usuario desde el store
-const userData = computed(() => ({
-  name: authStore.user?.name?.split(' ')[0] || 'Usuario',
-  lastName: authStore.user?.name?.split(' ').slice(1).join(' ') || '',
-  role: authStore.user?.role || 'Usuario',
-  email: authStore.user?.email || '',
-}))
+const changePasswordModalRef = ref(null)
+const deleteAccountModalRef = ref(null)
 
 // Datos de formulario - Datos personales
 const personalData = reactive({
@@ -124,62 +107,81 @@ const personalData = reactive({
   email: authStore.user?.email || '',
 })
 
-// Datos de formulario - Apariencia
-const appearanceData = reactive({
-  theme: 'auto',
-  largeText: false,
-  highContrast: false,
-  reduceMotion: false,
-})
-
-// Datos de formulario - Notificaciones
-const notificationsData = reactive({
-  motionDetection: true,
-  offlineDevices: true,
-  weeklySummary: true,
-  pushNotifications: false,
-})
+// Actualizar datos cuando cambia el usuario en el store
+watch(() => authStore.user, (newUser) => {
+  if (newUser) {
+    personalData.firstName = newUser.name?.split(' ')[0] || ''
+    personalData.lastName = newUser.name?.split(' ').slice(1).join(' ') || ''
+    personalData.email = newUser.email || ''
+  }
+}, { deep: true })
 
 const selectSection = (sectionId) => {
   activeSection.value = sectionId
+  isEditingPersonal.value = false
 }
 
-const handleSave = async () => {
-  // Aquí iría la lógica para guardar los cambios
-  console.log('Saving changes...')
-  console.log('Personal Data:', personalDataRef.value?.formData)
-  console.log('Appearance:', appearanceRef.value?.formData)
-  console.log('Notifications:', notificationsRef.value?.formData)
-  // TODO: Llamar a API para guardar
+const handleSavePersonal = async () => {
+  const formData = personalDataRef.value?.formData
+  if (formData) {
+    try {
+      const fullName = `${formData.firstName} ${formData.lastName}`
+      await authStore.updateProfile(fullName)
+
+      // Actualizar personalData manualmente para reflejar cambios inmediatamente
+      personalData.firstName = formData.firstName
+      personalData.lastName = formData.lastName
+
+      isEditingPersonal.value = false
+      alert('Cambios guardados correctamente')
+    } catch (error) {
+      alert(`Error al guardar cambios: ${error.message}`)
+    }
+  }
 }
 
-const handleCancel = () => {
-  // Volver al menú principal
-  activeSection.value = null
+const handleCancelPersonal = () => {
+  isEditingPersonal.value = false
+  // Reset form data
+  if (personalDataRef.value) {
+    personalDataRef.value.formData = { ...personalData }
+  }
 }
 
-const handleChangePassword = () => {
-  console.log('Change password')
-  // TODO: Implementar modal o navegar a nueva página
-}
+const handleChangePassword = async () => {
+  const result = await changePasswordModalRef.value?.showModal()
+  if (!result) return
 
-const handleManageSessions = () => {
-  console.log('Manage sessions')
-  // TODO: Implementar modal o navegar a nueva página
+  try {
+    await changePassword(result)
+    alert('Contraseña cambiada correctamente')
+  } catch (error) {
+    alert(`Error al cambiar contraseña: ${error.message}`)
+  }
 }
 
 const handleLogout = async () => {
-  await authStore.logout()
-  router.push('/login')
+  if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+    await authStore.logout()
+    router.push('/login')
+  }
 }
 
-const handleDeleteAccount = () => {
-  console.log('Delete account')
-  // TODO: Implementar confirmación y lógica de eliminación
+const handleDeleteAccount = async () => {
+  const result = await deleteAccountModalRef.value?.showModal()
+  if (!result) return
+
+  try {
+    await deleteAccount(result)
+    alert('Cuenta eliminada correctamente')
+    await authStore.logout()
+    router.push('/login')
+  } catch (error) {
+    alert(`Error al eliminar cuenta: ${error.message}`)
+  }
 }
 
 onMounted(() => {
-  // Aquí se cargarían los datos del usuario desde el store/API
   console.log('Profile view mounted')
 })
 </script>
@@ -187,123 +189,167 @@ onMounted(() => {
 <style scoped>
 .profile-view {
   padding: 0;
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-.profile-view__menu {
-  margin-top: 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0 24px;
+.profile-view__header {
+  padding: 24px 24px 24px;
 }
 
-.menu-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 16px;
-  background: white;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
-  border-left: 4px solid transparent;
-}
-
-.menu-card:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
-  border-left-color: #6366f1;
-}
-
-
-.menu-card__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: #f1f5f9;
-  border-radius: 10px;
-  color: #6366f1;
-  font-size: 24px;
-  flex-shrink: 0;
-}
-
-.menu-card__content {
-  flex: 1;
-  text-align: left;
-}
-
-.menu-card__title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
+.profile-view__header h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
   color: #0f172a;
 }
 
-.menu-card__description {
-  margin: 4px 0 0 0;
+.profile-view__header p {
+  margin: 0;
   font-size: 14px;
   color: #64748b;
 }
 
-.menu-card__chevron {
-  color: #cbd5e1;
-  font-size: 24px;
+.profile-view__container {
+  display: flex;
+  gap: 24px;
+  padding: 0 24px 24px;
+}
+
+.profile-view__sidebar {
+  width: 200px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  height: fit-content;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+  text-align: left;
+}
+
+.sidebar-item i {
+  font-size: 16px;
   flex-shrink: 0;
 }
 
-.profile-view__section-content {
-  margin-top: 32px;
-  padding: 0 24px;
+.sidebar-item:hover {
+  background: #f8fafc;
+  color: #0f172a;
 }
 
-.back-button {
+.sidebar-item--active {
+  background: #6366f1;
+  color: white;
+  font-weight: 600;
+}
+
+.sidebar-item--logout {
+  color: #ef4444;
+  margin-top: auto;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.sidebar-item--logout:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.profile-view__content {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.section-wrapper {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.section-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  color: #6366f1;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  font-family: 'Inter', sans-serif;
-  padding: 8px 0;
+  justify-content: space-between;
   margin-bottom: 24px;
-  transition: color 0.2s;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.back-button:hover {
-  color: #4f46e5;
+.section-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
 }
 
-.back-button .mdi {
-  font-size: 20px;
+.btn-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-edit:hover {
+  background: #4f46e5;
+}
+
+.btn-edit i {
+  font-size: 14px;
 }
 
 .profile-actions {
   display: flex;
   gap: 12px;
-  margin-top: 32px;
-  padding: 24px;
-  background: rgb(var(--v-theme-surface));
-  border-radius: 12px;
+  margin-top: 24px;
   justify-content: flex-end;
-  position: sticky;
-  bottom: 0;
 }
 
 .btn-primary,
 .btn-secondary {
   padding: 10px 24px;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -317,11 +363,6 @@ onMounted(() => {
 
 .btn-primary:hover {
   background: #4f46e5;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-}
-
-.btn-primary:active {
-  background: #4338ca;
 }
 
 .btn-secondary {
@@ -335,34 +376,52 @@ onMounted(() => {
   border-color: #cbd5e1;
 }
 
-.btn-secondary:active {
-  background: #f1f5f9;
-}
-
 @media (max-width: 768px) {
-  .profile-view {
-    padding: 0;
+  .profile-view__container {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .profile-view__sidebar {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    height: auto;
+    gap: 8px;
+  }
+
+  .sidebar-item {
+    padding: 12px 8px;
+    justify-content: center;
+    text-align: center;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+  }
+
+  .sidebar-item--logout {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .profile-view__content {
+    padding: 16px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .profile-actions {
     flex-direction: column;
-    position: relative;
-    bottom: auto;
   }
 
   .btn-primary,
   .btn-secondary {
     width: 100%;
-  }
-
-  .menu-card {
-    padding: 16px;
-  }
-
-  .menu-card__icon {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
   }
 }
 </style>
