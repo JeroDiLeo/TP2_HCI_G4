@@ -265,98 +265,6 @@
 
       </div>
 
-      <!-- Icon Selector Modal -->
-      <v-dialog
-        v-model="showIconSelector"
-        width="400"
-        @update:model-value="(val) => { if (!val) { showIconSelector = false; pendingDeviceType = null } }"
-      >
-        <div class="icon-selector" role="dialog" aria-modal="true">
-          <div class="icon-selector__header">
-            <h3 class="icon-selector__title">Seleccionar ícono</h3>
-            <button
-              type="button"
-              class="icon-selector__close"
-              aria-label="Cerrar"
-              @click="showIconSelector = false; pendingDeviceType = null"
-            >
-              <v-icon icon="mdi-close" size="14" aria-hidden="true" />
-            </button>
-          </div>
-          <div class="icon-selector__body">
-            <div class="icon-grid">
-              <button
-                v-for="item in ICON_SELECTOR"
-                :key="item.icon"
-                type="button"
-                class="icon-option"
-                :aria-label="item.label"
-                @click="selectCustomIcon(item.icon)"
-              >
-                <span class="icon-option__icon" aria-hidden="true">
-                  <v-icon :icon="item.icon" size="24" />
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </v-dialog>
-
-      <!-- Custom Device Name Modal -->
-      <v-dialog
-        v-model="showCustomNameModal"
-        width="380"
-        @update:model-value="(val) => { if (!val) showCustomNameModal = false }"
-      >
-        <div class="name-modal" role="dialog" aria-modal="true">
-          <div class="name-modal__header">
-            <div class="name-modal__icon" aria-hidden="true">
-              <v-icon :icon="selectedCustomIcon || 'mdi-help-circle-outline'" size="24" />
-            </div>
-            <h3 class="name-modal__title">Nombrar dispositivo</h3>
-            <button
-              type="button"
-              class="name-modal__close"
-              aria-label="Cerrar"
-              @click="showCustomNameModal = false"
-            >
-              <v-icon icon="mdi-close" size="14" aria-hidden="true" />
-            </button>
-          </div>
-          <div class="name-modal__body">
-            <div class="field">
-              <label for="custom-name" class="field__label">¿Cómo se llama?</label>
-              <input
-                id="custom-name"
-                ref="customNameInputRef"
-                v-model="customDeviceName"
-                type="text"
-                class="field__input"
-                placeholder="Ej: Mi dispositivo"
-                maxlength="30"
-                @keyup.enter="addCustomDevice"
-              />
-            </div>
-          </div>
-          <div class="name-modal__footer">
-            <button
-              type="button"
-              class="btn-cancel"
-              @click="showCustomNameModal = false"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              class="btn-save"
-              @click="addCustomDevice"
-            >
-              <v-icon icon="mdi-plus" size="14" aria-hidden="true" />
-              Agregar
-            </button>
-          </div>
-        </div>
-      </v-dialog>
 
       <!-- Footer -->
       <footer class="add-modal__footer">
@@ -429,31 +337,7 @@ const DEVICE_CATALOG = [
   { type: 'door',    label: 'Puerta',      icon: 'mdi-door'                },
   { type: 'alarm',   label: 'Alarma',      icon: 'mdi-alarm-light-outline' },
   { type: 'fridge',  label: 'Heladera',    icon: 'mdi-fridge-outline'      },
-  { type: 'other',   label: 'Otro',        icon: 'mdi-plus-circle-outline'  },
 ] as const
-
-const ICON_SELECTOR = [
-  { icon: 'mdi-lightbulb-outline',      label: 'Lámpara' },
-  { icon: 'mdi-fan',                    label: 'Ventilador' },
-  { icon: 'mdi-microwave',              label: 'Microondas' },
-  { icon: 'mdi-coffee-maker-outline',   label: 'Cafetera' },
-  { icon: 'mdi-washing-machine',        label: 'Lavarropas' },
-  { icon: 'mdi-tumble-dryer',           label: 'Secadora' },
-  { icon: 'mdi-dishwasher',             label: 'Lavavajillas' },
-  { icon: 'mdi-television',             label: 'Televisor' },
-  { icon: 'mdi-speaker',                label: 'Parlante' },
-  { icon: 'mdi-radio',                  label: 'Radio' },
-  { icon: 'mdi-webcam',        label: 'Cámara' },
-  { icon: 'mdi-lock',                   label: 'Cerradura' },
-  { icon: 'mdi-bell',                   label: 'Timbre' },
-  { icon: 'mdi-motion-sensor',          label: 'Sensor de movimiento' },
-  { icon: 'mdi-thermometer',            label: 'Termómetro' },
-  { icon: 'mdi-water-outline',          label: 'Sensor de agua' },
-  { icon: 'mdi-fire-extinguisher',      label: 'Extintor' },
-  { icon: 'mdi-power-plug-outline',     label: 'Enchufe' },
-  { icon: 'mdi-gamepad-variant',        label: 'Control remoto' },
-  { icon: 'mdi-brightness-percent',     label: 'Regulador' },
-]
 
 const CATEGORIES = [
   { id: 'sala',       label: 'Sala',       icon: 'mdi-sofa'                  },
@@ -476,13 +360,6 @@ const newRoom = ref<{ name: string; category: string }>({ name: '', category: 's
 const newRoomNameRef = ref<HTMLInputElement | null>(null)
 
 const instances = ref<Instance[]>([])
-const showIconSelector = ref(false)
-const showCustomNameModal = ref(false)
-const pendingDeviceType = ref<string | null>(null)
-const selectedCustomIcon = ref<string | null>(null)
-const customDeviceName = ref('')
-const customNameInputRef = ref<HTMLInputElement | null>(null)
-
 const stepError = ref('')
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -532,39 +409,12 @@ const showNewRoomError = computed(() =>
 // ── Step 2 actions ──────────────────────────────────────────────────────────
 
 function addDeviceInstance(type: string) {
-  if (type === 'other') {
-    pendingDeviceType.value = type
-    showIconSelector.value = true
-  } else {
-    instances.value.push({
-      id: `dev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      type,
-      name: defaultNameFor(type),
-    })
-  }
-  stepError.value = ''
-}
-
-function selectCustomIcon(icon: string) {
-  selectedCustomIcon.value = icon
-  customDeviceName.value = ''
-  showIconSelector.value = false
-  showCustomNameModal.value = true
-  nextTick(() => customNameInputRef.value?.focus())
-}
-
-function addCustomDevice() {
-  const name = customDeviceName.value.trim() || 'Dispositivo'
   instances.value.push({
     id: `dev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    type: 'other',
-    name,
-    customIcon: selectedCustomIcon.value!,
+    type,
+    name: defaultNameFor(type),
   })
-  showCustomNameModal.value = false
-  selectedCustomIcon.value = null
-  customDeviceName.value = ''
-  pendingDeviceType.value = null
+  stepError.value = ''
 }
 
 function removeInstance(idx: number) {
@@ -689,11 +539,6 @@ function reset() {
   newRoom.value = { name: '', category: 'sala' }
   instances.value = []
   stepError.value = ''
-  showIconSelector.value = false
-  showCustomNameModal.value = false
-  pendingDeviceType.value = null
-  selectedCustomIcon.value = null
-  customDeviceName.value = ''
 }
 
 watch(() => props.open, (val) => {
@@ -1403,183 +1248,4 @@ watch(() => props.open, (val) => {
 .btn-save:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 .btn-save:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 
-/* ── Icon Selector Modal ── */
-.icon-selector {
-  position: relative;
-  background: #ffffff;
-  border-radius: 18px;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, .04),
-    0 24px 48px -12px rgba(15, 23, 42, .18),
-    0 0 0 1px rgba(15, 23, 42, .04);
-  padding: 0;
-  font-family: var(--sh-font);
-}
-
-.icon-selector__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--sh-border);
-  background: #F8FAFC;
-  border-radius: 18px 18px 0 0;
-}
-
-.icon-selector__title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--sh-text-main);
-}
-
-.icon-selector__close {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid rgba(15, 23, 42, .08);
-  background: #ffffff;
-  color: var(--sh-text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 150ms, color 150ms;
-}
-
-.icon-selector__close:hover {
-  background: var(--sh-primary-light);
-  color: var(--sh-text-main);
-}
-
-.icon-selector__body {
-  padding: 16px 20px;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.icon-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-}
-
-.icon-option {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1.5px solid var(--sh-border);
-  background: #ffffff;
-  cursor: pointer;
-  transition: border-color 150ms, background-color 150ms;
-}
-
-.icon-option:hover {
-  border-color: var(--sh-primary);
-  background: var(--sh-primary-light);
-}
-
-.icon-option:focus-visible {
-  outline: 2px solid var(--sh-primary);
-  outline-offset: 2px;
-}
-
-.icon-option__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: #F1F5F9;
-  color: var(--sh-text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 150ms, color 150ms;
-}
-
-.icon-option:hover .icon-option__icon {
-  background: var(--sh-primary);
-  color: #fff;
-}
-
-/* ── Custom Name Modal ── */
-.name-modal {
-  position: relative;
-  background: #ffffff;
-  border-radius: 18px;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, .04),
-    0 24px 48px -12px rgba(15, 23, 42, .18),
-    0 0 0 1px rgba(15, 23, 42, .04);
-  padding: 0;
-  font-family: var(--sh-font);
-  display: flex;
-  flex-direction: column;
-}
-
-.name-modal__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--sh-border);
-  background: #F8FAFC;
-  border-radius: 18px 18px 0 0;
-  position: relative;
-}
-
-.name-modal__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: var(--sh-primary-light);
-  color: var(--sh-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.name-modal__title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--sh-text-main);
-  flex: 1;
-}
-
-.name-modal__close {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid rgba(15, 23, 42, .08);
-  background: #ffffff;
-  color: var(--sh-text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 150ms, color 150ms;
-  flex-shrink: 0;
-}
-
-.name-modal__close:hover {
-  background: var(--sh-primary-light);
-  color: var(--sh-text-main);
-}
-
-.name-modal__body {
-  padding: 16px 20px;
-}
-
-.name-modal__footer {
-  display: flex;
-  gap: 8px;
-  padding: 14px 20px;
-  border-top: 1px solid var(--sh-border);
-  background: #F8FAFC;
-  border-radius: 0 0 18px 18px;
-  justify-content: flex-end;
-}
 </style>
