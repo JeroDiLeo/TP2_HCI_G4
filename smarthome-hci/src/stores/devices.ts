@@ -72,6 +72,9 @@ export const useDevicesStore = defineStore('devices', () => {
       roomsStore.rooms.map(room => String(room.id)),
     )
 
+    // If rooms haven't loaded yet, show all devices to avoid empty UI states
+    if (activeHomeRoomIds.size === 0) return devices.value
+
     return devices.value.filter(device =>
       activeHomeRoomIds.has(String(device.roomId)),
     )
@@ -134,9 +137,13 @@ export const useDevicesStore = defineStore('devices', () => {
   }
 
   async function updateDeviceName(id: string, name: string) {
+    return updateDevice(id, { name })
+  }
+
+  async function updateDevice(id: string, payload: { name?: string; metadata?: Record<string, unknown> }) {
     error.value = null
     try {
-      const response = await apiUpdateDevice(id, { name })
+      const response = await apiUpdateDevice(id, payload)
       const mapped = mapDevice(extractOne(response) as ApiDevice)
       const idx = devices.value.findIndex(d => String(d.id) === id)
       if (idx !== -1) devices.value.splice(idx, 1, mapped)
@@ -237,6 +244,7 @@ export const useDevicesStore = defineStore('devices', () => {
     fetchByRoom,
     addDevice,
     updateDeviceName,
+    updateDevice,
     removeDevice,
     executeAction,
     refreshDeviceState,

@@ -30,24 +30,23 @@
           </div>
 
           <div class="room-detail__header-actions">
-            <!-- Compact inline stats -->
-            <div class="room-detail__stats-inline" aria-label="Estadísticas de la habitación">
-              <span class="stat-badge">
-                <v-icon icon="mdi-devices" size="13" aria-hidden="true" />
-                {{ stats.total }} total
-              </span>
-              <span class="stat-badge stat-badge--active">
-                <v-icon icon="mdi-flash" size="13" aria-hidden="true" />
-                {{ stats.active }} activos
-              </span>
-              <span class="stat-badge stat-badge--inactive">
-                <v-icon icon="mdi-power-sleep" size="13" aria-hidden="true" />
-                {{ stats.total - stats.active }} inactivos
-              </span>
-            </div>
+
+            <!-- Botón Editar / Finalizar -->
             <button
               type="button"
-              class="btn-add-device"
+              :class="editMode ? 'btn-add-device' : 'btn-edit-mode'"
+              :aria-label="editMode ? 'Finalizar modo edición' : 'Activar modo edición de dispositivos'"
+              :aria-pressed="editMode"
+              @click="toggleEditMode"
+            >
+              <v-icon icon="mdi-pencil-outline" size="18" aria-hidden="true" />
+              <span v-if="editMode">Finalizar dispositivos</span>
+            </button>
+
+            <!-- Botón Agregar -->
+            <button
+              type="button"
+              :class="editMode ? 'btn-add-device btn-add-device--secondary' : 'btn-add-device'"
               aria-label="Agregar dispositivos a esta habitación"
               title="Agregar dispositivos"
               @click="addDeviceOpen = true"
@@ -59,44 +58,10 @@
         </div>
       </div>
 
-      <!-- View controls -->
-      <div class="room-detail__controls">
-        <div class="room-detail__mode-toggle" role="group" aria-label="Modo de visualización">
-          <button
-            type="button"
-            class="mode-btn"
-            :class="{ 'mode-btn--active': viewMode === 'scroll' }"
-            @click="viewMode = 'scroll'"
-          >
-            <v-icon icon="mdi-view-sequential-outline" size="14" aria-hidden="true" />
-            Scroll
-          </button>
-          <button
-            type="button"
-            class="mode-btn"
-            :class="{ 'mode-btn--active': viewMode === 'pagination' }"
-            @click="viewMode = 'pagination'"
-          >
-            <v-icon icon="mdi-view-grid-outline" size="14" aria-hidden="true" />
-            Paginación
-          </button>
-        </div>
-
-        <div v-if="viewMode === 'pagination'" class="room-detail__page-size-control">
-          <span class="room-detail__page-size-label">Cards por página:</span>
-          <div class="room-detail__page-size-chips" role="group" aria-label="Cantidad de cards por página">
-            <button
-              v-for="n in PAGE_SIZE_OPTIONS"
-              :key="n"
-              type="button"
-              class="page-size-chip"
-              :class="{ 'page-size-chip--active': pageSize === n }"
-              :aria-pressed="pageSize === n"
-              @click="setPageSize(n)"
-            >{{ n }}</button>
-          </div>
-        </div>
-      </div>
+      <!-- Snackbar de errores -->
+      <v-snackbar v-model="showError" color="error" timeout="4000" location="bottom">
+        {{ errorMessage }}
+      </v-snackbar>
 
       <!-- Devices grid -->
       <template v-if="filteredDevices.length > 0">
@@ -111,13 +76,16 @@
             v-for="device in visibleDevices"
             :key="device.id"
             :device="device"
+            :edit-mode="editMode"
             role="listitem"
+            @edit="openEditModal"
+            @delete="openDeleteModal"
           />
         </div>
 
         <!-- Pagination controls (pagination mode only) -->
         <div
-          v-if="viewMode === 'pagination' && totalPages > 1"
+          v-if="!editMode && viewMode === 'pagination' && totalPages > 1"
           class="room-detail__pagination"
           role="navigation"
           aria-label="Paginación de dispositivos"
@@ -173,14 +141,47 @@
         </button>
       </div>
 
-    <!-- Modal: agregar dispositivos -->
-    <AddRoomDeviceModal
-      v-model:open="addDeviceOpen"
-      :room-id="roomId"
-      :room-name="room.name"
-      :room-icon="roomIcon"
-      @added="devicesStore.fetchAll()"
-    />
+      <!-- Modal: agregar dispositivos -->
+      <AddRoomDeviceModal
+        v-model:open="addDeviceOpen"
+        :room-id="roomId"
+        :room-name="room.name"
+        :room-icon="roomIcon"
+        @added="devicesStore.fetchAll()"
+      />
+
+      <!-- Modal: editar dispositivo -->
+      <EditDeviceModal
+        v-model:open="editModalOpen"
+        :device="editingDevice"
+      />
+
+      <!-- Modal: confirmar eliminación -->
+      <v-dialog v-model="deleteModalOpen" width="400">
+        <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-device-title">
+          <div class="confirm-modal__icon" aria-hidden="true">
+            <v-icon icon="mdi-trash-can-outline" size="28" />
+          </div>
+          <h2 id="delete-device-title" class="confirm-modal__title">¿Eliminar dispositivo?</h2>
+          <p class="confirm-modal__body">
+            Esta acción no se puede deshacer.
+            <strong>{{ deletingDevice?.name }}</strong> se eliminará de la habitación.
+          </p>
+          <div class="confirm-modal__actions">
+            <button type="button" class="btn btn--ghost" @click="deleteModalOpen = false">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn--danger"
+              :disabled="deleting"
+              @click="confirmDelete"
+            >
+              {{ deleting ? 'Eliminando...' : 'Eliminar' }}
+            </button>
+          </div>
+        </div>
+      </v-dialog>
 
     </template>
   </div>
@@ -192,13 +193,17 @@ import { useRouter, useRoute } from 'vue-router'
 import type { Ref } from 'vue'
 import { useRoomsStore } from '@/stores/rooms'
 import { useDevicesStore } from '@/stores/devices'
+import { usePreferencesStore } from '@/stores/preferences'
+import type { RoomDevice } from '@/types/rooms'
 import DeviceControlCard from '@/components/rooms/DeviceControlCard.vue'
 import AddRoomDeviceModal from '@/components/rooms/AddRoomDeviceModal.vue'
+import EditDeviceModal from '@/components/rooms/EditDeviceModal.vue'
 
 const router = useRouter()
 const route  = useRoute()
-const store  = useRoomsStore()
+const store       = useRoomsStore()
 const devicesStore = useDevicesStore()
+const prefs        = usePreferencesStore()
 
 const roomId = computed(() => String(route.params.roomId))
 const room   = computed(() => store.getRoomById(roomId.value))
@@ -214,10 +219,60 @@ const roomIcon = computed(() => ROOM_ICONS[room.value?.type ?? ''] ?? 'mdi-door'
 
 const addDeviceOpen = ref(false)
 
-const allDevices = computed(() => devicesStore.devicesByRoom(roomId.value))
+// ── Edit mode ────────────────────────────────────────────────────────
+const editMode     = ref(false)
+const showError    = ref(false)
+const errorMessage = ref('')
+
+// Edit modal
+const editModalOpen  = ref(false)
+const editingDevice  = ref<RoomDevice | null>(null)
+
+// Delete modal
+const deleteModalOpen  = ref(false)
+const deletingDevice   = ref<RoomDevice | null>(null)
+const deleting         = ref(false)
+
+function openEditModal(device: RoomDevice) {
+  editingDevice.value = device
+  editModalOpen.value = true
+}
+
+function openDeleteModal(device: RoomDevice) {
+  deletingDevice.value = device
+  deleteModalOpen.value = true
+}
+
+async function confirmDelete() {
+  if (!deletingDevice.value) return
+  deleting.value = true
+  try {
+    await devicesStore.removeDevice(String(deletingDevice.value.id))
+    deleteModalOpen.value = false
+  } catch (err: any) {
+    errorMessage.value = err.message || 'No se pudo eliminar el dispositivo'
+    showError.value = true
+    deleteModalOpen.value = false
+  } finally {
+    deleting.value = false
+  }
+}
+
+function toggleEditMode() {
+  editMode.value = !editMode.value
+}
+
+const allDevices = computed(() => {
+  const list = devicesStore.devicesByRoom(roomId.value)
+  return [...list].sort((a, b) => {
+    const ao = a.metadata?.order ?? Infinity
+    const bo = b.metadata?.order ?? Infinity
+    return (ao as number) - (bo as number)
+  })
+})
 const stats      = computed(() => {
   const list = devicesStore.devicesByRoom(roomId.value)
-  return { total: list.length, active: list.filter(d => d.active).length }
+  return { total: list.length, active: list.filter((d: RoomDevice) => d.active).length }
 })
 
 // Search injected from AppLayout
@@ -234,12 +289,9 @@ const filteredDevices = computed(() => {
   )
 })
 
-// ── View mode ────────────────────────────────────────────────────────
-const viewMode = ref<'scroll' | 'pagination'>('pagination')
-
-// ── Pagination ───────────────────────────────────────────────────────
-const PAGE_SIZE_OPTIONS = [2, 3, 4, 5, 6]
-const pageSize    = ref(3)
+// ── View mode & pagination (from global preferences store) ───────────
+const viewMode = computed(() => prefs.viewMode)
+const pageSize = computed(() => prefs.pageSize)
 const currentPage = ref(1)
 
 const totalPages = computed(() =>
@@ -261,11 +313,6 @@ const gridCols = computed(() => {
   if (ps === 4) return 'repeat(2, 1fr)'
   return 'repeat(3, 1fr)' // 5 or 6
 })
-
-function setPageSize(n: number) {
-  pageSize.value = n
-  currentPage.value = 1
-}
 
 // Reset to page 1 when search or mode changes
 watch(searchQuery, () => { currentPage.value = 1 })
@@ -412,16 +459,105 @@ function goBack() {
   white-space: nowrap;
   box-shadow: 0 4px 8px -2px rgba(99, 102, 241, .3);
   transition: background-color 150ms;
-  margin-left: auto;
 }
-.btn-add-device:hover { background: var(--sh-primary-dark); }
+.btn-add-device:hover { background: var(--sh-primary-dark, #4f46e5); }
 .btn-add-device:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.btn-add-device--secondary {
+  background: transparent;
+  color: var(--sh-primary);
+  border: 1.5px solid var(--sh-primary);
+  box-shadow: none;
+}
+.btn-add-device--secondary:hover { background: var(--sh-primary-light); }
+
+.btn-edit-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  background: transparent;
+  color: var(--sh-text-main);
+  border: 1.5px solid var(--sh-border);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
+}
+.btn-edit-mode:hover { background: var(--sh-primary-light); border-color: var(--sh-primary); color: var(--sh-primary); }
+.btn-edit-mode:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
 
 .room-detail__subtitle {
   margin: 0;
   font-size: 15px;
   color: var(--sh-text-muted);
 }
+
+/* ── Confirm delete modal ── */
+.confirm-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+}
+.confirm-modal__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.confirm-modal__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.confirm-modal__body {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+}
+.confirm-modal__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  width: 100%;
+  justify-content: center;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 150ms;
+}
+.btn:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn--ghost { background: #f1f5f9; color: #0f172a; border: 1px solid #e2e8f0; }
+.btn--ghost:hover:not(:disabled) { background: #e2e8f0; }
+.btn--danger { background: #ef4444; color: #ffffff; }
+.btn--danger:hover:not(:disabled) { background: #dc2626; }
 
 .room-detail__header-actions {
   display: flex;

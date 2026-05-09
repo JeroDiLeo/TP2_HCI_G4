@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { getRoomsByHome, createRoom as apiCreateRoom, deleteRoom as apiDeleteRoom } from '@/services/api/roomApi'
+import { getRoomsByHome, createRoom as apiCreateRoom, updateRoom as apiUpdateRoom, deleteRoom as apiDeleteRoom } from '@/services/api/roomApi'
 import { useDevicesStore } from '@/stores/devices'
 import { useHomesStore } from '@/stores/homes'
 
@@ -85,9 +85,24 @@ export const useRoomsStore = defineStore('rooms', () => {
     return created
   }
 
+  async function updateRoom(id: number | string, payload: { name: string }) {
+    const data = await apiUpdateRoom(String(id), payload)
+    const result = data?.result ?? data
+    const idx = rooms.value.findIndex(r => String(r.id) === String(id))
+    if (idx !== -1) {
+      rooms.value[idx] = { ...rooms.value[idx], name: result.name ?? payload.name }
+    }
+  }
+
   async function removeRoom(id: number | string) {
-    await apiDeleteRoom(String(id))
+    const prev = rooms.value
     rooms.value = rooms.value.filter(r => String(r.id) !== String(id))
+    try {
+      await apiDeleteRoom(String(id))
+    } catch (err) {
+      rooms.value = prev
+      throw err
+    }
   }
 
   function toggleFavorite(id: number | string) {
@@ -137,6 +152,7 @@ export const useRoomsStore = defineStore('rooms', () => {
     favoriteRooms,
     getRoomById,
     addRoom,
+    updateRoom,
     removeRoom,
     toggleFavorite,
     fetchRoomsByHome,

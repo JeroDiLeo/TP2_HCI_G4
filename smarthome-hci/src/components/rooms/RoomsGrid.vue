@@ -2,18 +2,21 @@
   <div>
     <div
       v-if="filteredRooms.length > 0"
-      :class="viewMode === 'grid' ? 'rooms-grid' : 'rooms-list'"
+      class="rooms-grid"
       role="list"
     >
       <RoomCard
         v-for="(room, idx) in filteredRooms"
         :key="room.id"
         :room="room"
-        :list-mode="viewMode === 'list'"
+        :list-mode="false"
+        :edit-mode="editMode"
         :style="{ '--card-delay': `${idx * 30}ms` }"
         role="listitem"
         @view-details="emit('view-details', $event)"
         @toggle-favorite="store.toggleFavorite($event)"
+        @edit="emit('edit', $event)"
+        @delete="emit('delete', $event)"
       />
     </div>
 
@@ -48,10 +51,10 @@ import { useRoomsStore } from '@/stores/rooms'
 import RoomCard from './RoomCard.vue'
 
 const props = defineProps({
-  viewMode: { type: String, default: 'grid' },
+  editMode: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['view-details', 'add-room'])
+const emit = defineEmits(['view-details', 'add-room', 'edit', 'delete'])
 
 const store = useRoomsStore()
 

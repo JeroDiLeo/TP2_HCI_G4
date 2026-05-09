@@ -4,14 +4,27 @@
     :class="{
       'room-card--list':   listMode,
       'room-card--active': hasActiveDevices,
+      'room-card--edit':   editMode,
     }"
     :aria-label="cardAriaLabel"
-    :role="listMode ? undefined : 'button'"
-    :tabindex="listMode ? undefined : 0"
-    @click="!listMode && emit('view-details', room.id)"
-    @keydown.enter.prevent="!listMode && emit('view-details', room.id)"
-    @keydown.space.prevent="!listMode && emit('view-details', room.id)"
+    :role="(!listMode && !editMode) ? 'button' : undefined"
+    :tabindex="(!listMode && !editMode) ? 0 : undefined"
+    @click="!listMode && !editMode && emit('view-details', room.id)"
+    @keydown.enter.prevent="!listMode && !editMode && emit('view-details', room.id)"
+    @keydown.space.prevent="!listMode && !editMode && emit('view-details', room.id)"
   >
+    <!-- Edit overlay -->
+    <div v-if="editMode" class="room-card__edit-overlay" @click.stop>
+      <button type="button" class="room-card__edit-action-btn" @click="emit('edit', room)">
+        <v-icon icon="mdi-pencil-outline" size="16" aria-hidden="true" />
+        Editar
+      </button>
+      <button type="button" class="room-card__edit-action-btn room-card__edit-action-btn--danger" @click="emit('delete', room)">
+        <v-icon icon="mdi-trash-can-outline" size="16" aria-hidden="true" />
+        Eliminar
+      </button>
+    </div>
+
     <!-- Compact (grid) layout -->
     <template v-if="!listMode">
       <button
@@ -103,9 +116,10 @@ import { computed } from 'vue'
 const props = defineProps({
   room:     { type: Object,  required: true },
   listMode: { type: Boolean, default: false },
+  editMode: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['view-details', 'toggle-favorite'])
+const emit = defineEmits(['view-details', 'toggle-favorite', 'edit', 'delete'])
 
 const ROOM_ICONS = {
   living:   'mdi-sofa-outline',
@@ -293,6 +307,54 @@ const cardAriaLabel = computed(() =>
   color: var(--sh-text-main);
   flex-shrink: 0;
 }
+
+/* ── Edit mode ── */
+.room-card--edit {
+  border-style: dashed;
+  border-color: var(--sh-primary);
+  cursor: default;
+}
+.room-card--edit:hover {
+  transform: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+
+.room-card__edit-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 3;
+}
+
+.room-card__edit-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  border: 1.5px solid var(--sh-primary, #6366f1);
+  color: var(--sh-primary, #6366f1);
+  transition: background-color 150ms;
+}
+.room-card__edit-action-btn:hover { background: var(--sh-primary-light, #eef2ff); }
+.room-card__edit-action-btn:focus-visible { outline: 2px solid var(--sh-primary, #6366f1); outline-offset: 2px; }
+
+.room-card__edit-action-btn--danger {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+.room-card__edit-action-btn--danger:hover { background: #fef2f2; }
 
 /* ── Animations ── */
 @keyframes card-in {

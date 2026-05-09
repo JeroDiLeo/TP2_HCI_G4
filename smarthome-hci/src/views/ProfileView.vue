@@ -61,6 +61,94 @@
             @delete-account="handleDeleteAccount"
           />
         </div>
+
+        <!-- Accesibilidad -->
+        <div v-if="activeSection === 'accessibility'" class="section-wrapper">
+          <div class="a11y-header">
+            <h2>Accesibilidad</h2>
+            <p>Personalizá cómo se muestran los dispositivos y otras listas.</p>
+          </div>
+
+          <!-- Modo de visualización -->
+          <fieldset class="a11y-block" aria-labelledby="a11y-viewmode-label">
+            <legend id="a11y-viewmode-label" class="a11y-block__title">Modo de visualización</legend>
+            <div class="a11y-options" role="radiogroup" aria-labelledby="a11y-viewmode-label">
+              <button
+                type="button"
+                class="a11y-option"
+                :class="{ 'a11y-option--selected': prefs.viewMode === 'scroll' }"
+                role="radio"
+                :aria-checked="String(prefs.viewMode === 'scroll')"
+                @click="prefs.setViewMode('scroll')"
+              >
+                <span class="a11y-option__icon" aria-hidden="true">
+                  <v-icon icon="mdi-view-sequential-outline" size="20" />
+                </span>
+                <span class="a11y-option__body">
+                  <span class="a11y-option__name">Lista continua</span>
+                  <span class="a11y-option__desc">Mostrar todos los dispositivos seguidos, deslizando hacia abajo.</span>
+                </span>
+                <span v-if="prefs.viewMode === 'scroll'" class="a11y-option__check" aria-hidden="true">
+                  <v-icon icon="mdi-check-circle" size="18" />
+                </span>
+              </button>
+
+              <button
+                type="button"
+                class="a11y-option"
+                :class="{ 'a11y-option--selected': prefs.viewMode === 'pagination' }"
+                role="radio"
+                :aria-checked="String(prefs.viewMode === 'pagination')"
+                @click="prefs.setViewMode('pagination')"
+              >
+                <span class="a11y-option__icon" aria-hidden="true">
+                  <v-icon icon="mdi-view-grid-outline" size="20" />
+                </span>
+                <span class="a11y-option__body">
+                  <span class="a11y-option__name">Por páginas</span>
+                  <span class="a11y-option__desc">Dividir los dispositivos en páginas con botones para avanzar.</span>
+                </span>
+                <span v-if="prefs.viewMode === 'pagination'" class="a11y-option__check" aria-hidden="true">
+                  <v-icon icon="mdi-check-circle" size="18" />
+                </span>
+              </button>
+            </div>
+          </fieldset>
+
+          <!-- Dispositivos por página -->
+          <fieldset
+            class="a11y-block"
+            :class="{ 'a11y-block--disabled': prefs.viewMode !== 'pagination' }"
+            aria-labelledby="a11y-pagesize-label"
+            :aria-disabled="String(prefs.viewMode !== 'pagination')"
+          >
+            <legend id="a11y-pagesize-label" class="a11y-block__title">
+              Dispositivos por página
+            </legend>
+            <p class="a11y-block__subtitle">
+              {{ prefs.viewMode === 'pagination'
+                ? 'Cuántos dispositivos se muestran en cada página.'
+                : 'Disponible solo en el modo "Por páginas".' }}
+            </p>
+            <div
+              class="a11y-chips"
+              role="group"
+              aria-labelledby="a11y-pagesize-label"
+            >
+              <button
+                v-for="n in PAGE_SIZE_OPTIONS"
+                :key="n"
+                type="button"
+                class="a11y-chip"
+                :class="{ 'a11y-chip--active': prefs.pageSize === n }"
+                :disabled="prefs.viewMode !== 'pagination'"
+                :aria-pressed="String(prefs.pageSize === n)"
+                :aria-label="`${n} dispositivos por página`"
+                @click="prefs.setPageSize(n)"
+              >{{ n }}</button>
+            </div>
+          </fieldset>
+        </div>
       </main>
     </div>
 
@@ -76,6 +164,7 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { usePreferencesStore } from '@/stores/preferences'
 import { changePassword, deleteAccount } from '@/services/api/userApi'
 import ProfilePersonalData from '@/components/profile/ProfilePersonalData.vue'
 import ProfileSecurity from '@/components/profile/ProfileSecurity.vue'
@@ -84,6 +173,7 @@ import DeleteAccountModal from '@/components/DeleteAccountModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const prefs = usePreferencesStore()
 
 // Estado de navegación
 const activeSection = ref('personal')
@@ -91,9 +181,12 @@ const isEditingPersonal = ref(false)
 
 // Definición de secciones del menú
 const sections = [
-  { id: 'personal', icon: 'mdi-account', title: 'Perfil' },
-  { id: 'security', icon: 'mdi-lock-outline', title: 'Seguridad' },
+  { id: 'personal',      icon: 'mdi-account',      title: 'Perfil'         },
+  { id: 'security',      icon: 'mdi-lock-outline',  title: 'Seguridad'      },
+  { id: 'accessibility', icon: 'mdi-tune',          title: 'Accesibilidad'  },
 ]
+
+const PAGE_SIZE_OPTIONS = [2, 3, 4, 5, 6]
 
 // Refs para acceder a los datos de los componentes
 const personalDataRef = ref(null)
@@ -374,6 +467,151 @@ onMounted(() => {
 .btn-secondary:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
+}
+
+/* ── Accesibilidad ── */
+.a11y-header {
+  margin-bottom: 28px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.a11y-header h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.a11y-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.a11y-block {
+  border: none;
+  padding: 0;
+  margin: 0 0 28px;
+}
+.a11y-block--disabled { opacity: 0.5; }
+
+.a11y-block__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 6px;
+  padding: 0;
+}
+.a11y-block__subtitle {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.a11y-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.a11y-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 150ms, background-color 150ms;
+}
+.a11y-option:hover:not(:disabled) {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+}
+.a11y-option:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+.a11y-option--selected {
+  background: #eef2ff;
+  border-color: #6366f1;
+}
+
+.a11y-option__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #e0e7ff;
+  color: #6366f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.a11y-option--selected .a11y-option__icon {
+  background: #6366f1;
+  color: #fff;
+}
+
+.a11y-option__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.a11y-option__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.a11y-option__desc {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.a11y-option__check {
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.a11y-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.a11y-chip {
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: border-color 150ms, background-color 150ms, color 150ms;
+}
+.a11y-chip:hover:not(:disabled) {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+  color: #6366f1;
+}
+.a11y-chip:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+.a11y-chip--active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+.a11y-chip:disabled {
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

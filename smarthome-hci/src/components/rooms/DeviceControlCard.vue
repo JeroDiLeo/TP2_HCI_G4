@@ -5,6 +5,7 @@
       'dcc--off': !d.active && NEEDS_TOGGLE[device.type],
       'dcc--busy': isExecuting,
       'dcc--error': !!actionError,
+      'dcc--edit': editMode,
     }"
     :aria-label="`${device.name}, ${d.active ? 'activo' : 'inactivo'}`"
     :aria-busy="isExecuting ? 'true' : 'false'"
@@ -31,11 +32,35 @@
           :aria-label="`${d.active ? 'Apagar' : 'Encender'} ${device.name}`"
           :aria-checked="d.active"
           :checked="d.active"
-          :disabled="isExecuting"
+          :disabled="isExecuting || editMode"
           @change="onPowerToggle"
         />
         <span class="toggle__track" />
       </label>
+    </div>
+
+    <!-- ── Edit overlay con botones centrados ── -->
+    <div v-if="editMode" class="dcc__edit-overlay">
+      <div class="dcc__edit-actions">
+        <button
+          type="button"
+          class="dcc__edit-action-btn"
+          :aria-label="`Editar dispositivo ${device.name}`"
+          @click.stop="emit('edit', device)"
+        >
+          <v-icon icon="mdi-pencil-outline" size="20" aria-hidden="true" />
+          Editar dispositivo
+        </button>
+        <button
+          type="button"
+          class="dcc__edit-action-btn dcc__edit-action-btn--danger"
+          :aria-label="`Eliminar dispositivo ${device.name}`"
+          @click.stop="emit('delete', device)"
+        >
+          <v-icon icon="mdi-trash-can-outline" size="20" aria-hidden="true" />
+          Eliminar
+        </button>
+      </div>
     </div>
 
     <div class="dcc__body">
@@ -661,7 +686,11 @@ import {
 } from '@/utils/deviceMapper'
 import { getParamMin, getParamMax } from '@/utils/deviceTypeParam'
 
-const props = defineProps<{ device: RoomDevice }>()
+const props = defineProps<{ device: RoomDevice; editMode?: boolean }>()
+const emit = defineEmits<{
+  (e: 'edit', device: RoomDevice): void
+  (e: 'delete', device: RoomDevice): void
+}>()
 const devicesStore = useDevicesStore()
 const deviceTypesStore = useDeviceTypesStore()
 const roomsStore = useRoomsStore()
@@ -866,6 +895,60 @@ const activeRooms = computed(() => roomsStore.rooms)
 .dcc--error {
   border-color: rgba(239, 68, 68, .35);
 }
+.dcc--edit {
+  border: 1.5px dashed var(--sh-primary);
+  position: relative;
+  cursor: grab;
+}
+.dcc--edit:active { cursor: grabbing; }
+.dcc--edit:hover { box-shadow: 0 4px 12px rgba(99, 102, 241, .12); }
+
+/* ── Edit overlay con botones centrados ── */
+.dcc__edit-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(238, 242, 255, .88);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 2;
+}
+
+
+.dcc__edit-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.dcc__edit-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1.5px solid var(--sh-primary);
+  color: var(--sh-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 150ms;
+}
+.dcc__edit-action-btn:hover { background: var(--sh-primary-light); }
+.dcc__edit-action-btn:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
+.dcc__edit-action-btn--danger {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+.dcc__edit-action-btn--danger:hover { background: #fef2f2; }
 
 /* ── Body (all content below header) ── */
 .dcc__body {

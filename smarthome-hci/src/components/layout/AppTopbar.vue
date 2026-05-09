@@ -48,9 +48,25 @@
           <div v-if="homes.homes.length === 0" class="homes-menu__empty">
             Sin hogares disponibles
           </div>
+
+          <div class="homes-menu__divider" aria-hidden="true" />
+
+          <button
+            type="button"
+            class="homes-menu__add-btn"
+            aria-label="Agregar nuevo hogar"
+            @click="addHomeOpen = true"
+          >
+            <span class="homes-menu__add-icon" aria-hidden="true">
+              <v-icon icon="mdi-plus" size="18" />
+            </span>
+            <span class="homes-menu__add-label">Agregar hogar</span>
+          </button>
         </template>
       </div>
     </v-menu>
+
+    <AddHomeModal v-model:open="addHomeOpen" />
 
     <!-- Buscador -->
     <div class="app-topbar__search">
@@ -62,6 +78,7 @@
         class="app-topbar__search-input"
         :placeholder="searchPlaceholder"
         :value="modelValue"
+        autocomplete="off"
         @input="emit('update:modelValue', $event.target.value)"
       />
     </div>
@@ -150,6 +167,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useHomesStore } from '@/stores/homes'
+import AddHomeModal from '@/components/dashboard/AddHomeModal.vue'
 
 defineProps({
   modelValue:        { type: String, default: '' },
@@ -166,6 +184,7 @@ const userMenuOpen  = ref(false)
 const loggingOut    = ref(false)
 const userMenuAnchor = ref(null)
 const configItemRef  = ref(null)
+const addHomeOpen   = ref(false)
 
 const currentHomeId = computed(() => route.params.homeId ?? homes.selectedHome?.id)
 
@@ -572,6 +591,53 @@ async function handleLogout() {
 .homes-menu__check {
   color: var(--sh-primary);
   flex-shrink: 0;
+}
+
+.homes-menu__divider {
+  height: 1px;
+  background: var(--sh-border);
+  margin: 6px 4px;
+}
+
+.homes-menu__add-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sh-primary);
+  cursor: pointer;
+  transition: background-color 120ms, border-color 120ms;
+  text-align: left;
+}
+.homes-menu__add-btn:hover {
+  background-color: var(--sh-primary-light);
+}
+.homes-menu__add-btn:focus-visible {
+  outline: 2px solid var(--sh-primary);
+  outline-offset: 2px;
+}
+
+.homes-menu__add-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: var(--sh-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sh-primary);
+}
+
+.homes-menu__add-label {
+  flex: 1;
 }
 
 /* ── Misc ── */

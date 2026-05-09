@@ -7,8 +7,19 @@
         <p class="rooms-view__subtitle">Administra y organiza las habitaciones de tu hogar</p>
       </div>
       <div class="rooms-view__actions">
-        <ViewModeToggle v-model="viewMode" />
-        <button type="button" class="btn-primary" @click="isAddModalOpen = true">
+        <!-- Botón Editar / Finalizar -->
+        <button
+          type="button"
+          :class="editMode ? 'btn-edit-active' : 'btn-edit'"
+          :aria-pressed="editMode"
+          :aria-label="editMode ? 'Finalizar modo edición' : 'Activar modo edición de habitaciones'"
+          @click="toggleEditMode"
+        >
+          <v-icon icon="mdi-pencil-outline" size="18" aria-hidden="true" />
+          <span v-if="editMode">Finalizar habitaciones</span>
+        </button>
+
+        <button type="button" :class="editMode ? 'btn-primary btn-primary--secondary' : 'btn-primary'" :disabled="editMode" @click="isAddModalOpen = true">
           <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
           Crear habitación
         </button>
@@ -36,14 +47,51 @@
 
     <!-- Rooms grid -->
     <RoomsGrid
-      :view-mode="viewMode"
+      :edit-mode="editMode"
       class="rooms-view__grid"
       @view-details="handleViewDetails"
       @add-room="isAddModalOpen = true"
+      @edit="openEditModal"
+      @delete="openDeleteModal"
     />
 
-    <!-- Modal -->
+    <!-- Snackbar de errores -->
+    <v-snackbar v-model="showError" color="error" timeout="4000" location="bottom">
+      {{ errorMessage }}
+    </v-snackbar>
+
+    <!-- Modal: crear habitación -->
     <AddRoomModal v-model:open="isAddModalOpen" />
+
+    <!-- Modal: editar habitación -->
+    <EditRoomModal v-model:open="editModalOpen" :room="editingRoom" />
+
+    <!-- Modal: confirmar eliminación -->
+    <v-dialog v-model="deleteModalOpen" width="400">
+      <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-room-title">
+        <div class="confirm-modal__icon" aria-hidden="true">
+          <v-icon icon="mdi-trash-can-outline" size="28" />
+        </div>
+        <h2 id="delete-room-title" class="confirm-modal__title">¿Eliminar habitación?</h2>
+        <p class="confirm-modal__body">
+          Esta acción no se puede deshacer.
+          <strong>{{ deletingRoom?.name }}</strong> y todos sus dispositivos serán eliminados.
+        </p>
+        <div class="confirm-modal__actions">
+          <button type="button" class="btn btn--ghost" @click="deleteModalOpen = false">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn--danger"
+            :disabled="deleting"
+            @click="confirmDelete"
+          >
+            {{ deleting ? 'Eliminando...' : 'Eliminar' }}
+          </button>
+        </div>
+      </div>
+    </v-dialog>
   </div>
 </template>
 
@@ -51,15 +99,56 @@
 import { ref, inject, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRoomsStore } from '@/stores/rooms'
-import ViewModeToggle from '@/components/rooms/ViewModeToggle.vue'
 import RoomsGrid     from '@/components/rooms/RoomsGrid.vue'
 import AddRoomModal  from '@/components/rooms/AddRoomModal.vue'
+import EditRoomModal from '@/components/rooms/EditRoomModal.vue'
 
 const roomsStore     = useRoomsStore()
 const router         = useRouter()
-const viewMode       = ref('grid')
 const isAddModalOpen = ref(false)
 
+// ── Edit mode ──────────────────────────────────────────────────────────
+const editMode       = ref(false)
+const showError      = ref(false)
+const errorMessage   = ref('')
+
+const editModalOpen  = ref(false)
+const editingRoom    = ref(null)
+
+const deleteModalOpen = ref(false)
+const deletingRoom    = ref(null)
+const deleting        = ref(false)
+
+function toggleEditMode() {
+  editMode.value = !editMode.value
+}
+
+function openEditModal(room) {
+  editingRoom.value = room
+  editModalOpen.value = true
+}
+
+function openDeleteModal(room) {
+  deletingRoom.value = room
+  deleteModalOpen.value = true
+}
+
+async function confirmDelete() {
+  if (!deletingRoom.value) return
+  deleting.value = true
+  try {
+    await roomsStore.removeRoom(String(deletingRoom.value.id))
+    deleteModalOpen.value = false
+  } catch (err) {
+    errorMessage.value = err.message || 'No se pudo eliminar la habitación'
+    showError.value = true
+    deleteModalOpen.value = false
+  } finally {
+    deleting.value = false
+  }
+}
+
+// ── Categories ─────────────────────────────────────────────────────────
 const CATEGORIES = [
   { id: 'todas',    label: 'Todas'      },
   { id: 'living',   label: 'Sala'       },
@@ -85,12 +174,11 @@ const visibleCategories = computed(() =>
 
 watch(visibleCategories, (categories) => {
   if (roomsStore.loading || !roomsStore.roomsLoaded) return
-
   const hasActiveCategory = categories.some(cat => cat.id === roomsStore.categoryFilter)
   if (!hasActiveCategory) roomsStore.categoryFilter = 'todas'
 }, { immediate: true })
 
-// Sync layout search → store so filteredRooms computed stays working
+// Sync layout search → store
 const layoutSearch = inject('layoutSearchQuery', ref(''))
 watch(layoutSearch, (q) => { roomsStore.searchQuery = q }, { immediate: true })
 
@@ -139,6 +227,49 @@ function handleViewDetails(roomId) {
   flex-shrink: 0;
 }
 
+/* Botón editar (solo lápiz cuando está apagado) */
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--sh-text-main);
+  border: 1.5px solid var(--sh-border);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
+}
+.btn-edit:hover { background: var(--sh-primary-light); border-color: var(--sh-primary); color: var(--sh-primary); }
+.btn-edit:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
+/* Botón Finalizar habitaciones (morado filled) */
+.btn-edit-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  background: var(--sh-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 8px -2px rgba(99, 102, 241, .3);
+  transition: background-color 150ms;
+}
+.btn-edit-active:hover { background: var(--sh-primary-dark, #4f46e5); }
+.btn-edit-active:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -158,8 +289,16 @@ function handleViewDetails(roomId) {
 }
 .btn-primary:hover { background: var(--sh-primary-dark); }
 .btn-primary:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.btn-primary--secondary {
+  background: transparent;
+  color: var(--sh-primary);
+  border: 1.5px solid var(--sh-primary);
+  box-shadow: none;
+}
+.btn-primary--secondary:hover { background: var(--sh-primary-light); }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
 
-/* ── Filters (mismo estilo que /rutinas) ── */
+/* ── Filters ── */
 .rooms-view__filters { margin-bottom: 24px; }
 .rooms-view__filter-label {
   margin: 0 0 10px;
@@ -216,8 +355,67 @@ function handleViewDetails(roomId) {
   font-weight: 700;
 }
 
-.rooms-view__grid {
-  flex: 1;
-}
+.rooms-view__grid { flex: 1; }
 
+/* ── Confirm delete modal ── */
+.confirm-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+}
+.confirm-modal__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.confirm-modal__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.confirm-modal__body {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+}
+.confirm-modal__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  width: 100%;
+  justify-content: center;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 150ms;
+}
+.btn:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn--ghost { background: #f1f5f9; color: #0f172a; border: 1px solid #e2e8f0; }
+.btn--ghost:hover:not(:disabled) { background: #e2e8f0; }
+.btn--danger { background: #ef4444; color: #ffffff; }
+.btn--danger:hover:not(:disabled) { background: #dc2626; }
 </style>

@@ -119,18 +119,18 @@ const iconSize = computed(() => props.expanded ? 22 : 24)
   display: inline-flex;
   align-items: baseline;
   font-family: var(--sh-font);
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   line-height: 1;
 }
 
 .app-sidebar__wordmark-smart {
-  color: var(--sh-text-main);
+  color: #0f172a;
 }
 
 .app-sidebar__wordmark-home {
-  color: #818CF8;
+  color: #6366f1;
 }
 
 .app-sidebar__nav {

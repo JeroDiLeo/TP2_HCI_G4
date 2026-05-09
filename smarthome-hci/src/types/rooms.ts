@@ -39,6 +39,7 @@ interface RoomDeviceBase {
   active: boolean
   roomId: RoomId
   roomName: string
+  metadata?: Record<string, unknown>
 }
 
 // ── Light ────────────────────────────────────────────────────────────

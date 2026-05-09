@@ -44,7 +44,8 @@
             <v-icon v-if="selectedDevice?.id === device.id" icon="mdi-check-circle" size="14" class="dev-card__check" aria-hidden="true" />
           </button>
         </div>
-        <p v-else class="rab__empty">No encontramos dispositivos con esa búsqueda.</p>
+        <p v-else-if="searchQuery" class="rab__empty">No encontramos dispositivos con esa búsqueda.</p>
+        <p v-else class="rab__empty">Todavía no tenés dispositivos en tu hogar. Agregá uno desde Habitaciones.</p>
       </template>
 
       <!-- step 2 -->
@@ -271,7 +272,12 @@ function reset() {
   clearParams()
 }
 
-onMounted(reset)
+onMounted(async () => {
+  reset()
+  if (devicesStore.devices.length === 0) {
+    await devicesStore.fetchAll()
+  }
+})
 
 function validHex(v: unknown): boolean {
   return typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v)

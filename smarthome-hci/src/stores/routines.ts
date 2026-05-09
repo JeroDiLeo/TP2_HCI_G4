@@ -155,10 +155,12 @@ export const useRoutinesStore = defineStore('routines', () => {
 
   async function removeRoutine(id: string) {
     error.value = null
+    const prev = routines.value
+    routines.value = routines.value.filter(r => r.id !== id)
     try {
       await apiDeleteRoutine(id)
-      routines.value = routines.value.filter(r => r.id !== id)
     } catch (err: any) {
+      routines.value = prev
       error.value = err.message || 'Error al eliminar la rutina'
       throw err
     }

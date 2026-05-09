@@ -42,6 +42,28 @@ export async function createRoom(body) {
   }
 }
 
+export async function updateRoom(roomId, body) {
+  const init = {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(body),
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/rooms/${roomId}`, init)
+
+    if (!response.ok) {
+      throw handleError(await parseErrorBody(response), response.status)
+    }
+
+    const text = await response.text()
+    return text ? JSON.parse(text) : null
+  } catch (error) {
+    console.log(`Unexpected error: ${error.message}`)
+    throw error
+  }
+}
+
 export async function deleteRoom(roomId) {
   const init = { method: 'DELETE', headers: getHeaders() }
 
@@ -52,7 +74,8 @@ export async function deleteRoom(roomId) {
       throw handleError(await parseErrorBody(response), response.status)
     }
 
-    return response.status === 204 ? null : await response.json()
+    const text = await response.text()
+    return text ? JSON.parse(text) : null
   } catch (error) {
     console.log(`Unexpected error: ${error.message}`)
     throw error

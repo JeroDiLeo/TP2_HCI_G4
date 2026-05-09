@@ -1,13 +1,26 @@
 <template>
   <article
     class="routine-card"
-    role="button"
-    tabindex="0"
-    :aria-label="`Editar rutina ${routine.name}`"
-    @click="$emit('edit', routine.id)"
-    @keydown.enter.prevent="$emit('edit', routine.id)"
-    @keydown.space.prevent="$emit('edit', routine.id)"
+    :class="{ 'routine-card--edit': editMode }"
+    :role="editMode ? undefined : 'button'"
+    :tabindex="editMode ? undefined : 0"
+    :aria-label="editMode ? undefined : `Editar rutina ${routine.name}`"
+    @click="!editMode && $emit('edit', routine.id)"
+    @keydown.enter.prevent="!editMode && $emit('edit', routine.id)"
+    @keydown.space.prevent="!editMode && $emit('edit', routine.id)"
   >
+    <!-- Edit overlay -->
+    <div v-if="editMode" class="routine-card__edit-overlay" @click.stop>
+      <button type="button" class="routine-card__edit-btn" @click="$emit('open-edit', routine)">
+        <v-icon icon="mdi-pencil-outline" size="16" aria-hidden="true" />
+        Editar
+      </button>
+      <button type="button" class="routine-card__edit-btn routine-card__edit-btn--danger" @click="$emit('open-delete', routine)">
+        <v-icon icon="mdi-trash-can-outline" size="16" aria-hidden="true" />
+        Eliminar
+      </button>
+    </div>
+
     <!-- Favorite star (top-right) -->
     <button
       type="button"
@@ -108,13 +121,11 @@ import { ref, computed } from 'vue'
 import { useRoutinesStore } from '@/stores/routines'
 
 const props = defineProps({
-  routine: {
-    type: Object,
-    required: true,
-  },
+  routine:  { type: Object,  required: true },
+  editMode: { type: Boolean, default: false },
 })
 
-defineEmits(['edit', 'toggle-favorite'])
+defineEmits(['edit', 'toggle-favorite', 'open-edit', 'open-delete'])
 
 const routinesStore = useRoutinesStore()
 
@@ -436,4 +447,52 @@ const formattedTime = computed(() => {
   color: var(--sh-text-light);
   font-family: 'Inter', sans-serif;
 }
+
+/* ── Edit mode ── */
+.routine-card--edit {
+  border-style: dashed;
+  border-color: var(--sh-primary);
+  cursor: default;
+}
+.routine-card--edit:hover {
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+  border-color: var(--sh-primary);
+}
+
+.routine-card__edit-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 4;
+}
+
+.routine-card__edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  border: 1.5px solid var(--sh-primary, #6366f1);
+  color: var(--sh-primary, #6366f1);
+  transition: background-color 150ms;
+}
+.routine-card__edit-btn:hover { background: var(--sh-primary-light, #eef2ff); }
+.routine-card__edit-btn:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
+.routine-card__edit-btn--danger {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+.routine-card__edit-btn--danger:hover { background: #fef2f2; }
 </style>

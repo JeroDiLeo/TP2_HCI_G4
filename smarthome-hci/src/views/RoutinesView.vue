@@ -7,15 +7,31 @@
         <h1 class="routines-view__title">Rutinas Automatizadas</h1>
         <p class="routines-view__subtitle">Crea y gestiona rutinas para automatizar tu hogar</p>
       </div>
-      <button
-        type="button"
-        class="btn-create"
-        aria-label="Crear nueva rutina"
-        @click="isCreateOpen = true"
-      >
-        <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
-        Crear rutina
-      </button>
+      <div class="routines-view__actions">
+        <!-- Botón Editar / Finalizar -->
+        <button
+          type="button"
+          :class="editMode ? 'btn-edit-active' : 'btn-edit'"
+          :aria-pressed="editMode"
+          :aria-label="editMode ? 'Finalizar modo edición' : 'Activar modo edición de rutinas'"
+          @click="toggleEditMode"
+        >
+          <v-icon icon="mdi-pencil-outline" size="18" aria-hidden="true" />
+          <span v-if="editMode">Finalizar rutinas</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn-create"
+          :class="{ 'btn-create--secondary': editMode }"
+          :disabled="editMode"
+          aria-label="Crear nueva rutina"
+          @click="isCreateOpen = true"
+        >
+          <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
+          Crear rutina
+        </button>
+      </div>
     </div>
 
     <!-- Category filters -->
@@ -46,11 +62,19 @@
       >
         <RoutineCard
           :routine="routine"
+          :edit-mode="editMode"
           @edit="handleEdit"
           @toggle-favorite="store.toggleFavorite($event)"
+          @open-edit="handleEdit($event.id)"
+          @open-delete="openDeleteModal"
         />
       </div>
     </div>
+
+    <!-- Snackbar de errores -->
+    <v-snackbar v-model="showError" color="error" timeout="4000" location="bottom">
+      {{ errorMessage }}
+    </v-snackbar>
 
     <!-- Edit routine modal -->
     <EditRoutineModal
@@ -65,6 +89,33 @@
       @update:open="isCreateOpen = $event"
       @created="handleCreated"
     />
+
+    <!-- Modal: confirmar eliminación -->
+    <v-dialog v-model="deleteModalOpen" width="400">
+      <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-routine-title">
+        <div class="confirm-modal__icon" aria-hidden="true">
+          <v-icon icon="mdi-trash-can-outline" size="28" />
+        </div>
+        <h2 id="delete-routine-title" class="confirm-modal__title">¿Eliminar rutina?</h2>
+        <p class="confirm-modal__body">
+          Esta acción no se puede deshacer.
+          <strong>{{ deletingRoutine?.name }}</strong> será eliminada permanentemente.
+        </p>
+        <div class="confirm-modal__actions">
+          <button type="button" class="btn btn--ghost" @click="deleteModalOpen = false">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn--danger"
+            :disabled="deleting"
+            @click="confirmDelete"
+          >
+            {{ deleting ? 'Eliminando...' : 'Eliminar' }}
+          </button>
+        </div>
+      </div>
+    </v-dialog>
 
   </div>
 </template>
@@ -131,6 +182,40 @@ const isCreateOpen = ref(false)
 function handleCreated(_id) {
   // El modal de creación ahora incluye el paso de acciones; no abrimos edición automáticamente.
 }
+
+// ── Edit mode ──
+const editMode    = ref(false)
+const showError   = ref(false)
+const errorMessage = ref('')
+
+function toggleEditMode() {
+  editMode.value = !editMode.value
+}
+
+// ── Delete modal ──
+const deleteModalOpen  = ref(false)
+const deletingRoutine  = ref(null)
+const deleting         = ref(false)
+
+function openDeleteModal(routine) {
+  deletingRoutine.value = routine
+  deleteModalOpen.value = true
+}
+
+async function confirmDelete() {
+  if (!deletingRoutine.value) return
+  deleting.value = true
+  try {
+    await store.removeRoutine(String(deletingRoutine.value.id))
+    deleteModalOpen.value = false
+  } catch (err) {
+    errorMessage.value = err.message || 'No se pudo eliminar la rutina'
+    showError.value = true
+    deleteModalOpen.value = false
+  } finally {
+    deleting.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -167,6 +252,57 @@ function handleCreated(_id) {
   font-family: 'Inter', sans-serif;
 }
 
+/* ── Header actions ── */
+.routines-view__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* Botón editar (solo lápiz cuando está apagado) */
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--sh-text-main);
+  border: 1.5px solid var(--sh-border);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
+}
+.btn-edit:hover { background: var(--sh-primary-light); border-color: var(--sh-primary); color: var(--sh-primary); }
+.btn-edit:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
+/* Botón Finalizar rutinas (morado filled) */
+.btn-edit-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  background: var(--sh-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 8px -2px rgba(99, 102, 241, .3);
+  transition: background-color 150ms;
+}
+.btn-edit-active:hover { background: var(--sh-primary-dark, #4f46e5); }
+.btn-edit-active:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
 /* ── Create button ── */
 .btn-create {
   display: inline-flex;
@@ -191,6 +327,66 @@ function handleCreated(_id) {
   outline: 2px solid var(--sh-primary);
   outline-offset: 2px;
 }
+.btn-create--secondary {
+  background: transparent;
+  color: var(--sh-primary);
+  border: 1.5px solid var(--sh-primary);
+  box-shadow: none;
+}
+.btn-create--secondary:hover { background: var(--sh-primary-light); }
+.btn-create:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Confirm delete modal ── */
+.confirm-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+}
+.confirm-modal__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.confirm-modal__title { margin: 0; font-size: 18px; font-weight: 700; color: #0f172a; }
+.confirm-modal__body { margin: 0; font-size: 14px; color: #64748b; line-height: 1.5; }
+.confirm-modal__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  width: 100%;
+  justify-content: center;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 150ms;
+}
+.btn:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn--ghost { background: #f1f5f9; color: #0f172a; border: 1px solid #e2e8f0; }
+.btn--ghost:hover:not(:disabled) { background: #e2e8f0; }
+.btn--danger { background: #ef4444; color: #ffffff; }
+.btn--danger:hover:not(:disabled) { background: #dc2626; }
 
 /* ── Filters ── */
 .routines-view__filters {
