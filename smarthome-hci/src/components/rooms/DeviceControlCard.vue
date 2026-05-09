@@ -37,6 +37,18 @@
         />
         <span class="toggle__track" />
       </label>
+      <button
+        v-else-if="device.type === 'blind'"
+        type="button"
+        class="toggle dcc__blind-toggle"
+        role="switch"
+        :aria-label="`${blindPosition > 0 ? 'Cerrar' : 'Abrir'} ${device.name}`"
+        :aria-checked="blindPosition > 0"
+        :disabled="isExecuting || editMode"
+        @click="toggleBlind"
+      >
+        <span class="toggle__track" />
+      </button>
     </div>
 
     <!-- ── Edit overlay con botones centrados ── -->
@@ -382,55 +394,68 @@
          BLIND
     ══════════════════════════════════════════════ -->
     <template v-else-if="device.type === 'blind'">
-      <div class="dcc__status-panel">
-        <div class="dcc__progress-wrap">
-          <div
-            class="dcc__progress-track"
-            role="progressbar"
-            :aria-valuenow="d.position"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            :aria-label="`Persiana al ${d.position}% de apertura`"
-          >
-            <div class="dcc__progress-fill" :style="{ width: (d.position as number) + '%' }" />
+      <div class="dcc__blind-card">
+        <div class="dcc__blind-visual-panel">
+          <div class="dcc__blind-copy">
+            <strong class="dcc__blind-percent">{{ blindPosition }}%</strong>
           </div>
-          <span class="dcc__panel-meta">{{ d.position }}% · {{ blindStatusLabel }}</span>
         </div>
-      </div>
 
-      <div class="dcc__section">
-        <div class="dcc__section-label-row">
-          <span class="dcc__section-label">POSICIÓN</span>
-          <span class="dcc__section-value">{{ d.position }}%</span>
+        <div class="dcc__blind-controls">
+          <div class="dcc__section-label-row dcc__blind-label-row">
+            <span class="dcc__section-label">POSICIÓN</span>
+          </div>
+          <v-slider
+            :model-value="blindPosition"
+            :min="0" :max="100" :step="5"
+            color="#6366F1" track-color="#E2E8F0"
+            thumb-color="#6366F1"
+            hide-details density="compact"
+            aria-label="Posición de la persiana"
+            class="dcc__slider dcc__blind-slider"
+            @update:model-value="action('setLevel', [$event])"
+          />
+
+          <div class="dcc__blind-actions" role="group" aria-label="Acciones de la persiana">
+            <button
+              type="button"
+              class="dcc__blind-action dcc__blind-action--primary"
+              :disabled="blindPosition === 100"
+              @click="setBlindPosition(100)"
+            >
+              <v-icon icon="mdi-arrow-up" size="17" /> Abrir
+            </button>
+            <button
+              type="button"
+              class="dcc__blind-action"
+              :disabled="!canStopBlind"
+              @click="stopBlind"
+            >
+              <v-icon icon="mdi-stop" size="16" /> Detener
+            </button>
+            <button
+              type="button"
+              class="dcc__blind-action"
+              :disabled="blindPosition === 0"
+              @click="setBlindPosition(0)"
+            >
+              <v-icon icon="mdi-arrow-down" size="17" /> Cerrar
+            </button>
+          </div>
+
+          <div class="dcc__blind-presets" role="group" aria-label="Accesos rápidos de posición">
+            <button
+              v-for="preset in BLIND_PRESETS"
+              :key="preset"
+              type="button"
+              class="dcc__blind-preset"
+              :class="{ 'dcc__blind-preset--active': blindPosition === preset }"
+              @click="setBlindPosition(preset)"
+            >
+              {{ preset }}%
+            </button>
+          </div>
         </div>
-        <v-slider
-          :model-value="d.position"
-          :min="0" :max="100" :step="5"
-          color="#6366F1" track-color="#E2E8F0"
-          hide-details density="compact"
-          aria-label="Posición de la persiana"
-          class="dcc__slider"
-          @update:model-value="action('setLevel', [$event])"
-        />
-      </div>
-
-      <div class="dcc__section dcc__section--actions">
-        <button
-          type="button"
-          class="dcc__action-btn"
-          :disabled="Number(d.position) === 100"
-          @click="setBlindPosition(100)"
-        >
-          <v-icon icon="mdi-arrow-up" size="16" /> Abrir
-        </button>
-        <button
-          type="button"
-          class="dcc__action-btn dcc__action-btn--ghost"
-          :disabled="Number(d.position) === 0"
-          @click="setBlindPosition(0)"
-        >
-          <v-icon icon="mdi-arrow-down" size="16" /> Cerrar
-        </button>
       </div>
     </template>
 
@@ -438,68 +463,90 @@
          OVEN
     ══════════════════════════════════════════════ -->
     <template v-else-if="device.type === 'oven'">
-      <div class="dcc__status-panel">
-        <div class="dcc__device-icon-block dcc__device-icon-block--dark" aria-hidden="true">
-          <v-icon icon="mdi-toaster-oven" size="26" />
-        </div>
-        <div class="dcc__stat-col">
-          <div class="dcc__stat-group">
-            <span class="dcc__stat-label">TEMPERATURA</span>
-            <span class="dcc__stat-value dcc__stat-value--lg">
-              {{ d.temperature }}<span class="dcc__unit">°C</span>
-            </span>
+      <div class="dcc__oven-card">
+        <div class="dcc__oven-temp">
+          <div class="dcc__section-label-row dcc__oven-label-row">
+            <span class="dcc__section-label">TEMPERATURA</span>
+            <span class="dcc__oven-temp-value">{{ d.temperature }}°C</span>
           </div>
-          <span class="dcc__panel-meta">{{ d.heatSource }} · grill {{ d.grillMode }} · conv. {{ d.convectionMode }}</span>
-        </div>
-      </div>
-
-      <div class="dcc__section">
-        <span class="dcc__section-label">TEMPERATURA</span>
-        <v-slider
-          :model-value="d.temperature"
-          :min="90" :max="230" :step="5"
-          color="#6366F1" track-color="#E2E8F0"
-          hide-details density="compact"
-          :disabled="!d.active"
-          aria-label="Temperatura del horno (90–230°C)"
-          class="dcc__slider"
-          @update:model-value="action('setTemperature', [$event])"
-        />
-        <div class="dcc__chips dcc__chips--mt" role="group" aria-label="Presets de temperatura">
-          <button v-for="p in OVEN_PRESETS" :key="p" type="button" class="dcc__chip"
-            :class="{ 'dcc__chip--active': d.temperature === p }"
+          <v-slider
+            :model-value="d.temperature"
+            :min="90" :max="230" :step="5"
+            color="#6366F1" track-color="#E2E8F0"
+            thumb-color="#6366F1"
+            hide-details density="compact"
             :disabled="!d.active"
-            @click="action('setTemperature', [p])">{{ p }}°C</button>
+            aria-label="Temperatura del horno (90–230°C)"
+            class="dcc__slider dcc__oven-slider"
+            @update:model-value="action('setTemperature', [$event])"
+          />
+          <div class="dcc__oven-presets" role="group" aria-label="Presets de temperatura">
+            <button
+              v-for="p in OVEN_PRESETS"
+              :key="p"
+              type="button"
+              class="dcc__oven-preset"
+              :class="{ 'dcc__oven-preset--active': d.temperature === p }"
+              :disabled="!d.active"
+              @click="action('setTemperature', [p])"
+            >
+              {{ p }}°C
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div class="dcc__section">
-        <span class="dcc__section-label">FUENTE DE CALOR</span>
-        <div class="dcc__segment" role="group" aria-label="Fuente de calor">
-          <button v-for="h in OVEN_HEAT" :key="h.value" type="button" class="dcc__seg-btn"
-            :class="{ 'dcc__seg-btn--active': d.heatSource === h.value }"
-            :disabled="!d.active"
-            @click="action('setHeat', [OVEN_HEAT_FRONT_TO_API[h.value] ?? h.value])">{{ h.label }}</button>
+        <div class="dcc__oven-section">
+          <span class="dcc__section-label">FUENTE DE CALOR</span>
+          <div class="dcc__oven-options" role="group" aria-label="Fuente de calor">
+            <button
+              v-for="h in OVEN_HEAT"
+              :key="h.value"
+              type="button"
+              class="dcc__oven-option"
+              :class="{ 'dcc__oven-option--active': d.heatSource === h.value }"
+              :disabled="!d.active"
+              @click="action('setHeat', [OVEN_HEAT_FRONT_TO_API[h.value] ?? h.value])"
+            >
+              <v-icon :icon="h.icon" size="16" aria-hidden="true" />
+              {{ h.label }}
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div class="dcc__section">
-        <span class="dcc__section-label">MODO GRILL</span>
-        <div class="dcc__segment" role="group" aria-label="Modo grill">
-          <button v-for="g in OVEN_MODES" :key="g.value" type="button" class="dcc__seg-btn"
-            :class="{ 'dcc__seg-btn--active': d.grillMode === g.value }"
-            :disabled="!d.active"
-            @click="action('setGrill', [OVEN_GRILL_FRONT_TO_API[g.value] ?? g.value])">{{ g.label }}</button>
+        <div class="dcc__oven-section">
+          <span class="dcc__section-label">MODO GRILL</span>
+          <div class="dcc__oven-options" role="group" aria-label="Modo grill">
+            <button
+              v-for="g in OVEN_MODES"
+              :key="g.value"
+              type="button"
+              class="dcc__oven-option"
+              :class="{ 'dcc__oven-option--active': d.grillMode === g.value }"
+              :disabled="!d.active"
+              @click="action('setGrill', [OVEN_GRILL_FRONT_TO_API[g.value] ?? g.value])"
+            >
+              <v-icon :icon="g.icon" size="16" aria-hidden="true" />
+              {{ g.label }}
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div class="dcc__section">
-        <span class="dcc__section-label">MODO CONVECCIÓN</span>
-        <div class="dcc__segment" role="group" aria-label="Modo convección">
-          <button v-for="c in OVEN_CONV" :key="c.value" type="button" class="dcc__seg-btn"
-            :class="{ 'dcc__seg-btn--active': d.convectionMode === c.value }"
-            :disabled="!d.active"
-            @click="action('setConvection', [OVEN_CONVECTION_FRONT_TO_API[c.value] ?? c.value])">{{ c.label }}</button>
+        <div class="dcc__oven-section">
+          <span class="dcc__section-label">MODO CONVECCIÓN</span>
+          <div class="dcc__oven-options" role="group" aria-label="Modo convección">
+            <button
+              v-for="c in OVEN_CONV"
+              :key="c.value"
+              type="button"
+              class="dcc__oven-option"
+              :class="{ 'dcc__oven-option--active': d.convectionMode === c.value }"
+              :disabled="!d.active"
+              @click="action('setConvection', [OVEN_CONVECTION_FRONT_TO_API[c.value] ?? c.value])"
+            >
+              <v-icon :icon="c.icon" size="16" aria-hidden="true" />
+              {{ c.label }}
+            </button>
+          </div>
         </div>
       </div>
     </template>
@@ -808,24 +855,25 @@ const AC_FAN = [
 
 const OVEN_PRESETS = [120, 150, 180, 200, 220]
 const OVEN_HEAT = [
-  { value: 'convencional', label: 'Convencional' },
-  { value: 'abajo',        label: 'Abajo'        },
-  { value: 'arriba',       label: 'Arriba'       },
+  { value: 'convencional', label: 'Convencional', icon: 'mdi-heat-wave' },
+  { value: 'abajo',        label: 'Abajo',        icon: 'mdi-arrow-down-bold-box-outline' },
+  { value: 'arriba',       label: 'Arriba',       icon: 'mdi-arrow-up-bold-box-outline' },
 ]
 const OVEN_MODES = [
-  { value: 'apagado',   label: 'Apagado'   },
-  { value: 'económico', label: 'Económico' },
-  { value: 'completo',  label: 'Completo'  },
+  { value: 'apagado',   label: 'Apagado',   icon: 'mdi-grill-outline' },
+  { value: 'económico', label: 'Económico', icon: 'mdi-leaf' },
+  { value: 'completo',  label: 'Completo',  icon: 'mdi-fire' },
 ]
 const OVEN_CONV = [
-  { value: 'apagado',      label: 'Apagado'      },
-  { value: 'económico',    label: 'Económico'    },
-  { value: 'convencional', label: 'Convencional' },
+  { value: 'apagado',      label: 'Apagado',      icon: 'mdi-fan-off' },
+  { value: 'económico',    label: 'Económico',    icon: 'mdi-leaf' },
+  { value: 'convencional', label: 'Convencional', icon: 'mdi-fan' },
 ]
 
 const SPEAKER_GENRES = ['clásica', 'country', 'dance', 'latina', 'pop', 'rock']
 
 const FRIDGE_MODES = ['normal', 'fiesta', 'vacaciones']
+const BLIND_PRESETS = [25, 50, 75, 100]
 
 // ── Lamp helpers ─────────────────────────────────────────────────────
 const initialColor = props.device.type === 'light' ? (props.device as { color: string }).color : '#FFFFFF'
@@ -838,16 +886,33 @@ function applyHex() {
 }
 
 // ── Blind helpers ────────────────────────────────────────────────────
-function setBlindPosition(position: 0 | 100) {
+const blindPosition = computed(() => {
+  const position = Number(d.value.position ?? 0)
+  return Math.min(100, Math.max(0, position))
+})
+
+function setBlindPosition(position: number) {
   action('setLevel', [position])
 }
 
+function toggleBlind() {
+  setBlindPosition(blindPosition.value > 0 ? 0 : 100)
+}
+
 const blindStatusLabel = computed(() => {
-  const p = d.value.position as number
+  const p = blindPosition.value
   if (p === 0)   return 'cerrada'
   if (p === 100) return 'abierta'
   return d.value.blindStatus as string
 })
+
+const canStopBlind = computed(() => {
+  return !deviceTypesStore.loaded || supportedActionNames.value.has('stop')
+})
+
+function stopBlind() {
+  if (canStopBlind.value) action('stop')
+}
 
 // ── Faucet — cantidad y unidad son inputs locales para la acción ─────
 const faucetQuantity = ref(100)
@@ -1030,6 +1095,28 @@ const activeRooms = computed(() => roomsStore.rooms)
 .toggle__input:checked ~ .toggle__track { background: var(--sh-primary); }
 .toggle__input:checked ~ .toggle__track::after { transform: translateX(20px); }
 .toggle:focus-within .toggle__track { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.dcc__blind-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.dcc__blind-toggle .toggle__track {
+  background: var(--sh-primary);
+}
+.dcc__blind-toggle[aria-checked="false"] .toggle__track {
+  background: #CBD5E1;
+}
+.dcc__blind-toggle[aria-checked="true"] .toggle__track::after {
+  transform: translateX(20px);
+}
+.dcc__blind-toggle:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+.dcc__blind-toggle:focus-visible .toggle__track {
+  outline: 2px solid var(--sh-primary);
+  outline-offset: 2px;
+}
 
 /* ── Status panel ── */
 .dcc__status-panel {
@@ -1273,6 +1360,280 @@ const activeRooms = computed(() => roomsStore.rooms)
 .dcc__action-btn:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 .dcc__action-btn--ghost { background: #f1f5f9; color: var(--sh-text-muted); border-color: var(--sh-border); }
 .dcc__action-btn--ghost:hover:not(:disabled) { background: #e2e8f0; color: var(--sh-text-main); border-color: var(--sh-text-muted); }
+
+/* ── Oven control ── */
+.dcc__oven-card {
+  margin: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dcc__oven-temp,
+.dcc__oven-section {
+  padding: 12px 14px;
+  border: 1px solid var(--sh-border);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .04);
+}
+.dcc__oven-temp {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(248, 250, 255, .94)),
+    radial-gradient(circle at 88% 12%, rgba(99, 102, 241, .08), transparent 34%);
+}
+.dcc__oven-label-row {
+  margin-bottom: 2px;
+}
+.dcc__oven-temp-value {
+  color: var(--sh-text-main);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+.dcc__oven-slider {
+  margin-bottom: 6px;
+}
+.dcc__oven-presets {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.dcc__oven-preset {
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--sh-border);
+  border-radius: 999px;
+  background: #F8FAFC;
+  color: var(--sh-text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+.dcc__oven-preset--active {
+  border-color: rgba(99, 102, 241, .44);
+  background: var(--sh-primary-light);
+  color: var(--sh-primary);
+  box-shadow: inset 0 2px 0 rgba(99, 102, 241, .44);
+}
+.dcc__oven-preset:hover:not(:disabled):not(.dcc__oven-preset--active) {
+  background: #ffffff;
+  border-color: #CBD5E1;
+  color: var(--sh-text-main);
+}
+.dcc__oven-preset:disabled,
+.dcc__oven-option:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+.dcc__oven-preset:focus-visible,
+.dcc__oven-option:focus-visible {
+  outline: 2px solid var(--sh-primary);
+  outline-offset: 2px;
+}
+.dcc__oven-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--sh-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #F8FAFC;
+}
+.dcc__oven-option {
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-right: 1px solid var(--sh-border);
+  background: transparent;
+  color: var(--sh-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+.dcc__oven-option:last-child {
+  border-right: 0;
+}
+.dcc__oven-option--active {
+  background: var(--sh-primary-light);
+  color: var(--sh-primary);
+}
+.dcc__oven-option:hover:not(:disabled):not(.dcc__oven-option--active) {
+  background: #ffffff;
+  color: var(--sh-text-main);
+}
+
+@media (max-width: 520px) {
+  .dcc__oven-presets {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dcc__oven-options {
+    grid-template-columns: 1fr;
+    border-radius: 12px;
+  }
+  .dcc__oven-option {
+    justify-content: flex-start;
+    border-right: 0;
+    border-bottom: 1px solid var(--sh-border);
+  }
+  .dcc__oven-option:last-child {
+    border-bottom: 0;
+  }
+}
+
+/* ── Blind control ── */
+.dcc__blind-card {
+  margin: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dcc__blind-visual-panel {
+  min-height: 118px;
+  padding: 16px 18px;
+  border: 1px solid var(--sh-border);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(248, 250, 255, .94)),
+    radial-gradient(circle at 92% 18%, rgba(99, 102, 241, .08), transparent 34%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dcc__blind-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+.dcc__blind-percent {
+  display: block;
+  color: var(--sh-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(34px, 6.2vw, 46px);
+  font-weight: 700;
+  line-height: 1;
+}
+.dcc__blind-controls {
+  padding: 12px 14px;
+  border: 1px solid var(--sh-border);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .04);
+}
+.dcc__blind-label-row { margin-bottom: 2px; }
+.dcc__blind-slider {
+  margin: 0 0 6px;
+}
+.dcc__blind-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--sh-border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: #F8FAFC;
+}
+.dcc__blind-action {
+  min-width: 0;
+  height: 38px;
+  border: 0;
+  border-right: 1px solid var(--sh-border);
+  background: transparent;
+  color: var(--sh-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+.dcc__blind-action:last-child { border-right: 0; }
+.dcc__blind-action--primary {
+  background: linear-gradient(135deg, #6366F1, #4F46E5);
+  color: #ffffff;
+  box-shadow: 0 8px 16px rgba(79, 70, 229, .24);
+}
+.dcc__blind-action:hover:not(:disabled):not(.dcc__blind-action--primary) {
+  background: #EEF2FF;
+  color: var(--sh-primary);
+}
+.dcc__blind-action--primary:hover:not(:disabled) { background: #4F46E5; }
+.dcc__blind-action:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.dcc__blind-action:focus-visible {
+  outline: 2px solid var(--sh-primary);
+  outline-offset: -3px;
+}
+.dcc__blind-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+.dcc__blind-preset {
+  height: 32px;
+  border: 1px solid var(--sh-border);
+  border-radius: 999px;
+  background: #F8FAFC;
+  color: var(--sh-text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+.dcc__blind-preset:hover:not(.dcc__blind-preset--active) {
+  border-color: #CBD5E1;
+  background: #ffffff;
+  color: var(--sh-text-main);
+}
+.dcc__blind-preset--active {
+  border-color: rgba(99, 102, 241, .44);
+  background: var(--sh-primary-light);
+  color: var(--sh-primary);
+  box-shadow: inset 0 2px 0 rgba(99, 102, 241, .5);
+}
+.dcc__blind-preset:focus-visible {
+  outline: 2px solid var(--sh-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .dcc__blind-visual-panel {
+    min-height: 108px;
+  }
+  .dcc__blind-copy {
+    align-items: center;
+  }
+  .dcc__blind-actions {
+    border-radius: 14px;
+  }
+  .dcc__blind-action {
+    height: 42px;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+  }
+}
 
 /* ── Alarm inputs ── */
 .dcc__code-input {
