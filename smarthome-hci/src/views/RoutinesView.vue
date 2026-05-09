@@ -23,7 +23,7 @@
       <p class="routines-view__filter-label">Filtrar por categoría</p>
       <div class="routines-view__chips">
         <button
-          v-for="cat in CATEGORIES"
+          v-for="cat in visibleCategories"
           :key="cat"
           type="button"
           class="filter-chip"
@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import RoutineCard from '@/components/routines/RoutineCard.vue'
 import EditRoutineModal from '@/components/routines/EditRoutineModal.vue'
@@ -100,6 +100,16 @@ const categoryCounts = computed(() => ({
   Seguridad:     storeFilteredRoutines.value.filter(r => r.category === 'Seguridad').length,
   Personalizada: storeFilteredRoutines.value.filter(r => r.category === 'Personalizada').length,
 }))
+
+const visibleCategories = computed(() =>
+  CATEGORIES.filter(cat => cat === 'Todas' || categoryCounts.value[cat] > 0)
+)
+
+watch(visibleCategories, (categories) => {
+  if (store.loading) return
+
+  if (!categories.includes(selectedCategory.value)) selectedCategory.value = 'Todas'
+}, { immediate: true })
 
 // ── Edit modal ──
 const editingRoutineId = ref(null)

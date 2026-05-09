@@ -100,17 +100,30 @@
 
           <div class="user-menu__divider" aria-hidden="true" />
 
-          <!-- Configuración -->
-          <button
-            type="button"
-            class="user-menu__item"
-            role="menuitem"
-            ref="configItemRef"
-            @click="goToConfig"
-          >
-            <v-icon icon="mdi-cog-outline" size="20" aria-hidden="true" />
-            Configuración
-          </button>
+          <div class="user-menu__section">
+            <!-- Configuración -->
+            <button
+              type="button"
+              class="user-menu__item"
+              role="menuitem"
+              ref="configItemRef"
+              @click="goToConfig"
+            >
+              <v-icon icon="mdi-cog-outline" size="20" aria-hidden="true" />
+              Configuración
+            </button>
+
+            <!-- Historial -->
+            <button
+              type="button"
+              class="user-menu__item"
+              role="menuitem"
+              @click="goToHistory"
+            >
+              <v-icon icon="mdi-history" size="20" aria-hidden="true" />
+              Historial
+            </button>
+          </div>
 
           <div class="user-menu__divider" aria-hidden="true" />
 
@@ -211,6 +224,11 @@ function goToConfig() {
   router.push('/settings')
 }
 
+function goToHistory() {
+  userMenuOpen.value = false
+  router.push('/historial')
+}
+
 async function handleLogout() {
   loggingOut.value = true
   try {
@@ -228,7 +246,7 @@ async function handleLogout() {
 .app-topbar {
   position: fixed;
   top: 0;
-  left: 72px;
+  left: var(--app-sidebar-width, 72px);
   right: 0;
   height: 64px;
   z-index: 90;
@@ -239,6 +257,7 @@ async function handleLogout() {
   gap: 20px;
   padding: 0 32px;
   /* needed so the absolutely-centered search aligns to topbar bounds */
+  transition: left 180ms cubic-bezier(.4, 0, .2, 1);
 }
 
 /* ── Home selector ── */
@@ -378,8 +397,6 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--sh-border);
 }
 
 .user-menu__avatar {
@@ -428,6 +445,12 @@ async function handleLogout() {
   height: 1px;
   background: var(--sh-border);
   margin: 12px 0;
+}
+
+.user-menu__section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .user-menu__item {

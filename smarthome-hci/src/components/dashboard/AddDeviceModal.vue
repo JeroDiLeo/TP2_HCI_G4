@@ -509,9 +509,27 @@ function prevStep() {
 
 // ── Confirm / close ─────────────────────────────────────────────────────────
 
+function normalizedTargetRoomId(): number | null {
+  if (roomMode.value !== 'existing') return null
+
+  const rawRoomId = selectedRoomId.value
+  if (rawRoomId === null || rawRoomId === '') return null
+
+  const roomId = typeof rawRoomId === 'number' ? rawRoomId : Number(rawRoomId)
+  return Number.isFinite(roomId) ? roomId : null
+}
+
 async function handleConfirm() {
+  const targetRoomId = normalizedTargetRoomId()
+
+  if (roomMode.value === 'existing' && targetRoomId === null) {
+    step.value = 1
+    stepError.value = 'Elegí una habitación válida.'
+    return
+  }
+
   emit('confirm', {
-    targetRoomId: roomMode.value === 'existing' ? selectedRoomId.value : null,
+    targetRoomId,
     newRoom:      roomMode.value === 'new'
       ? { name: newRoom.value.name.trim(), category: newRoom.value.category }
       : null,

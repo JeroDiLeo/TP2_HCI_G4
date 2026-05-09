@@ -20,6 +20,7 @@ export const useRoomsStore = defineStore('rooms', () => {
   const searchQuery = ref('')
   const categoryFilter = ref<string>('todas')
   const loading = ref(false)
+  const roomsLoaded = ref(false)
   const error = ref<string | null>(null)
 
   const roomsWithStats = computed<Room[]>(() =>
@@ -80,6 +81,7 @@ export const useRoomsStore = defineStore('rooms', () => {
       metadata: result.metadata,
     }
     rooms.value.push(created)
+    roomsLoaded.value = true
     return created
   }
 
@@ -95,6 +97,7 @@ export const useRoomsStore = defineStore('rooms', () => {
 
   async function fetchRoomsByHome(homeId: string) {
     loading.value = true
+    roomsLoaded.value = false
     error.value = null
     try {
       const data = await getRoomsByHome(homeId)
@@ -111,11 +114,13 @@ export const useRoomsStore = defineStore('rooms', () => {
       error.value = (err as Error).message ?? 'Error al cargar las habitaciones'
     } finally {
       loading.value = false
+      roomsLoaded.value = true
     }
   }
 
   function clearRooms() {
     rooms.value = []
+    roomsLoaded.value = true
     error.value = null
   }
 
@@ -124,6 +129,7 @@ export const useRoomsStore = defineStore('rooms', () => {
     searchQuery,
     categoryFilter,
     loading,
+    roomsLoaded,
     error,
     totalRooms,
     activeDevices,

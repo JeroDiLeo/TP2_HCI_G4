@@ -1,6 +1,12 @@
 <template>
-  <div class="app-layout">
-    <AppSidebar />
+  <div
+    class="app-layout"
+    :class="{ 'app-layout--sidebar-expanded': sidebarExpanded }"
+  >
+    <AppSidebar
+      :expanded="sidebarExpanded"
+      @toggle-expanded="toggleSidebar"
+    />
     <AppTopbar
       v-model="searchQuery"
       :search-placeholder="searchPlaceholder"
@@ -69,21 +75,27 @@ onMounted(async () => {
 })
 
 const searchQuery = ref('')
+const SIDEBAR_STATE_KEY = 'smarthome.sidebarExpanded'
+const sidebarExpanded = ref(localStorage.getItem(SIDEBAR_STATE_KEY) === 'true')
 
 const PLACEHOLDERS = {
   'dashboard': 'Buscar dispositivos...',
   'rooms': 'Buscar habitaciones...',
   'room-detail': 'Buscar dispositivos...',
   'devices': 'Buscar dispositivos...',
-  'stats': 'Buscar estadísticas...',
   'profile': 'Buscar en perfil...',
   'settings': 'Buscar configuración...',
-  'historical': 'Buscar dispositivos, acciones, rutinas...',
+  'historial': 'Buscar dispositivos, acciones, rutinas...',
 }
 
 const searchPlaceholder = computed(() =>
   PLACEHOLDERS[route.name] ?? 'Buscar...'
 )
+
+function toggleSidebar() {
+  sidebarExpanded.value = !sidebarExpanded.value
+  localStorage.setItem(SIDEBAR_STATE_KEY, String(sidebarExpanded.value))
+}
 
 // Reset search when navigating between views
 watch(() => route.name, () => { searchQuery.value = '' })
@@ -102,15 +114,21 @@ provide('layoutSearchQuery', searchQuery)
 
 <style scoped>
 .app-layout {
+  --app-sidebar-width: 72px;
   min-height: 100vh;
   background: #f8fafc;
   font-family: 'Inter', sans-serif;
 }
 
+.app-layout--sidebar-expanded {
+  --app-sidebar-width: 232px;
+}
+
 .app-layout__content {
-  margin-left: 72px;
+  margin-left: var(--app-sidebar-width);
   margin-top: 64px;
   padding: 32px 40px;
   min-height: calc(100vh - 64px);
+  transition: margin-left 180ms cubic-bezier(.4, 0, .2, 1);
 }
 </style>

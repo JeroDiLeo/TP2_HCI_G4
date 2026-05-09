@@ -20,7 +20,7 @@
       <p class="rooms-view__filter-label">Filtrar por categoría</p>
       <div class="rooms-view__chips">
         <button
-          v-for="cat in CATEGORIES"
+          v-for="cat in visibleCategories"
           :key="cat.id"
           type="button"
           class="filter-chip"
@@ -78,6 +78,17 @@ const categoryCounts = computed(() => {
   }
   return counts
 })
+
+const visibleCategories = computed(() =>
+  CATEGORIES.filter(cat => cat.id === 'todas' || categoryCounts.value[cat.id] > 0)
+)
+
+watch(visibleCategories, (categories) => {
+  if (roomsStore.loading || !roomsStore.roomsLoaded) return
+
+  const hasActiveCategory = categories.some(cat => cat.id === roomsStore.categoryFilter)
+  if (!hasActiveCategory) roomsStore.categoryFilter = 'todas'
+}, { immediate: true })
 
 // Sync layout search → store so filteredRooms computed stays working
 const layoutSearch = inject('layoutSearchQuery', ref(''))

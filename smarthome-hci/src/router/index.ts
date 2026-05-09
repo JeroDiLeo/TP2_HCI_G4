@@ -69,11 +69,6 @@ const router = createRouter({
           component: () => import('@/views/DashboardView.vue'),
         },
         {
-          path: 'stats',
-          name: 'stats',
-          component: () => import('@/views/DashboardView.vue'),
-        },
-        {
           path: 'profile',
           name: 'profile',
           component: () => import('@/views/ProfileView.vue'),
