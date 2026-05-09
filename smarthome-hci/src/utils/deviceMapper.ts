@@ -16,11 +16,30 @@ export interface ApiDevice {
   metadata?: Record<string, unknown>
 }
 
+export interface ApiDeviceTypeParam {
+  name?: string
+  type: string
+  description?: string
+  min?: number
+  max?: number
+  minValue?: number
+  maxValue?: number
+  supportedValues?: unknown[]
+  example?: unknown
+}
+
+export interface ApiDeviceTypeAction {
+  name: string
+  description?: string
+  return?: unknown
+  params: ApiDeviceTypeParam[]
+}
+
 export interface ApiDeviceType {
   id: string
   name: string
   powerUsage?: number
-  actions: { name: string; params: { type: string; min?: number; max?: number }[] }[]
+  actions: ApiDeviceTypeAction[]
 }
 
 
@@ -203,7 +222,7 @@ export function fromApi(
       return {
         ...base, type: 'speaker',
         active: s.status === 'playing' || s.status === 'paused',
-        volume: Math.round(Number(s.volume ?? 0) / 10),
+        volume: Number(s.volume ?? 5),
         playing: s.status === 'playing',
         genre: tr(SPEAKER_GENRE_API_TO_FRONT, s.genre) as any,
         currentSong: String((apiDevice.metadata as any)?.currentSong ?? ''),

@@ -1,7 +1,7 @@
 <template>
   <v-dialog
     :model-value="open"
-    width="540"
+    width="640"
     :z-index="2400"
     @update:model-value="onDialogUpdate"
   >
@@ -35,82 +35,94 @@
         </div>
       </header>
 
-      <!-- Body -->
-      <div class="sub-modal__body">
-        <ul
-          v-if="localActions.length > 0"
-          class="action-list"
-          aria-label="Acciones configuradas"
-        >
-          <li
-            v-for="(action, idx) in parsedActions"
-            :key="idx"
-            class="action-item"
+      <!-- Builder inline (reemplaza body+footer) -->
+      <RoutineActionBuilder
+        v-if="showActionBuilder"
+        style="flex: 1; min-height: 0;"
+        @cancel="showActionBuilder = false"
+        @confirm="onBuilderConfirm"
+      />
+
+      <template v-else>
+        <!-- Body -->
+        <div class="sub-modal__body">
+          <ul
+            v-if="localActions.length > 0"
+            class="action-list"
+            aria-label="Acciones configuradas"
           >
-            <span class="action-item__number" aria-hidden="true">{{ idx + 1 }}</span>
-
-            <div
-              class="action-item__icon"
-              :style="{
-                background: action.visual.bg,
-                color: action.visual.fg,
-              }"
-              aria-hidden="true"
+            <li
+              v-for="(action, idx) in parsedActions"
+              :key="idx"
+              class="action-item"
             >
-              <v-icon :icon="action.visual.icon" size="18" />
+              <span class="action-item__number" aria-hidden="true">{{ idx + 1 }}</span>
+
+              <div
+                class="action-item__icon"
+                :style="{
+                  background: action.visual.bg,
+                  color: action.visual.fg,
+                }"
+                aria-hidden="true"
+              >
+                <v-icon :icon="action.visual.icon" size="18" />
+              </div>
+
+              <div class="action-item__info">
+                <p class="action-item__device">{{ action.device || 'Dispositivo' }}</p>
+                <p v-if="action.detail" class="action-item__detail">{{ action.detail }}</p>
+              </div>
+
+              <button
+                type="button"
+                class="action-item__delete"
+                :aria-label="`Eliminar acción ${action.device}`"
+                @click="removeAction(idx)"
+              >
+                <v-icon icon="mdi-trash-can-outline" size="14" aria-hidden="true" />
+              </button>
+            </li>
+          </ul>
+
+          <div v-else class="empty-state" role="status">
+            <div class="empty-state__icon-wrap" aria-hidden="true">
+              <v-icon icon="mdi-flash-off-outline" size="48" />
             </div>
-
-            <div class="action-item__info">
-              <p class="action-item__device">{{ action.device || 'Dispositivo' }}</p>
-              <p v-if="action.detail" class="action-item__detail">{{ action.detail }}</p>
-            </div>
-
-            <button
-              type="button"
-              class="action-item__delete"
-              :aria-label="`Eliminar acción ${action.device}`"
-              @click="removeAction(idx)"
-            >
-              <v-icon icon="mdi-trash-can-outline" size="14" aria-hidden="true" />
-            </button>
-          </li>
-        </ul>
-
-        <div v-else class="empty-state" role="status">
-          <div class="empty-state__icon-wrap" aria-hidden="true">
-            <v-icon icon="mdi-flash-off-outline" size="48" />
+            <p class="empty-state__title">Aún no agregaste acciones a esta rutina</p>
+            <p class="empty-state__subtitle">Tocá "Añadir acción" para empezar</p>
           </div>
-          <p class="empty-state__title">Aún no agregaste acciones a esta rutina</p>
-          <p class="empty-state__subtitle">Tocá "Añadir acción" para empezar</p>
         </div>
-      </div>
 
-      <!-- Footer -->
-      <footer class="sub-modal__footer">
-        <button
-          type="button"
-          class="btn-add-action"
-          @click="onAddAction"
-        >
-          <v-icon icon="mdi-plus" size="16" aria-hidden="true" />
-          Añadir acción
-        </button>
+        <!-- Footer -->
+        <footer class="sub-modal__footer">
+          <button
+            type="button"
+            class="btn-add-action"
+            @click="onAddAction"
+          >
+            <v-icon icon="mdi-plus" size="16" aria-hidden="true" />
+            Añadir acción
+          </button>
 
-        <button
-          type="button"
-          class="btn-done"
-          @click="confirm"
-        >
-          Listo
-        </button>
-      </footer>
+          <button
+            type="button"
+            class="btn-done"
+            @click="confirm"
+          >
+            Listo
+          </button>
+        </footer>
+      </template>
     </div>
   </v-dialog>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { getDeviceVisual, parseActionString } from '@/utils/deviceIcons.js'
+import { useDevicesStore } from '@/stores/devices'
+import RoutineActionBuilder from './RoutineActionBuilder.vue'
+import { getDeviceVisual } from '@/utils/deviceIcons.js'
 
 const props = defineProps({
   open:        { type: Boolean, default: false },
@@ -119,16 +131,29 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:open', 'update:actions'])
 
+const devicesStore = useDevicesStore()
+const showActionBuilder  = ref(false)
 const localActions = ref([...props.actions])
 
 watch(() => props.open, (val) => {
-  if (val) localActions.value = [...props.actions]
+  if (val) {
+    localActions.value = [...props.actions]
+    showActionBuilder.value = false
+  }
 })
 
 const parsedActions = computed(() =>
   localActions.value.map(a => {
-    const { device, detail } = parseActionString(a)
-    return { device, detail, visual: getDeviceVisual(device) }
+    if (typeof a === 'string') {
+      const parts = a.split('·').map(s => s.trim())
+      const device = parts[0] ?? ''
+      return { device, detail: parts.slice(1).join(' · '), visual: getDeviceVisual(device) }
+    }
+    const apiDevice = devicesStore.getDeviceById(a.device?.id)
+    const deviceName = apiDevice?.name ?? a.device?.id ?? 'Dispositivo'
+    const deviceType = apiDevice?.type ?? 'light'
+    const detail = a.actionName + (a.params?.length ? ': ' + a.params.join(', ') : '')
+    return { device: deviceName, detail, visual: getDeviceVisual(deviceType) }
   })
 )
 
@@ -140,8 +165,12 @@ function removeAction(idx) {
 }
 
 function onAddAction() {
-  // TODO: builder de acciones (dispositivo + acción + valor) — fuera del scope de esta entrega.
-  window.alert('Builder de acciones — próximamente')
+  showActionBuilder.value = true
+}
+
+function onBuilderConfirm(action) {
+  localActions.value.push(action)
+  showActionBuilder.value = false
 }
 
 function close() {
@@ -165,12 +194,13 @@ function onDialogUpdate(val) {
   border: 1px solid var(--sh-border);
   box-shadow:
     0 1px 2px rgba(15, 23, 42, .04),
-    0 24px 48px -12px rgba(15, 23, 42, .18);
+    0 24px 48px -12px rgba(15, 23, 42, .18),
+    0 0 0 1px rgba(15, 23, 42, .04);
   position: relative;
   font-family: var(--sh-font);
   display: flex;
   flex-direction: column;
-  max-height: 80vh;
+  max-height: 94vh;
 }
 
 :deep(.v-overlay__scrim) {
@@ -210,8 +240,9 @@ function onDialogUpdate(val) {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 22px 60px 18px 24px;
-  border-bottom: 1px solid var(--sh-border);
+  padding: 18px 60px 14px 28px;
+  background: linear-gradient(135deg, var(--sh-primary-light) 0%, #F5F3FF 100%);
+  border-radius: 18px 18px 0 0;
 }
 .sub-modal__icon {
   width: 44px;
@@ -231,7 +262,7 @@ function onDialogUpdate(val) {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: var(--sh-text-light);
+  color: var(--sh-primary);
   text-transform: uppercase;
 }
 .sub-modal__title {

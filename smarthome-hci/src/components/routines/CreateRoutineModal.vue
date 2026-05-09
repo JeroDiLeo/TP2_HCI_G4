@@ -40,7 +40,10 @@
 
         <ol class="stepper" aria-label="Pasos">
           <li class="stepper__item" :class="{ 'stepper__item--active': step === 1, 'stepper__item--done': step > 1 }">
-            <span class="stepper__dot">1</span>
+            <span class="stepper__dot">
+              <v-icon v-if="step > 1" icon="mdi-check" size="14" aria-hidden="true" />
+              <template v-else>1</template>
+            </span>
             <span class="stepper__label">Detalles</span>
           </li>
           <li class="stepper__bar" aria-hidden="true" />
@@ -51,6 +54,15 @@
         </ol>
       </header>
 
+      <!-- Builder inline (reemplaza body+footer en step 2) -->
+      <RoutineActionBuilder
+        v-if="step === 2 && showActionBuilder"
+        style="flex: 1; min-height: 0;"
+        @cancel="showActionBuilder = false"
+        @confirm="onBuilderConfirm"
+      />
+
+      <template v-else>
       <!-- Body -->
       <div class="create-modal__body">
 
@@ -214,14 +226,7 @@
               <v-icon icon="mdi-flash-off-outline" size="40" />
             </div>
             <p class="empty-state__title">Aún no hay acciones</p>
-            <p class="empty-state__subtitle">Tocá "Añadir acción" para empezar</p>
-          </div>
-
-          <!-- La API requiere al menos una acción -->
-          <!-- Conectar cuando esté el store de devices -->
-          <div class="actions-notice" role="note">
-            <v-icon icon="mdi-information-outline" size="14" aria-hidden="true" />
-            <span>Las acciones se configurarán cuando los dispositivos estén conectados. Por ahora la API requiere al menos una acción para guardar.</span>
+            <p class="empty-state__subtitle">Añadí al menos una acción para poder crear la rutina</p>
           </div>
 
           <button
@@ -276,7 +281,7 @@
             v-else
             type="button"
             class="btn-save"
-            :disabled="!isValid || saving"
+            :disabled="!isValid || saving || form.actions.length === 0"
             @click="handleCreate"
           >
             <v-progress-circular
@@ -291,21 +296,26 @@
           </button>
         </div>
       </footer>
+      </template>
     </div>
-
   </v-dialog>
 </template>
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { useRoutinesStore } from '@/stores/routines'
+import { useDevicesStore } from '@/stores/devices'
 import WeekdaySelector from './WeekdaySelector.vue'
-import { getDeviceVisual, parseActionString } from '@/utils/deviceIcons.js'
+import RoutineActionBuilder from './RoutineActionBuilder.vue'
+import { getDeviceVisual } from '@/utils/deviceIcons.js'
 
 const props = defineProps({ open: { type: Boolean, default: false } })
 const emit  = defineEmits(['update:open', 'created'])
 
 const store = useRoutinesStore()
+const devicesStore = useDevicesStore()
+
+const showActionBuilder = ref(false)
 
 const CATEGORIES = [
   { value: 'Mañana',        icon: 'mdi-white-balance-sunny' },
@@ -357,8 +367,16 @@ const isValid = computed(() => !nameError.value)
 
 const parsedActions = computed(() =>
   form.value.actions.map(a => {
-    const { device, detail } = parseActionString(a)
-    return { device, detail, visual: getDeviceVisual(device) }
+    if (typeof a === 'string') {
+      const parts = a.split('·').map(s => s.trim())
+      const device = parts[0] ?? ''
+      return { device, detail: parts.slice(1).join(' · '), visual: getDeviceVisual(device) }
+    }
+    const apiDevice = devicesStore.getDeviceById(a.device?.id)
+    const deviceName = apiDevice?.name ?? a.device?.id ?? 'Dispositivo'
+    const deviceType = apiDevice?.type ?? 'light'
+    const detail = a.actionName + (a.params?.length ? ': ' + a.params.join(', ') : '')
+    return { device: deviceName, detail, visual: getDeviceVisual(deviceType) }
   })
 )
 
@@ -370,8 +388,12 @@ function removeAction(idx) {
 }
 
 function onAddAction() {
-  // TODO: builder de acciones (dispositivo + acción + valor)
-  window.alert('Builder de acciones — próximamente')
+  showActionBuilder.value = true
+}
+
+function onBuilderConfirm(action) {
+  form.value.actions.push(action)
+  showActionBuilder.value = false
 }
 
 function reset() {
@@ -380,6 +402,7 @@ function reset() {
   step.value = 1
   saving.value = false
   apiError.value = ''
+  showActionBuilder.value = false
 }
 
 function close() { emit('update:open', false) }
@@ -596,7 +619,8 @@ watch(() => props.open, (val) => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow: visible;
+  flex: 1 1 auto;
+  overflow-y: auto;
   min-height: 440px;
 }
 
@@ -893,20 +917,6 @@ watch(() => props.open, (val) => {
 .btn-save:hover:not(:disabled) { background: var(--sh-primary-dark); }
 .btn-save:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 .btn-save:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
-
-.actions-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #FEF9C3;
-  border: 1px solid #FDE047;
-  font-size: 12px;
-  color: #854D0E;
-  font-family: var(--sh-font);
-  line-height: 1.4;
-}
 
 .create-modal__api-error {
   display: flex;

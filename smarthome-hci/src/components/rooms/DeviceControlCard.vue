@@ -65,7 +65,7 @@
             :style="{ backgroundColor: c }"
             :aria-label="`Color ${c}`"
             :disabled="!d.active"
-            @click="action('setColor', [c.replace('#', '')]); hexDraft = c"
+            @click="action('setColor', [c]); hexDraft = c"
           />
         </div>
         <div class="dcc__color-input-row">
@@ -206,6 +206,21 @@
         </div>
       </div>
 
+      <div class="dcc__section">
+        <span class="dcc__section-label">HABITACIÓN OBJETIVO</span>
+        <v-select
+          v-model="vacuumTargetRoom"
+          :items="activeRooms"
+          item-title="name"
+          item-value="id"
+          density="compact"
+          hide-details
+          placeholder="Seleccioná una habitación"
+          aria-label="Habitación objetivo para la aspiradora"
+          @update:model-value="v => { if (v) action('setLocation', [v]) }"
+        />
+      </div>
+
       <div class="dcc__section dcc__section--actions">
         <button v-if="d.vacuumStatus === 'encendida'" type="button" class="dcc__action-btn"
           :disabled="!d.active"
@@ -250,17 +265,25 @@
           :disabled="!d.active"
           aria-label="Volumen del parlante"
           class="dcc__slider"
-          @update:model-value="action('setVolume', [$event * 10])"
+          @update:model-value="action('setVolume', [$event])"
         />
       </div>
 
       <div class="dcc__section">
         <span class="dcc__section-label">CONTROLES</span>
         <div class="dcc__player-controls">
+          <button type="button" class="dcc__player-btn" aria-label="Canción anterior" :disabled="!d.active"
+            @click="action('previousSong')">
+            <v-icon icon="mdi-skip-previous" size="22" />
+          </button>
           <button type="button" class="dcc__player-btn dcc__player-btn--main"
             :aria-label="d.playing ? 'Pausar' : 'Reproducir'" :disabled="!d.active"
             @click="action(d.playing ? 'pause' : 'play')">
             <v-icon :icon="d.playing ? 'mdi-pause' : 'mdi-play'" size="22" />
+          </button>
+          <button type="button" class="dcc__player-btn" aria-label="Siguiente canción" :disabled="!d.active"
+            @click="action('nextSong')">
+            <v-icon icon="mdi-skip-next" size="22" />
           </button>
           <button type="button" class="dcc__player-btn" aria-label="Detener" :disabled="!d.active"
             @click="action('stop')">
@@ -524,28 +547,42 @@
         </div>
       </div>
 
+      <div class="dcc__section">
+        <label class="dcc__section-label" :for="`alarm-code-${deviceId}`">CÓDIGO DE SEGURIDAD</label>
+        <input
+          :id="`alarm-code-${deviceId}`"
+          v-model="alarmCode"
+          type="password"
+          class="dcc__code-input"
+          maxlength="16"
+          autocomplete="off"
+          placeholder="Ingresá el código"
+          aria-label="Código de seguridad de la alarma"
+        />
+      </div>
+
       <div class="dcc__section dcc__section--actions dcc__section--col">
         <button
           type="button"
           class="dcc__action-btn"
-          :disabled="isExecuting || d.alarmMode === 'modo casa'"
-          @click="action('arm', ['armedStay'])"
+          :disabled="isExecuting || !alarmCode || d.alarmMode === 'modo casa'"
+          @click="action('arm', ['armedStay', alarmCode])"
         >
           <v-icon icon="mdi-home-lock" size="16" /> Modo Casa
         </button>
         <button
           type="button"
           class="dcc__action-btn"
-          :disabled="isExecuting || d.alarmMode === 'modo regular'"
-          @click="action('arm', ['armedAway'])"
+          :disabled="isExecuting || !alarmCode || d.alarmMode === 'modo regular'"
+          @click="action('arm', ['armedAway', alarmCode])"
         >
           <v-icon icon="mdi-shield-check" size="16" /> Modo Regular
         </button>
         <button
           type="button"
           class="dcc__action-btn dcc__action-btn--ghost"
-          :disabled="isExecuting || d.alarmMode === 'desactivada'"
-          @click="action('disarm')"
+          :disabled="isExecuting || !alarmCode || d.alarmMode === 'desactivada'"
+          @click="action('disarm', [alarmCode])"
         >
           <v-icon icon="mdi-shield-off-outline" size="16" /> Desactivar
         </button>
@@ -574,6 +611,24 @@
       </div>
 
       <div class="dcc__section">
+        <div class="dcc__section-label-row">
+          <span class="dcc__section-label">TEMPERATURA HELADERA</span>
+          <span class="dcc__section-value">{{ d.fridgeTemp }}°C</span>
+        </div>
+        <v-slider
+          :model-value="d.fridgeTemp"
+          :min="fridgeTempMin"
+          :max="fridgeTempMax"
+          :step="1"
+          color="#6366F1" track-color="#E2E8F0"
+          hide-details density="compact"
+          aria-label="Temperatura de la heladera"
+          class="dcc__slider"
+          @update:model-value="action('setTemperature', [$event])"
+        />
+      </div>
+
+      <div class="dcc__section">
         <span class="dcc__section-label">MODO</span>
         <div class="dcc__chips" role="group">
           <button v-for="m in FRIDGE_MODES" :key="m" type="button" class="dcc__chip"
@@ -592,6 +647,7 @@ import { computed, ref, watch } from 'vue'
 import type { RoomDevice } from '@/types/rooms'
 import { useDevicesStore } from '@/stores/devices'
 import { useDeviceTypesStore } from '@/stores/deviceTypes'
+import { useRoomsStore } from '@/stores/rooms'
 import {
   AC_MODE_FRONT_TO_API,
   AC_SWING_FRONT_TO_API,
@@ -603,10 +659,12 @@ import {
   FRIDGE_MODE_FRONT_TO_API,
   SPEAKER_GENRE_FRONT_TO_API,
 } from '@/utils/deviceMapper'
+import { getParamMin, getParamMax } from '@/utils/deviceTypeParam'
 
 const props = defineProps<{ device: RoomDevice }>()
 const devicesStore = useDevicesStore()
 const deviceTypesStore = useDeviceTypesStore()
+const roomsStore = useRoomsStore()
 
 const deviceId = computed(() => String(props.device.id))
 const supportedActionNames = computed(() => {
@@ -676,7 +734,7 @@ const DEVICE_ICONS: Record<string, string> = {
   blind:   'mdi-blinds',
   oven:    'mdi-toaster-oven',
   door:    'mdi-door-closed',
-  alarm:   'mdi-shield-outline',
+  alarm:   'mdi-alarm-light-outline',
   fridge:  'mdi-fridge-outline',
 }
 
@@ -746,7 +804,7 @@ const hexDraft = ref(initialColor)
 
 function applyHex() {
   if (/^#[0-9A-Fa-f]{6}$/.test(hexDraft.value)) {
-    action('setColor', [hexDraft.value.replace('#', '')])
+    action('setColor', [hexDraft.value])
   }
 }
 
@@ -765,6 +823,26 @@ const blindStatusLabel = computed(() => {
 // ── Faucet — cantidad y unidad son inputs locales para la acción ─────
 const faucetQuantity = ref(100)
 const faucetUnit = ref('ml')
+
+// ── Alarm — código local, nunca se persiste ni se loguea ────────────
+const alarmCode = ref('')
+
+// ── Fridge — rangos desde catálogo, fallback a 2/8°C ────────────────
+const fridgeTempMin = computed(() => {
+  const param = deviceTypesStore.getByFrontType('fridge')?.actions
+    ?.find(a => a.name === 'setTemperature')?.params?.[0]
+  return param ? (getParamMin(param) ?? 2) : 2
+})
+
+const fridgeTempMax = computed(() => {
+  const param = deviceTypesStore.getByFrontType('fridge')?.actions
+    ?.find(a => a.name === 'setTemperature')?.params?.[0]
+  return param ? (getParamMax(param) ?? 8) : 8
+})
+
+// ── Vacuum — rooms del hogar activo para setLocation ─────────────────
+const vacuumTargetRoom = ref<string | null>(null)
+const activeRooms = computed(() => roomsStore.rooms)
 </script>
 
 <style scoped>

@@ -1,7 +1,7 @@
 <template>
   <v-dialog
     :model-value="open"
-    width="720"
+    width="640"
     @update:model-value="onDialogUpdate"
   >
     <div
@@ -45,7 +45,10 @@
         <!-- Stepper indicator -->
         <ol class="stepper" aria-label="Pasos">
           <li class="stepper__item" :class="{ 'stepper__item--active': step === 1, 'stepper__item--done': step > 1 }">
-            <span class="stepper__dot">1</span>
+            <span class="stepper__dot">
+              <v-icon v-if="step > 1" icon="mdi-check" size="14" aria-hidden="true" />
+              <template v-else>1</template>
+            </span>
             <span class="stepper__label">Detalles</span>
           </li>
           <li class="stepper__bar" aria-hidden="true" />
@@ -56,6 +59,15 @@
         </ol>
       </header>
 
+      <!-- Builder inline (reemplaza body+footer en step 2) -->
+      <RoutineActionBuilder
+        v-if="step === 2 && showActionBuilder"
+        style="flex: 1; min-height: 0;"
+        @cancel="showActionBuilder = false"
+        @confirm="onBuilderConfirm"
+      />
+
+      <template v-else>
       <!-- Body -->
       <div class="edit-modal__body">
 
@@ -285,16 +297,18 @@
         <v-icon icon="mdi-alert-circle-outline" size="14" aria-hidden="true" />
         {{ apiError }}
       </div>
+      </template>
     </div>
-
   </v-dialog>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRoutinesStore } from '@/stores/routines'
+import { useDevicesStore } from '@/stores/devices'
 import WeekdaySelector from './WeekdaySelector.vue'
-import { getDeviceVisual, parseActionString } from '@/utils/deviceIcons.js'
+import RoutineActionBuilder from './RoutineActionBuilder.vue'
+import { getDeviceVisual } from '@/utils/deviceIcons.js'
 
 const props = defineProps({
   routineId: { type: String, default: null },
@@ -303,6 +317,9 @@ const props = defineProps({
 const emit = defineEmits(['update:open'])
 
 const store = useRoutinesStore()
+const devicesStore = useDevicesStore()
+
+const showActionBuilder = ref(false)
 
 const CATEGORIES = [
   { value: 'Mañana',        icon: 'mdi-white-balance-sunny' },
@@ -325,7 +342,9 @@ watch(
     if (open && original.value) {
       form.value = JSON.parse(JSON.stringify(original.value))
       step.value = 1
+      showActionBuilder.value = false
     } else if (!open) {
+      showActionBuilder.value = false
       setTimeout(() => { if (!props.open) form.value = null }, 250)
     }
   },
@@ -369,8 +388,16 @@ const canSave   = computed(() => hasChanges.value && isValidName.value)
 // ── Actions list (inline) ──
 const parsedActions = computed(() =>
   (form.value?.actions ?? []).map(a => {
-    const { device, detail } = parseActionString(a)
-    return { device, detail, visual: getDeviceVisual(device) }
+    if (typeof a === 'string') {
+      const parts = a.split('·').map(s => s.trim())
+      const device = parts[0] ?? ''
+      return { device, detail: parts.slice(1).join(' · '), visual: getDeviceVisual(device) }
+    }
+    const apiDevice = devicesStore.getDeviceById(a.device?.id)
+    const deviceName = apiDevice?.name ?? a.device?.id ?? 'Dispositivo'
+    const deviceType = apiDevice?.type ?? 'light'
+    const detail = a.actionName + (a.params?.length ? ': ' + a.params.join(', ') : '')
+    return { device: deviceName, detail, visual: getDeviceVisual(deviceType) }
   })
 )
 
@@ -383,8 +410,13 @@ function removeAction(idx) {
 }
 
 function onAddAction() {
-  // TODO: builder de acciones (dispositivo + acción + valor)
-  window.alert('Builder de acciones — próximamente')
+  showActionBuilder.value = true
+}
+
+function onBuilderConfirm(action) {
+  if (!form.value) return
+  form.value.actions.push(action)
+  showActionBuilder.value = false
 }
 
 // ── Handlers ──
@@ -602,8 +634,9 @@ async function handleDuplicate() {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow: visible;
-  min-height: 440px; /* keep both steps the same modal height */
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 440px;
 }
 
 /* Field */

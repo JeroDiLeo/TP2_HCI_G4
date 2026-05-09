@@ -154,6 +154,19 @@ export async function deleteDevice(deviceId) {
 
 // ── State & Actions ─────────────────────────────────────────────────
 
+function normalizeActionParams(params = []) {
+  if (Array.isArray(params)) return params
+  if (params && typeof params === 'object') return Object.values(params)
+  return []
+}
+
+function normalizeActionResult(response) {
+  if (response && typeof response === 'object' && 'result' in response) {
+    return response.result
+  }
+  return response
+}
+
 export async function getDeviceState(deviceId) {
   const init = { method: 'GET', headers: getHeaders() }
 
@@ -175,7 +188,7 @@ export async function executeAction(deviceId, actionName, params = []) {
   const init = {
     method: 'PATCH',
     headers: getHeaders(),
-    body: JSON.stringify(params),
+    body: JSON.stringify(normalizeActionParams(params)),
   }
 
   try {
@@ -185,7 +198,7 @@ export async function executeAction(deviceId, actionName, params = []) {
       throw handleError(await parseErrorBody(response), response.status)
     }
 
-    return await parseResponseBody(response)
+    return normalizeActionResult(await parseResponseBody(response))
   } catch (error) {
     console.log(`Unexpected error: ${error.message}`)
     throw error

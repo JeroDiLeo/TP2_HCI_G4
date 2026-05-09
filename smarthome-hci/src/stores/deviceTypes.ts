@@ -46,13 +46,14 @@ export const useDeviceTypesStore = defineStore('deviceTypes', () => {
     return deviceTypesMap.value[entry[0]]
   }
 
-  async function fetchAll() {
-    if (loaded.value) return
+  async function fetchAll(force = false) {
+    if (!force && loaded.value) return
     loading.value = true
     error.value = null
     try {
       const data = await getAllDeviceTypes()
-      deviceTypes.value = extractList(data) as ApiDeviceType[]
+      const raw = extractList(data) as ApiDeviceType[]
+      deviceTypes.value = raw.filter(t => t.name?.toLowerCase() !== 'timer')
       loaded.value = true
     } catch (err: any) {
       error.value = err.message || 'Error al cargar los tipos de dispositivo'
@@ -79,6 +80,10 @@ export const useDeviceTypesStore = defineStore('deviceTypes', () => {
     }
   }
 
+  function getAction(deviceTypeId: string, actionName: string) {
+    return getById(deviceTypeId)?.actions?.find(a => a.name === actionName) ?? null
+  }
+
   function clear() {
     deviceTypes.value = []
     loaded.value = false
@@ -93,6 +98,7 @@ export const useDeviceTypesStore = defineStore('deviceTypes', () => {
     deviceTypesMap,
     getById,
     getByFrontType,
+    getAction,
     fetchAll,
     fetchOne,
     clear,
