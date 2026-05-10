@@ -48,6 +48,7 @@ Tener instalado:
 ```
 cd smarthome-hci 
 npm install
+npm run build
 npm run preview
 ```
 
