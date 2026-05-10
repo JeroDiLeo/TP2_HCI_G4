@@ -50,7 +50,7 @@ import { computed } from 'vue'
 import { useRoomsStore } from '@/stores/rooms'
 import RoomCard from './RoomCard.vue'
 
-const props = defineProps({
+defineProps({
   editMode: { type: Boolean, default: false },
 })
 

@@ -24,26 +24,14 @@
 import { computed } from 'vue'
 import type { LogEntry } from '@/types/logs'
 import { formatLogAction, formatRelativeTime, formatAbsoluteTime } from '@/utils/logFormatter'
+import { getDeviceIcon } from '@/utils/deviceIcons'
 
 const props = defineProps<{
   entry: LogEntry
   catalogDescription?: string
 }>()
 
-const DEVICE_ICONS: Record<string, string> = {
-  light:   'mdi-lightbulb-outline',
-  ac:      'mdi-air-conditioner',
-  vacuum:  'mdi-robot-vacuum',
-  speaker: 'mdi-speaker',
-  faucet:  'mdi-water-pump',
-  blind:   'mdi-blinds',
-  oven:    'mdi-toaster-oven',
-  door:    'mdi-door-closed',
-  alarm:   'mdi-alarm-light-outline',
-  fridge:  'mdi-fridge-outline',
-}
-
-const deviceIcon   = computed(() => DEVICE_ICONS[props.entry.deviceType] ?? 'mdi-devices')
+const deviceIcon   = computed(() => getDeviceIcon(props.entry.deviceType, 'mdi-devices'))
 const actionLabel  = computed(() => formatLogAction(props.entry, props.catalogDescription))
 const relativeTime = computed(() => formatRelativeTime(props.entry.timestamp))
 const absoluteTime = computed(() => formatAbsoluteTime(props.entry.timestamp))

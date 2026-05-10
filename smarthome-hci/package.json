@@ -20,8 +20,6 @@
     "@fontsource/roboto": "^5.2.10",
     "@fontsource/roboto-mono": "^5.2.9",
     "@mdi/font": "^7.4.47",
-    "jspdf": "^4.2.1",
-    "jspdf-autotable": "^5.0.7",
     "pinia": "^3.0.4",
     "vue": "^3.5.34",
     "vue-router": "^5.0.6",

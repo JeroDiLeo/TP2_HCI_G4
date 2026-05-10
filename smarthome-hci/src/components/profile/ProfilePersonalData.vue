@@ -1,6 +1,6 @@
 <template>
   <section class="profile-section">
-    <form class="profile-form" @submit.prevent="$emit('save')">
+    <form class="profile-form" @submit.prevent="submitForm">
       <div class="profile-grid">
         <!-- Nombre completo -->
         <div class="profile-form__field">
@@ -70,6 +70,10 @@ const props = defineProps({
 const emit = defineEmits(['save'])
 
 const formData = ref({ ...props.initialData })
+
+function submitForm() {
+  emit('save')
+}
 
 watch(() => props.initialData, (newVal) => {
   formData.value = { ...newVal }

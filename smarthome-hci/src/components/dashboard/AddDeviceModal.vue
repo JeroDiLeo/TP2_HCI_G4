@@ -311,6 +311,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
+import { DEVICE_CATALOG, getDeviceCatalogIcon, getDeviceTypeLabel } from '@/constants/deviceCatalog'
 
 interface ModalRoom {
   id: number | string
@@ -333,21 +334,6 @@ const emit = defineEmits<{
     devices: { type: string; name: string; customIcon?: string }[]
   }): void
 }>()
-
-// ── Catalog ──────────────────────────────────────────────────────────────────
-
-const DEVICE_CATALOG = [
-  { type: 'vacuum',  label: 'Aspiradora',  icon: 'mdi-robot-vacuum'        },
-  { type: 'speaker', label: 'Parlante',    icon: 'mdi-speaker'             },
-  { type: 'faucet',  label: 'Grifo',       icon: 'mdi-water-pump'          },
-  { type: 'blind',   label: 'Persiana',    icon: 'mdi-blinds'              },
-  { type: 'light',   label: 'Lámpara',     icon: 'mdi-lightbulb-outline'   },
-  { type: 'oven',    label: 'Horno',       icon: 'mdi-stove'               },
-  { type: 'ac',      label: 'Aire acond.', icon: 'mdi-air-conditioner'     },
-  { type: 'door',    label: 'Puerta',      icon: 'mdi-door'                },
-  { type: 'alarm',   label: 'Alarma',      icon: 'mdi-alarm-light-outline' },
-  { type: 'fridge',  label: 'Heladera',    icon: 'mdi-fridge-outline'      },
-] as const
 
 const CATEGORIES = [
   { id: 'sala',       label: 'Sala',       icon: 'mdi-sofa'                  },
@@ -376,10 +362,10 @@ const stepError = ref('')
 
 function deviceIcon(type: string, customIcon?: string) {
   if (customIcon) return customIcon
-  return DEVICE_CATALOG.find(d => d.type === type)?.icon ?? 'mdi-help-circle-outline'
+  return getDeviceCatalogIcon(type)
 }
 function deviceLabel(type: string) {
-  return DEVICE_CATALOG.find(d => d.type === type)?.label ?? type
+  return getDeviceTypeLabel(type)
 }
 function instanceCount(type: string) {
   return instances.value.filter(i => i.type === type).length

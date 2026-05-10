@@ -205,8 +205,7 @@
               />
               <button
                 type="button"
-                class="btn btn--primary"
-                style="padding: 0 18px; font-size: 14px;"
+                class="btn btn--primary btn--share-add"
                 @click="addPendingEmail"
               >
                 Agregar
@@ -225,7 +224,7 @@
             >
               <v-icon icon="mdi-account-multiple-outline" size="15" aria-hidden="true" />
               {{ pendingEmails.length }} {{ pendingEmails.length === 1 ? 'invitado' : 'invitados' }}
-              <v-icon icon="mdi-pencil-outline" size="13" aria-hidden="true" style="margin-left:4px; opacity:.7" />
+              <v-icon icon="mdi-pencil-outline" size="13" class="share-pill__edit-icon" aria-hidden="true" />
             </button>
           </div>
 
@@ -234,7 +233,7 @@
             <div class="invites-modal">
               <div class="invites-modal__header">
                 <span class="invites-modal__title">Invitados ({{ pendingEmails.length }})</span>
-                <button type="button" class="modal__close" style="position:static; width:28px; height:28px;" @click="showInvitesModal = false">
+                <button type="button" class="invites-modal__close" @click="showInvitesModal = false">
                   <v-icon icon="mdi-close" size="16" />
                 </button>
               </div>
@@ -256,7 +255,7 @@
                   </button>
                 </li>
               </ul>
-              <button type="button" class="btn btn--primary" style="width:100%; margin-top:12px;" @click="showInvitesModal = false">
+              <button type="button" class="btn btn--primary invites-modal__done" @click="showInvitesModal = false">
                 Listo
               </button>
             </div>
@@ -275,9 +274,8 @@
             </ul>
             <button
               type="button"
-              class="btn btn--ghost"
-              style="font-size: 13px; height: 32px; padding: 0 12px;"
-              @click="shareResultErrors = []; emit('update:open', false); resetForm()"
+              class="btn btn--ghost share-errors__close"
+              @click="closeAfterShareErrors"
             >
               Cerrar de todas formas
             </button>
@@ -329,8 +327,7 @@
               />
               <button
                 type="button"
-                class="btn btn--primary"
-                style="padding: 0 18px; font-size: 14px;"
+                class="btn btn--primary btn--share-add"
                 @click="addPendingEmail"
               >
                 Agregar
@@ -585,6 +582,12 @@ function resetForm() {
   shareResultErrors.value  = []
 }
 
+function closeAfterShareErrors() {
+  shareResultErrors.value = []
+  emit('update:open', false)
+  resetForm()
+}
+
 // ── Close ─────────────────────────────────────────────
 function handleClose() {
   if (isDirty() && !window.confirm('¿Seguro que querés cerrar? Los datos no se guardarán.')) {
@@ -772,6 +775,10 @@ watch(() => props.open, (val) => {
 }
 
 .btn--full { width: 100%; }
+.btn--share-add {
+  padding: 0 18px;
+  font-size: 14px;
+}
 
 /* ── Share button ──────────────────────────────────── */
 .btn--share-green {
@@ -838,6 +845,10 @@ watch(() => props.open, (val) => {
 }
 .share-pill:hover { background-color: #dde4fd; }
 .share-pill:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.share-pill__edit-icon {
+  margin-left: 4px;
+  opacity: .7;
+}
 
 /* ── Invites mini-modal ────────────────────────────── */
 .invites-modal {
@@ -852,6 +863,27 @@ watch(() => props.open, (val) => {
 }
 .invites-modal__header { display: flex; align-items: center; justify-content: space-between; }
 .invites-modal__title { font-size: 15px; font-weight: 600; color: var(--sh-text-main); }
+.invites-modal__close {
+  position: static;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--sh-border);
+  background: #ffffff;
+  color: var(--sh-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.invites-modal__close:hover {
+  background: var(--sh-primary-light);
+  color: var(--sh-text-main);
+}
+.invites-modal__done {
+  width: 100%;
+  margin-top: 12px;
+}
 
 /* ── Share errors ──────────────────────────────────── */
 .share-errors {
@@ -880,6 +912,11 @@ watch(() => props.open, (val) => {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+.share-errors__close {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
 }
 
 </style>

@@ -268,17 +268,8 @@ async function submitShare() {
   }
 }
 
-// Everyone returned by GET /homes/{homeId}/share is a member, not the owner
-function isOwner(_user: { id: string; email: string }): boolean {
-  return false
-}
-
 function avatarInitial(name: string): string {
   return name ? name.charAt(0).toUpperCase() : '?'
-}
-
-function formatDate(isoString: string): string {
-  return new Date(isoString).toLocaleDateString('es-AR')
 }
 </script>
 

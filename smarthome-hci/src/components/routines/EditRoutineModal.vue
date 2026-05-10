@@ -62,7 +62,7 @@
       <!-- Builder inline (reemplaza body+footer en step 2) -->
       <RoutineActionBuilder
         v-if="step === 2 && showActionBuilder"
-        style="flex: 1; min-height: 0;"
+        class="routine-action-builder"
         @cancel="showActionBuilder = false"
         @confirm="onBuilderConfirm"
       />
@@ -298,7 +298,7 @@ import { useRoutinesStore } from '@/stores/routines'
 import { useDevicesStore } from '@/stores/devices'
 import WeekdaySelector from './WeekdaySelector.vue'
 import RoutineActionBuilder from './RoutineActionBuilder.vue'
-import { getRoutineDeviceVisual } from '@/utils/deviceIcons.js'
+import { getRoutineDeviceVisual } from '@/utils/deviceIcons'
 import { formatRoutineActionDetail } from '@/utils/deviceActionLabels'
 
 const props = defineProps({
@@ -497,6 +497,10 @@ async function handleSave() {
 .edit-modal__close:focus-visible {
   outline: 2px solid var(--sh-primary);
   outline-offset: 2px;
+}
+.routine-action-builder {
+  flex: 1;
+  min-height: 0;
 }
 
 /* Header */

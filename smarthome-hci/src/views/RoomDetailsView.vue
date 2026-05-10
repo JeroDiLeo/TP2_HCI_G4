@@ -283,11 +283,6 @@ const allDevices = computed(() => {
     return (ao as number) - (bo as number)
   })
 })
-const stats      = computed(() => {
-  const list = devicesStore.devicesByRoom(roomId.value)
-  return { total: list.length, active: list.filter((d: RoomDevice) => d.active).length }
-})
-
 // Search injected from AppLayout
 const layoutSearch = inject<Ref<string>>('layoutSearchQuery', ref(''))
 const searchQuery  = computed(() => layoutSearch.value)

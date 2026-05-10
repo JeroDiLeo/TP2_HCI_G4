@@ -15,7 +15,7 @@
     <div class="dcc__header">
       <div class="dcc__id">
         <div class="dcc__icon-tile" aria-hidden="true">
-          <v-icon :icon="DEVICE_ICONS[device.type]" size="16" />
+          <v-icon :icon="getDeviceIcon(device.type)" size="16" />
         </div>
         <div class="dcc__names">
           <span class="dcc__name">{{ device.name }}</span>
@@ -435,6 +435,7 @@
         <div class="dcc__blind-visual-panel">
           <div class="dcc__blind-copy">
             <strong class="dcc__blind-percent">{{ blindPosition }}%</strong>
+            <span class="dcc__panel-meta">{{ blindStatusLabel }}</span>
           </div>
         </div>
 
@@ -769,6 +770,7 @@ import {
   SPEAKER_GENRE_FRONT_TO_API,
 } from '@/utils/deviceMapper'
 import { getParamMin, getParamMax } from '@/utils/deviceTypeParam'
+import { getDeviceIcon } from '@/utils/deviceIcons'
 
 const props = defineProps<{ device: RoomDevice; editMode?: boolean }>()
 const emit = defineEmits<{
@@ -799,7 +801,6 @@ watch(deviceId, (id, previousId) => {
 
 // ── Live reactive read from store ────────────────────────────────────
 // d always reflects current store state
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const d = computed<Record<string, any>>(() => {
   return (devicesStore.getDeviceById(deviceId.value) ?? props.device) as Record<string, any>
 })
@@ -837,19 +838,6 @@ function onPowerToggle() {
 }
 
 // ── Internal configs ─────────────────────────────────────────────────
-
-const DEVICE_ICONS: Record<string, string> = {
-  light:   'mdi-lightbulb-outline',
-  ac:      'mdi-air-conditioner',
-  vacuum:  'mdi-robot-vacuum',
-  speaker: 'mdi-speaker',
-  faucet:  'mdi-water-pump',
-  blind:   'mdi-blinds',
-  oven:    'mdi-toaster-oven',
-  door:    'mdi-door-closed',
-  alarm:   'mdi-alarm-light-outline',
-  fridge:  'mdi-fridge-outline',
-}
 
 const NEEDS_TOGGLE: Record<string, boolean> = {
   light: true, ac: true, vacuum: true, speaker: true, oven: true,
@@ -969,9 +957,9 @@ function toggleBlind() {
 
 const blindStatusLabel = computed(() => {
   const p = blindPosition.value
-  if (p === 0)   return 'cerrada'
-  if (p === 100) return 'abierta'
-  return d.value.blindStatus as string
+  if (p === 0)   return 'Cerrada'
+  if (p === 100) return 'Abierta'
+  return toSentenceCase(String(d.value.blindStatus ?? 'Parcialmente abierta'))
 })
 
 const canStopBlind = computed(() => {

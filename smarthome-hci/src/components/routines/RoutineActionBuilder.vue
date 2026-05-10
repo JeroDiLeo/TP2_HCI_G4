@@ -123,8 +123,9 @@ import {
 } from '@/utils/deviceTypeParam'
 import type { ApiDeviceTypeAction, ApiDeviceTypeParam } from '@/utils/deviceMapper'
 import type { RoomDevice } from '@/types/rooms'
-import { getDeviceIcon } from '@/utils/deviceIcons.js'
+import { getDeviceIcon } from '@/utils/deviceIcons'
 import { getActionLabel } from '@/utils/deviceActionLabels'
+import { DEVICE_TYPE_LABELS } from '@/constants/deviceCatalog'
 
 const emit = defineEmits<{
   'cancel': []
@@ -153,12 +154,6 @@ const canConfirm = computed(() => !!selectedAction.value && paramErrors.value.ev
 // search state
 const searchQuery = ref('')
 
-const TYPE_LABELS: Record<string, string> = {
-  light: 'Lámpara', ac: 'Aire acond.', vacuum: 'Aspiradora',
-  speaker: 'Parlante', faucet: 'Grifo', blind: 'Persiana',
-  oven: 'Horno', door: 'Puerta', alarm: 'Alarma', fridge: 'Heladera',
-}
-
 const filteredDevices = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
   return devicesStore.devicesForActiveHome.filter(d => {
@@ -166,7 +161,7 @@ const filteredDevices = computed(() => {
     return (
       d.name.toLowerCase().includes(q) ||
       (d.roomName ?? '').toLowerCase().includes(q) ||
-      (TYPE_LABELS[d.type] ?? '').toLowerCase().includes(q)
+      (DEVICE_TYPE_LABELS[d.type] ?? '').toLowerCase().includes(q)
     )
   })
 })

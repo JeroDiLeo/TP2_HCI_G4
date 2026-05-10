@@ -138,7 +138,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import AuthIconBadge from '@/components/AuthIconBadge.vue'
-import { useResendCooldown } from '@/composables/useResendCooldown.js'
+import { useResendCooldown } from '@/composables/useResendCooldown'
 import heroImage from '@/assets/images/resetPasswordPhoto.jpg'
 import { forgotPassword } from '@/services/api/userApi'
 

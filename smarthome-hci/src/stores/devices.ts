@@ -7,7 +7,6 @@ import {
   addDevice as apiAddDevice,
   updateDevice as apiUpdateDevice,
   deleteDevice as apiDeleteDevice,
-  getDeviceState as apiGetDeviceState,
   executeAction as apiExecuteAction,
 } from '@/services/api/deviceApi'
 import {
