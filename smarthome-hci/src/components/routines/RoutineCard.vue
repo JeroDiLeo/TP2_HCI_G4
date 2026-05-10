@@ -15,6 +15,10 @@
         <v-icon icon="mdi-pencil-outline" size="16" aria-hidden="true" />
         Editar
       </button>
+      <button type="button" class="routine-card__edit-btn" @click="$emit('open-duplicate', routine)">
+        <v-icon icon="mdi-content-duplicate" size="16" aria-hidden="true" />
+        Duplicar
+      </button>
       <button type="button" class="routine-card__edit-btn routine-card__edit-btn--danger" @click="$emit('open-delete', routine)">
         <v-icon icon="mdi-trash-can-outline" size="16" aria-hidden="true" />
         Eliminar
@@ -126,7 +130,7 @@ const props = defineProps({
   editMode: { type: Boolean, default: false },
 })
 
-defineEmits(['edit', 'toggle-favorite', 'open-edit', 'open-delete'])
+defineEmits(['edit', 'toggle-favorite', 'open-edit', 'open-delete', 'open-duplicate'])
 
 const routinesStore = useRoutinesStore()
 
@@ -468,6 +472,7 @@ const formattedTime = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 10px;
   z-index: 4;
 }

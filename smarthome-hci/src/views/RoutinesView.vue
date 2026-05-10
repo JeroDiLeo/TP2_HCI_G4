@@ -17,7 +17,7 @@
           @click="toggleEditMode"
         >
           <v-icon icon="mdi-pencil-outline" size="18" aria-hidden="true" />
-          <span v-if="editMode">Finalizar rutinas</span>
+          <span v-if="editMode">Finalizar cambios</span>
         </button>
 
         <button
@@ -63,10 +63,11 @@
         <RoutineCard
           :routine="routine"
           :edit-mode="editMode"
-          @edit="handleEdit"
+          @edit="handleViewActions"
           @toggle-favorite="store.toggleFavorite($event)"
           @open-edit="handleEdit($event.id)"
           @open-delete="openDeleteModal"
+          @open-duplicate="handleDuplicateRoutine"
         />
       </div>
     </div>
@@ -80,6 +81,7 @@
     <EditRoutineModal
       :routine-id="editingRoutineId"
       :open="isEditOpen"
+      :mode="editModalMode"
       @update:open="onEditOpenChange"
     />
 
@@ -164,9 +166,17 @@ watch(visibleCategories, (categories) => {
 // ── Edit modal ──
 const editingRoutineId = ref(null)
 const isEditOpen       = ref(false)
+const editModalMode    = ref('wizard')
 
 function handleEdit(id) {
   editingRoutineId.value = id
+  editModalMode.value = 'details'
+  isEditOpen.value = true
+}
+
+function handleViewActions(id) {
+  editingRoutineId.value = id
+  editModalMode.value = 'actions'
   isEditOpen.value = true
 }
 
@@ -189,6 +199,16 @@ const errorMessage = ref('')
 
 function toggleEditMode() {
   editMode.value = !editMode.value
+}
+
+// ── Duplicate ──
+async function handleDuplicateRoutine(routine) {
+  try {
+    await store.duplicateRoutine(String(routine.id))
+  } catch (err) {
+    errorMessage.value = err.message || 'No se pudo duplicar la rutina'
+    showError.value = true
+  }
 }
 
 // ── Delete modal ──

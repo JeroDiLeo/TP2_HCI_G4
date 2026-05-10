@@ -29,7 +29,7 @@
           </div>
 
           <div class="edit-modal__meta">
-            <p class="edit-modal__eyebrow">EDITAR · PASO {{ step }} DE 2</p>
+            <p class="edit-modal__eyebrow">{{ mode === 'wizard' ? `EDITAR · PASO ${step} DE 2` : 'EDITAR' }}</p>
             <label for="edit-routine-title" class="sr-only">Nombre de la rutina</label>
             <h2 id="edit-routine-title" class="edit-modal__title">
               {{ step === 1 ? 'Detalles y programación' : 'Acciones de la rutina' }}
@@ -43,7 +43,7 @@
         </div>
 
         <!-- Stepper indicator -->
-        <ol class="stepper" aria-label="Pasos">
+        <ol v-if="mode === 'wizard'" class="stepper" aria-label="Pasos">
           <li class="stepper__item" :class="{ 'stepper__item--active': step === 1, 'stepper__item--done': step > 1 }">
             <span class="stepper__dot">
               <v-icon v-if="step > 1" icon="mdi-check" size="14" aria-hidden="true" />
@@ -241,7 +241,7 @@
       <footer class="edit-modal__footer">
         <div class="edit-modal__footer-left">
           <button
-            v-if="step === 2"
+            v-if="step === 2 && mode !== 'actions'"
             type="button"
             class="btn-back"
             @click="step = 1"
@@ -249,21 +249,11 @@
             <v-icon icon="mdi-chevron-left" size="16" aria-hidden="true" />
             Atrás
           </button>
-          <template v-else>
-            <button type="button" class="btn-text btn-text--danger" @click="handleDelete">
-              <v-icon icon="mdi-trash-can-outline" size="14" aria-hidden="true" />
-              Eliminar
-            </button>
-            <button type="button" class="btn-text btn-text--muted" @click="handleDuplicate">
-              <v-icon icon="mdi-content-duplicate" size="14" aria-hidden="true" />
-              Duplicar
-            </button>
-          </template>
         </div>
         <div class="edit-modal__footer-right">
           <button type="button" class="btn-cancel" @click="handleClose">Cancelar</button>
           <button
-            v-if="step === 1"
+            v-if="mode === 'wizard' && step === 1"
             type="button"
             class="btn-save"
             :disabled="!canGoNext"
@@ -273,7 +263,7 @@
             <v-icon icon="mdi-arrow-right" size="14" aria-hidden="true" />
           </button>
           <button
-            v-else
+            v-if="mode !== 'wizard' || step === 2"
             type="button"
             class="btn-save"
             :disabled="!canSave || saving"
@@ -312,8 +302,10 @@ import { getRoutineDeviceVisual } from '@/utils/deviceIcons.js'
 import { formatRoutineActionDetail } from '@/utils/deviceActionLabels'
 
 const props = defineProps({
-  routineId: { type: String, default: null },
-  open:      { type: Boolean, default: false },
+  routineId:   { type: String, default: null },
+  open:        { type: Boolean, default: false },
+  initialStep: { type: Number, default: 1, validator: v => [1, 2].includes(v) },
+  mode:        { type: String, default: 'wizard', validator: v => ['details', 'actions', 'wizard'].includes(v) },
 })
 const emit = defineEmits(['update:open'])
 
@@ -342,7 +334,7 @@ watch(
   ([open]) => {
     if (open && original.value) {
       form.value = JSON.parse(JSON.stringify(original.value))
-      step.value = 1
+      step.value = props.mode === 'actions' ? 2 : props.mode === 'details' ? 1 : props.initialStep
       showActionBuilder.value = false
     } else if (!open) {
       showActionBuilder.value = false
@@ -449,26 +441,6 @@ async function handleSave() {
   }
 }
 
-async function handleDelete() {
-  if (!form.value) return
-  if (!window.confirm(`¿Eliminar la rutina "${form.value.name}"?`)) return
-  try {
-    await store.removeRoutine(form.value.id)
-    close()
-  } catch (err) {
-    apiError.value = err.message || 'Hubo un problema al eliminar la rutina.'
-  }
-}
-
-async function handleDuplicate() {
-  if (!form.value) return
-  try {
-    await store.duplicateRoutine(form.value.id)
-    close()
-  } catch (err) {
-    apiError.value = err.message || 'Hubo un problema al duplicar la rutina.'
-  }
-}
 
 </script>
 
