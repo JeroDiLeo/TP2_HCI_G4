@@ -1,6 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { getRoomsByHome, createRoom as apiCreateRoom, updateRoom as apiUpdateRoom, deleteRoom as apiDeleteRoom } from '@/services/api/roomApi'
+import {
+  getRoomsByHome,
+  createRoom as apiCreateRoom,
+  updateRoom as apiUpdateRoom,
+  deleteRoom as apiDeleteRoom,
+  type ApiOptionalRoomResponse,
+  type ApiRoom,
+  type ApiRoomListResponse,
+  type ApiRoomPayload,
+  type ApiRoomResponse,
+} from '@/services/api/roomApi'
 import { useDevicesStore } from '@/stores/devices'
 import { useHomesStore } from '@/stores/homes'
 
@@ -13,6 +23,32 @@ export interface Room {
   favorite?: boolean
   home?: { id: string }
   metadata?: Record<string, unknown>
+}
+
+function extractRoom(data: ApiRoomResponse): ApiRoom
+function extractRoom(data: ApiOptionalRoomResponse): ApiRoom | null
+function extractRoom(data: ApiRoomResponse | ApiOptionalRoomResponse): ApiRoom | null {
+  if (!data) return null
+  return 'result' in data ? data.result ?? null : data
+}
+
+function extractRoomList(data: ApiRoomListResponse): ApiRoom[] {
+  if (Array.isArray(data)) return data
+  return data?.result ?? []
+}
+
+function mapApiRoom(room: ApiRoom, fallbackType = 'other'): Room {
+  const metadata = room.metadata ?? {}
+  const roomType = typeof metadata.type === 'string' ? metadata.type : fallbackType
+
+  return {
+    id: room.id,
+    name: room.name ?? '',
+    type: roomType,
+    favorite: metadata.favorite === true,
+    home: room.home?.id !== undefined ? { id: String(room.home.id) } : undefined,
+    metadata: room.metadata,
+  }
 }
 
 export const useRoomsStore = defineStore('rooms', () => {
@@ -73,7 +109,7 @@ export const useRoomsStore = defineStore('rooms', () => {
     const homesStore = useHomesStore()
     const homeId = homesStore.selectedHomeId
 
-    const body: Record<string, unknown> = {
+    const body: ApiRoomPayload & { name: string } = {
       name,
       metadata: { type: type ?? 'other' },
     }
@@ -82,15 +118,8 @@ export const useRoomsStore = defineStore('rooms', () => {
     }
 
     const data = await apiCreateRoom(body)
-    const result = data?.result ?? data
-    const created: Room = {
-      id: result.id,
-      name: result.name,
-      type: result.metadata?.type ?? type ?? 'other',
-      favorite: false,
-      home: result.home,
-      metadata: result.metadata,
-    }
+    const result = extractRoom(data)
+    const created = mapApiRoom(result, type ?? 'other')
     rooms.value.push(created)
     syncDeviceRoomContext()
     roomsLoaded.value = true
@@ -107,14 +136,14 @@ export const useRoomsStore = defineStore('rooms', () => {
     const metadata = payload.metadata
       ? { ...(current?.metadata ?? {}), ...payload.metadata }
       : current?.metadata
-    const body: Record<string, unknown> = {}
+    const body: ApiRoomPayload = {}
 
     if (payload.name !== undefined) body.name = payload.name
     else if (current?.name) body.name = current.name
     if (metadata) body.metadata = metadata
 
     const data = await apiUpdateRoom(String(id), body)
-    const result = data?.result ?? data
+    const result = extractRoom(data)
     if (idx !== -1) {
       const nextMetadata = result?.metadata ?? metadata ?? rooms.value[idx].metadata
       const nextType = typeof nextMetadata?.type === 'string'
@@ -184,15 +213,7 @@ export const useRoomsStore = defineStore('rooms', () => {
       error.value = null
       try {
         const data = await getRoomsByHome(homeId)
-        const list = Array.isArray(data) ? data : (data?.result ?? [])
-        rooms.value = list.map((r: any) => ({
-          id: r.id,
-          name: r.name,
-          type: r.metadata?.type ?? 'other',
-          favorite: r.metadata?.favorite === true,
-          home: r.home,
-          metadata: r.metadata,
-        }))
+        rooms.value = extractRoomList(data).map(room => mapApiRoom(room))
         syncDeviceRoomContext()
         loadedHomeId.value = homeId
       } catch (err: unknown) {

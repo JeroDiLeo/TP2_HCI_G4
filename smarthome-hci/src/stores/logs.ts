@@ -94,8 +94,8 @@ export const useLogsStore = defineStore('logs', () => {
         const rawBatch = deviceId
           ? await getDeviceLogs(deviceId, FETCH_LIMIT, backendOffset.value)
           : await getAllLogs(FETCH_LIMIT, backendOffset.value)
-        const batch = Array.isArray(rawBatch) ? rawBatch : []
-        allRawLogs.value.push(...(batch as RawApiLog[]))
+        const batch = rawBatch
+        allRawLogs.value.push(...batch)
         backendOffset.value += batch.length
         if (batch.length < FETCH_LIMIT) {
           hasMore.value = false

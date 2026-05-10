@@ -3,23 +3,19 @@ import { ref, computed } from 'vue'
 import {
   getAllDeviceTypes,
   getDeviceType as apiGetDeviceType,
+  type ApiDeviceTypeListResponse,
+  type ApiDeviceTypeResponse,
 } from '@/services/api/deviceTypeApi'
 import type { ApiDeviceType } from '@/utils/deviceMapper'
 import { TYPE_ID_TO_FRONT } from '@/utils/deviceMapper'
 
-function extractList(data: unknown): unknown[] {
+function extractList(data: ApiDeviceTypeListResponse): ApiDeviceType[] {
   if (Array.isArray(data)) return data
-  if (data && typeof data === 'object' && Array.isArray((data as any).result)) {
-    return (data as any).result
-  }
-  return []
+  return data.result
 }
 
-function extractOne(data: unknown): unknown {
-  if (data && typeof data === 'object' && 'result' in (data as any)) {
-    return (data as any).result
-  }
-  return data
+function extractOne(data: ApiDeviceTypeResponse): ApiDeviceType {
+  return 'result' in data ? data.result : data
 }
 
 export const useDeviceTypesStore = defineStore('deviceTypes', () => {
@@ -52,7 +48,7 @@ export const useDeviceTypesStore = defineStore('deviceTypes', () => {
     error.value = null
     try {
       const data = await getAllDeviceTypes()
-      const raw = extractList(data) as ApiDeviceType[]
+      const raw = extractList(data)
       deviceTypes.value = raw.filter(t => t.name?.toLowerCase() !== 'timer')
       loaded.value = true
     } catch (err: any) {
@@ -66,7 +62,7 @@ export const useDeviceTypesStore = defineStore('deviceTypes', () => {
     error.value = null
     try {
       const data = await apiGetDeviceType(id)
-      const dt = extractOne(data) as ApiDeviceType
+      const dt = extractOne(data)
       const idx = deviceTypes.value.findIndex(t => t.id === id)
       if (idx !== -1) {
         deviceTypes.value.splice(idx, 1, dt)
