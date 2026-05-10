@@ -246,7 +246,7 @@ const cardAriaLabel = computed(() =>
 
 .room-card__name {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 15px;
   font-weight: 600;
   color: var(--sh-text-main);
@@ -259,7 +259,7 @@ const cardAriaLabel = computed(() =>
 
 .room-card__activity-label {
   margin: 0 0 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 12px;
   color: var(--sh-text-muted);
 }
@@ -278,7 +278,7 @@ const cardAriaLabel = computed(() =>
 }
 
 .room-card__donut-value {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 22px;
   font-weight: 500;
   fill: var(--sh-text-main);
@@ -287,7 +287,7 @@ const cardAriaLabel = computed(() =>
 .room-card__donut-value--muted { fill: var(--sh-text-light); }
 
 .room-card__donut-total {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 11px;
   fill: var(--sh-text-muted);
 }
@@ -301,7 +301,7 @@ const cardAriaLabel = computed(() =>
 .room-card--list .room-card__name { flex: 1; }
 
 .room-card__list-count {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   color: var(--sh-text-main);
@@ -338,7 +338,7 @@ const cardAriaLabel = computed(() =>
   height: 36px;
   padding: 0 14px;
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

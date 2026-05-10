@@ -148,7 +148,7 @@ provide('layoutSearchQuery', searchQuery)
   --app-sidebar-width: 72px;
   min-height: 100vh;
   background: #f8fafc;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .app-layout--sidebar-expanded {

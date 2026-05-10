@@ -41,7 +41,7 @@ function onSelect(id: string) {
   padding: 40px 0;
   color: #64748b;
   text-align: center;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 15px;
 }
 </style>

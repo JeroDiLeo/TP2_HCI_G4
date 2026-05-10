@@ -134,7 +134,7 @@ defineExpose({
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   color: #0f172a;
   background: #f8fafc;
   transition: all 0.2s;

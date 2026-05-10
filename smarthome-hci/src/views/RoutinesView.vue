@@ -149,6 +149,11 @@ import EditRoutineModal from '@/components/routines/EditRoutineModal.vue'
 import CreateRoutineModal from '@/components/routines/CreateRoutineModal.vue'
 import { useRoutinesStore } from '@/stores/routines'
 import { normalizeSearchText } from '@/utils/dashboardSearch'
+import {
+  ALL_ROUTINE_CATEGORY,
+  ROUTINE_CATEGORY_VALUES,
+  ROUTINE_FILTER_CATEGORIES,
+} from '@/constants/routineCatalog'
 
 const store = useRoutinesStore()
 const { filteredRoutines: storeFilteredRoutines } = storeToRefs(store)
@@ -156,9 +161,7 @@ const layoutSearch = inject('layoutSearchQuery', ref(''))
 
 
 // ── Filter logic ──
-const CATEGORIES = ['Todas', 'Mañana', 'Noche', 'Confort', 'Seguridad', 'Personalizada']
-
-const selectedCategory = ref('Todas')
+const selectedCategory = ref(ALL_ROUTINE_CATEGORY)
 const searchQuery = computed(() => layoutSearch.value.trim())
 const normalizedSearchQuery = computed(() => normalizeSearchText(searchQuery.value))
 const hasSearch = computed(() => normalizedSearchQuery.value.length > 0)
@@ -178,27 +181,28 @@ const searchFilteredRoutines = computed(() => {
 })
 
 const filteredRoutines = computed(() => {
-  if (selectedCategory.value === 'Todas') return searchFilteredRoutines.value
+  if (selectedCategory.value === ALL_ROUTINE_CATEGORY) return searchFilteredRoutines.value
   return searchFilteredRoutines.value.filter(r => r.category === selectedCategory.value)
 })
 
-const categoryCounts = computed(() => ({
-  Todas:         searchFilteredRoutines.value.length,
-  Mañana:        searchFilteredRoutines.value.filter(r => r.category === 'Mañana').length,
-  Noche:         searchFilteredRoutines.value.filter(r => r.category === 'Noche').length,
-  Confort:       searchFilteredRoutines.value.filter(r => r.category === 'Confort').length,
-  Seguridad:     searchFilteredRoutines.value.filter(r => r.category === 'Seguridad').length,
-  Personalizada: searchFilteredRoutines.value.filter(r => r.category === 'Personalizada').length,
-}))
+const categoryCounts = computed(() => {
+  const counts = { [ALL_ROUTINE_CATEGORY]: searchFilteredRoutines.value.length }
+
+  for (const category of ROUTINE_CATEGORY_VALUES) {
+    counts[category] = searchFilteredRoutines.value.filter(r => r.category === category).length
+  }
+
+  return counts
+})
 
 const visibleCategories = computed(() =>
-  CATEGORIES.filter(cat => cat === 'Todas' || categoryCounts.value[cat] > 0)
+  ROUTINE_FILTER_CATEGORIES.filter(cat => cat === ALL_ROUTINE_CATEGORY || categoryCounts.value[cat] > 0)
 )
 
 watch(visibleCategories, (categories) => {
   if (store.loading) return
 
-  if (!categories.includes(selectedCategory.value)) selectedCategory.value = 'Todas'
+  if (!categories.includes(selectedCategory.value)) selectedCategory.value = ALL_ROUTINE_CATEGORY
 }, { immediate: true })
 
 function clearSearch() {
@@ -302,7 +306,7 @@ async function confirmDelete() {
   font-size: 28px;
   font-weight: 700;
   color: var(--sh-text-main);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   line-height: 1.2;
 }
 
@@ -310,7 +314,7 @@ async function confirmDelete() {
   margin: 6px 0 0;
   font-size: 15px;
   color: var(--sh-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 /* ── Header actions ── */
@@ -332,7 +336,7 @@ async function confirmDelete() {
   color: var(--sh-text-main);
   border: 1.5px solid var(--sh-border);
   border-radius: 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -353,7 +357,7 @@ async function confirmDelete() {
   color: #ffffff;
   border: none;
   border-radius: 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -375,7 +379,7 @@ async function confirmDelete() {
   color: #ffffff;
   border: none;
   border-radius: 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -407,7 +411,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 12px;
   text-align: center;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 .confirm-modal__icon {
   width: 56px;
@@ -435,7 +439,7 @@ async function confirmDelete() {
   height: 40px;
   padding: 0 20px;
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -459,7 +463,7 @@ async function confirmDelete() {
   font-size: 13px;
   font-weight: 500;
   color: var(--sh-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .routines-view__chips {
@@ -477,7 +481,7 @@ async function confirmDelete() {
   border-radius: 999px;
   border: 1.5px solid var(--sh-border);
   background: #ffffff;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 500;
   color: var(--sh-text-muted);
@@ -552,7 +556,7 @@ async function confirmDelete() {
 
 .routines-view__empty-title {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 18px;
   font-weight: 700;
   color: var(--sh-text-main);
@@ -561,7 +565,7 @@ async function confirmDelete() {
 .routines-view__empty-text {
   margin: 0;
   max-width: 360px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   color: var(--sh-text-muted);
   font-size: 14px;
   line-height: 1.45;
@@ -579,7 +583,7 @@ async function confirmDelete() {
   border-radius: 9px;
   background: var(--sh-primary);
   color: #ffffff;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;

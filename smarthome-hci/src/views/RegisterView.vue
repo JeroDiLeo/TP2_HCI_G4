@@ -372,7 +372,7 @@ async function handleSubmit() {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 /* ── Encabezado ── */
@@ -427,7 +427,7 @@ async function handleSubmit() {
   border: 1.5px solid #E2E8F0;
   border-radius: 0.5rem;
   font-size: 0.95rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   color: #0F172A;
   background-color: #ffffff;
   outline: none;
@@ -518,7 +518,7 @@ async function handleSubmit() {
 .register-form__strength-text {
   font-size: 0.78rem;
   font-weight: 500;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   white-space: nowrap;
   transition: color 0.25s ease;
 }
@@ -529,7 +529,7 @@ async function handleSubmit() {
   border-radius: 0.5rem;
   font-size: 1rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   cursor: pointer;
   transition: background-color 0.15s, transform 0.1s;
   letter-spacing: 0.01em;

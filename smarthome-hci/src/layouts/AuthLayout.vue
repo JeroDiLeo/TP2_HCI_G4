@@ -66,7 +66,7 @@ withDefaults(
 .auth-layout {
   display: flex;
   min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 /* ─── Columna izquierda ── */

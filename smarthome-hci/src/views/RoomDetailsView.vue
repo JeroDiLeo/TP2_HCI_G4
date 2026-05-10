@@ -393,7 +393,7 @@ function goBack() {
   display: flex;
   flex-direction: column;
   gap: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 /* ── Not found ── */
@@ -422,7 +422,7 @@ function goBack() {
   background: transparent;
   border: 1px solid var(--sh-border);
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 500;
   color: var(--sh-text-muted);
@@ -445,7 +445,7 @@ function goBack() {
   color: #fff;
   border: none;
   border-radius: 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -508,7 +508,7 @@ function goBack() {
   color: #ffffff;
   border: none;
   border-radius: 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -536,7 +536,7 @@ function goBack() {
   color: var(--sh-text-main);
   border: 1.5px solid var(--sh-border);
   border-radius: 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -563,7 +563,7 @@ function goBack() {
   align-items: center;
   gap: 12px;
   text-align: center;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 .confirm-modal__icon {
   width: 56px;
@@ -601,7 +601,7 @@ function goBack() {
   height: 40px;
   padding: 0 20px;
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -638,7 +638,7 @@ function goBack() {
   gap: 4px;
   padding: 4px 10px;
   border-radius: 999px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -684,7 +684,7 @@ function goBack() {
   background: #ffffff;
   border: none;
   border-right: 1px solid var(--sh-border);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 500;
   color: var(--sh-text-muted);
@@ -709,7 +709,7 @@ function goBack() {
 }
 
 .room-detail__page-size-label {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 500;
   color: var(--sh-text-muted);
@@ -727,7 +727,7 @@ function goBack() {
   border: 1px solid var(--sh-border);
   border-radius: 6px;
   background: #ffffff;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 12px;
   font-weight: 500;
   color: var(--sh-text-muted);
@@ -783,7 +783,7 @@ function goBack() {
   background: #ffffff;
   border: 1px solid var(--sh-border);
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 500;
   color: var(--sh-text-muted);
@@ -800,7 +800,7 @@ function goBack() {
 .pagination-btn:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 
 .pagination-info {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 500;
   color: var(--sh-text-muted);
@@ -836,7 +836,7 @@ function goBack() {
   background: transparent;
   border: 1px solid var(--sh-border);
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 500;
   color: var(--sh-text-muted);

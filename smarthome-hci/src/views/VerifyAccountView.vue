@@ -186,7 +186,7 @@ async function handleResend() {
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 /* ── Título ── */
@@ -230,7 +230,7 @@ async function handleResend() {
   color: #6366F1;
   font-weight: 500;
   font-size: 0.95rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   transition: color 0.15s;
 }
 
@@ -267,7 +267,7 @@ async function handleResend() {
   color: #ffffff;
   font-size: 1rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -322,7 +322,7 @@ async function handleResend() {
   color: #6366F1;
   font-weight: 600;
   font-size: 0.9rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   transition: color 0.15s;
 }
 
@@ -349,7 +349,7 @@ async function handleResend() {
   cursor: pointer;
   color: #94A3B8;
   font-size: 0.9rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-weight: 400;
   transition: color 0.15s;
 }
@@ -376,7 +376,7 @@ async function handleResend() {
   border: 1.5px solid #E2E8F0;
   border-radius: 0.5rem;
   font-size: 0.95rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   text-align: center;
   color: #0F172A;
   background-color: #ffffff;

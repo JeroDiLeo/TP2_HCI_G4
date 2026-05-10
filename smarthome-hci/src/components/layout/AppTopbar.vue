@@ -283,7 +283,7 @@ async function handleLogout() {
   border: 1px solid transparent;
   border-radius: 10px;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   color: var(--sh-text-main);
   white-space: nowrap;
   flex-shrink: 0;
@@ -332,7 +332,7 @@ async function handleLogout() {
   border: 1px solid var(--sh-border);
   border-radius: 999px;
   background: #f8fafc;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   color: var(--sh-text-main);
   outline: none;
@@ -362,7 +362,7 @@ async function handleLogout() {
   border: 1px solid transparent;
   border-radius: 999px;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   transition: background-color 150ms;
 }
 .app-topbar__user:hover { background-color: var(--sh-primary-light); }
@@ -384,7 +384,7 @@ async function handleLogout() {
   color: #ffffff;
   font-size: 14px;
   font-weight: 700;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -403,7 +403,7 @@ async function handleLogout() {
   padding: 16px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, .08), 0 16px 32px -8px rgba(15, 23, 42, .16);
   z-index: 200;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .user-menu__header {
@@ -420,7 +420,7 @@ async function handleLogout() {
   color: #ffffff;
   font-size: 18px;
   font-weight: 700;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -475,7 +475,7 @@ async function handleLogout() {
   background: transparent;
   border: none;
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 500;
   color: var(--sh-text-muted);
@@ -518,7 +518,7 @@ async function handleLogout() {
   border-radius: 14px;
   padding: 8px;
   min-width: 220px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .homes-menu__loading,
@@ -540,7 +540,7 @@ async function handleLogout() {
   background: transparent;
   border: none;
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 500;
   color: var(--sh-text-main);
@@ -602,7 +602,7 @@ async function handleLogout() {
   background: transparent;
   border: none;
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 500;
   color: var(--sh-primary);

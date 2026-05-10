@@ -231,7 +231,7 @@ async function handleSubmit() {
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .reset-form__title {
@@ -284,7 +284,7 @@ async function handleSubmit() {
   border: 1.5px solid #E2E8F0;
   border-radius: 0.5rem;
   font-size: 0.95rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   color: #0F172A;
   background-color: #ffffff;
   outline: none;
@@ -354,7 +354,7 @@ async function handleSubmit() {
   border-radius: 0.5rem;
   font-size: 1rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   cursor: pointer;
   transition: background-color 0.15s, transform 0.1s;
   letter-spacing: 0.01em;
@@ -391,7 +391,7 @@ async function handleSubmit() {
   cursor: pointer;
   color: #94A3B8;
   font-size: 0.9rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-weight: 400;
   transition: color 0.15s;
   margin-top: -0.5rem;

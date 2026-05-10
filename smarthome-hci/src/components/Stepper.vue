@@ -82,7 +82,7 @@ defineProps({
   justify-content: center;
   font-size: 0.95rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   transition: background-color 0.25s, border-color 0.25s, box-shadow 0.25s;
   border: 2px solid #CBD5E1;
   background-color: #ffffff;
@@ -106,7 +106,7 @@ defineProps({
 .stepper__label {
   margin-top: 0.75rem;
   font-size: 0.8rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   color: #64748B;
   font-weight: 400;
   text-align: center;

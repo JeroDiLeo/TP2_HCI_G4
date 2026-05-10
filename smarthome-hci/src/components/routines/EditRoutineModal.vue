@@ -106,7 +106,7 @@
             <span class="field__label">Categoría</span>
             <div class="cat-grid" role="radiogroup" aria-label="Categoría">
               <button
-                v-for="cat in CATEGORIES"
+                v-for="cat in ROUTINE_CATEGORIES"
                 :key="cat.value"
                 type="button"
                 class="cat-chip"
@@ -300,6 +300,10 @@ import WeekdaySelector from './WeekdaySelector.vue'
 import RoutineActionBuilder from './RoutineActionBuilder.vue'
 import { getRoutineDeviceVisual } from '@/utils/deviceIcons'
 import { formatRoutineActionDetail } from '@/utils/deviceActionLabels'
+import {
+  ROUTINE_CATEGORIES,
+  getRoutineCategoryIcon,
+} from '@/constants/routineCatalog'
 
 const props = defineProps({
   routineId:   { type: String, default: null },
@@ -313,14 +317,6 @@ const store = useRoutinesStore()
 const devicesStore = useDevicesStore()
 
 const showActionBuilder = ref(false)
-
-const CATEGORIES = [
-  { value: 'Mañana',        icon: 'mdi-white-balance-sunny' },
-  { value: 'Noche',         icon: 'mdi-weather-night' },
-  { value: 'Confort',       icon: 'mdi-sofa-outline' },
-  { value: 'Seguridad',     icon: 'mdi-shield-check' },
-  { value: 'Personalizada', icon: 'mdi-cog-outline' },
-]
 
 const original = computed(() =>
   store.routines.find(r => r.id === props.routineId) ?? null
@@ -349,8 +345,7 @@ function selectCategory(value) {
   if (!form.value) return
   form.value.category = value
   // mantener icono coherente con la categoría seleccionada
-  const cat = CATEGORIES.find(c => c.value === value)
-  if (cat) form.value.icon = cat.icon
+  form.value.icon = getRoutineCategoryIcon(value)
 }
 
 function setTriggerType(type) {

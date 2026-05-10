@@ -212,7 +212,7 @@ const resultsLabel = computed(() =>
   height: 36px;
   padding: 0 14px;
   border-radius: 9px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -384,7 +384,7 @@ const resultsLabel = computed(() =>
   text-align: left;
   cursor: pointer;
   border-radius: 14px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .search-result-card__icon {
@@ -426,7 +426,7 @@ const resultsLabel = computed(() =>
   font-size: 14px;
   line-height: 1.2;
   font-weight: 700;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   overflow-wrap: anywhere;
 }
 

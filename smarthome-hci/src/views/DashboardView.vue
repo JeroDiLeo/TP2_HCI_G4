@@ -563,7 +563,7 @@ function goToRooms() {
   display: flex;
   flex-direction: column;
   gap: 22px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .dashboard--initial-empty {
@@ -819,7 +819,7 @@ function goToRooms() {
   color: #ffffff;
   border: none;
   border-radius: 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -873,7 +873,7 @@ function goToRooms() {
   border: none;
   background: var(--sh-primary);
   color: #fff;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

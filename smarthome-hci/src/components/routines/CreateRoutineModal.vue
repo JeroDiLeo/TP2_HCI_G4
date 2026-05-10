@@ -115,7 +115,7 @@
             <span class="field__label">Categoría</span>
             <div class="cat-grid" role="radiogroup" aria-label="Categoría">
               <button
-                v-for="cat in CATEGORIES"
+                v-for="cat in ROUTINE_CATEGORIES"
                 :key="cat.value"
                 type="button"
                 class="cat-chip"
@@ -309,6 +309,11 @@ import WeekdaySelector from './WeekdaySelector.vue'
 import RoutineActionBuilder from './RoutineActionBuilder.vue'
 import { getRoutineDeviceVisual } from '@/utils/deviceIcons'
 import { formatRoutineActionDetail } from '@/utils/deviceActionLabels'
+import {
+  DEFAULT_ROUTINE_CATEGORY,
+  ROUTINE_CATEGORIES,
+  getRoutineCategoryIcon,
+} from '@/constants/routineCatalog'
 
 const props = defineProps({ open: { type: Boolean, default: false } })
 const emit  = defineEmits(['update:open', 'created'])
@@ -317,14 +322,6 @@ const store = useRoutinesStore()
 const devicesStore = useDevicesStore()
 
 const showActionBuilder = ref(false)
-
-const CATEGORIES = [
-  { value: 'Mañana',        icon: 'mdi-white-balance-sunny' },
-  { value: 'Noche',         icon: 'mdi-weather-night' },
-  { value: 'Confort',       icon: 'mdi-sofa-outline' },
-  { value: 'Seguridad',     icon: 'mdi-shield-check' },
-  { value: 'Personalizada', icon: 'mdi-cog-outline' },
-]
 
 const nameInputRef = ref(null)
 const step    = ref(1)
@@ -335,7 +332,7 @@ function makeEmptyForm() {
   return {
     name: '',
     description: '',
-    category: 'Mañana',
+    category: DEFAULT_ROUTINE_CATEGORY,
     trigger: { type: 'schedule', time: '07:00' },
     days: ['lun', 'mar', 'mie', 'jue', 'vie'],
     actions: [],
@@ -346,7 +343,7 @@ const form = ref(makeEmptyForm())
 const touched = ref({ name: false })
 
 const selectedIcon = computed(() =>
-  CATEGORIES.find(c => c.value === form.value.category)?.icon ?? 'mdi-cog-outline'
+  getRoutineCategoryIcon(form.value.category)
 )
 
 const nameTrimmed = computed(() => form.value.name.trim())

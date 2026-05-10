@@ -104,7 +104,7 @@ function openAddDialog() {
 .homes-view {
   min-height: 100vh;
   background-color: #eef0ff;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .homes-view__main {
@@ -145,7 +145,7 @@ function openAddDialog() {
   height: 44px;
   background-color: #6366f1;
   color: #ffffff;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-weight: 500;
   font-size: 14px;
   border: none;

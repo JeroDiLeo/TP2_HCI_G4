@@ -98,14 +98,14 @@ function clearSearch() {
   font-size: 18px;
   font-weight: 600;
   color: var(--sh-text-main);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .rooms-empty__sub {
   margin: 0;
   font-size: 14px;
   color: var(--sh-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   max-width: 300px;
 }
 
@@ -117,7 +117,7 @@ function clearSearch() {
   color: #ffffff;
   border: none;
   border-radius: 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;

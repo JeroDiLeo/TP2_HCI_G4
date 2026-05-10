@@ -321,7 +321,7 @@ const formattedTime = computed(() => {
   font-size: 14px;
   font-weight: 700;
   color: var(--sh-text-main);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   line-height: 1.2;
 }
 
@@ -332,7 +332,7 @@ const formattedTime = computed(() => {
   border-radius: 999px;
   font-size: 10px;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   width: fit-content;
 }
 .routine-card__badge--morning,
@@ -358,7 +358,7 @@ const formattedTime = computed(() => {
   margin: 0;
   font-size: 12px;
   color: var(--sh-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -378,7 +378,7 @@ const formattedTime = computed(() => {
   font-size: 11px;
   font-weight: 500;
   color: var(--sh-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   width: fit-content;
 }
 
@@ -399,7 +399,7 @@ const formattedTime = computed(() => {
   gap: 7px;
   font-size: 12px;
   color: var(--sh-text-main);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -417,7 +417,7 @@ const formattedTime = computed(() => {
   font-size: 11px;
   font-style: italic;
   color: var(--sh-text-light);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   padding-left: 12px;
 }
 
@@ -437,7 +437,7 @@ const formattedTime = computed(() => {
   border-radius: 5px;
   font-size: 10px;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   color: var(--sh-text-light);
   background: #F8FAFC;
 }
@@ -450,7 +450,7 @@ const formattedTime = computed(() => {
   font-size: 11px;
   font-style: italic;
   color: var(--sh-text-light);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 /* ── Edit mode ── */
@@ -484,7 +484,7 @@ const formattedTime = computed(() => {
   height: 36px;
   padding: 0 14px;
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

@@ -301,7 +301,7 @@ onMounted(() => {
   font-weight: 500;
   color: #475569;
   transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   text-align: left;
 }
 
@@ -385,7 +385,7 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .btn-edit:hover {
@@ -412,7 +412,7 @@ onMounted(() => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .btn-primary {
@@ -490,7 +490,7 @@ onMounted(() => {
   border-radius: 10px;
   cursor: pointer;
   text-align: left;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   transition: border-color 150ms, background-color 150ms;
 }
 .a11y-option:hover:not(:disabled) {
@@ -555,7 +555,7 @@ onMounted(() => {
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
   background: #f8fafc;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 600;
   color: #475569;

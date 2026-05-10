@@ -209,7 +209,7 @@ function handleViewDetails(roomId) {
   font-size: 28px;
   font-weight: 700;
   color: var(--sh-text-main);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   line-height: 1.2;
 }
 
@@ -217,7 +217,7 @@ function handleViewDetails(roomId) {
   margin: 6px 0 0;
   font-size: 15px;
   color: var(--sh-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .rooms-view__actions {
@@ -238,7 +238,7 @@ function handleViewDetails(roomId) {
   color: var(--sh-text-main);
   border: 1.5px solid var(--sh-border);
   border-radius: 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -259,7 +259,7 @@ function handleViewDetails(roomId) {
   color: #ffffff;
   border: none;
   border-radius: 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -280,7 +280,7 @@ function handleViewDetails(roomId) {
   color: #ffffff;
   border: none;
   border-radius: 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -305,7 +305,7 @@ function handleViewDetails(roomId) {
   font-size: 13px;
   font-weight: 500;
   color: var(--sh-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 .rooms-view__chips {
   display: flex;
@@ -320,7 +320,7 @@ function handleViewDetails(roomId) {
   border-radius: 999px;
   border: 1.5px solid var(--sh-border);
   background: #ffffff;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 500;
   color: var(--sh-text-muted);
@@ -367,7 +367,7 @@ function handleViewDetails(roomId) {
   align-items: center;
   gap: 12px;
   text-align: center;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 .confirm-modal__icon {
   width: 56px;
@@ -405,7 +405,7 @@ function handleViewDetails(roomId) {
   height: 40px;
   padding: 0 20px;
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;

@@ -1061,7 +1061,7 @@ const vacuumStatusMessage = computed(() => {
   background: #ffffff;
   border: 1.5px solid var(--sh-primary);
   color: var(--sh-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1108,7 +1108,7 @@ const vacuumStatusMessage = computed(() => {
   font-size: 14px;
   font-weight: 600;
   color: var(--sh-text-main);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1116,7 +1116,7 @@ const vacuumStatusMessage = computed(() => {
 .dcc__room {
   font-size: 12px;
   color: var(--sh-text-light);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1224,13 +1224,13 @@ const vacuumStatusMessage = computed(() => {
   letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--sh-text-light);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 .dcc__stat-value {
   font-size: 14px;
   font-weight: 600;
   color: var(--sh-text-main);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 .dcc__stat-value--lg    { font-size: 17px; font-weight: 700; line-height: 1.1; }
 .dcc__stat-value--song  {
@@ -1256,11 +1256,11 @@ const vacuumStatusMessage = computed(() => {
   letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--sh-text-light);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   margin-bottom: 5px;
 }
 .dcc__section-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.dcc__section-value { font-size: 12px; font-weight: 600; color: var(--sh-text-muted); font-family: 'Inter', sans-serif; }
+.dcc__section-value { font-size: 12px; font-weight: 600; color: var(--sh-text-muted); font-family: var(--sh-font); }
 
 /* ── Vacuum ── */
 .dcc--vacuum {
@@ -1368,7 +1368,7 @@ const vacuumStatusMessage = computed(() => {
   font-size: 14px !important;
 }
 .dcc__vacuum-select {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 .dcc--vacuum .dcc__vacuum-select :deep(.v-field) {
   min-height: 38px;
@@ -1405,7 +1405,7 @@ const vacuumStatusMessage = computed(() => {
 }
 .dcc--vacuum .dcc__vacuum-select :deep(.v-select__selection-text) {
   color: var(--sh-text-main);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
 }
@@ -1488,13 +1488,13 @@ const vacuumStatusMessage = computed(() => {
     0 1px 3px rgba(15, 23, 42, .06) !important;
   padding: 4px !important;
   background: #ffffff;
-  font-family: 'Inter', sans-serif !important;
+  font-family: var(--sh-font) !important;
 }
 :global(.dcc-vacuum-menu .v-list-item) {
   min-height: 42px;
   border-radius: 8px !important;
   color: var(--sh-text-main) !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: var(--sh-font) !important;
   font-size: 14px !important;
   font-weight: 500;
   padding-inline: 10px 8px !important;
@@ -1588,7 +1588,7 @@ const vacuumStatusMessage = computed(() => {
   color: var(--sh-primary);
   border: 1px solid var(--sh-primary);
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1611,7 +1611,7 @@ const vacuumStatusMessage = computed(() => {
   background: transparent;
   border: none;
   border-right: 1px solid var(--sh-border);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 12px;
   font-weight: 500;
   color: var(--sh-text-muted);
@@ -1635,7 +1635,7 @@ const vacuumStatusMessage = computed(() => {
   border: 1px solid var(--sh-border);
   border-radius: 999px;
   background: #ffffff;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 12px;
   font-weight: 500;
   color: var(--sh-text-muted);
@@ -1688,7 +1688,7 @@ const vacuumStatusMessage = computed(() => {
   color: #ffffff;
   border: 1px solid var(--sh-primary);
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1726,7 +1726,7 @@ const vacuumStatusMessage = computed(() => {
 }
 .dcc__oven-temp-value {
   color: var(--sh-text-main);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 700;
 }
@@ -1747,7 +1747,7 @@ const vacuumStatusMessage = computed(() => {
   border-radius: 999px;
   background: #F8FAFC;
   color: var(--sh-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1795,7 +1795,7 @@ const vacuumStatusMessage = computed(() => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1862,7 +1862,7 @@ const vacuumStatusMessage = computed(() => {
 .dcc__blind-percent {
   display: block;
   color: var(--sh-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: clamp(34px, 6.2vw, 46px);
   font-weight: 700;
   line-height: 1;
@@ -1897,7 +1897,7 @@ const vacuumStatusMessage = computed(() => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1935,7 +1935,7 @@ const vacuumStatusMessage = computed(() => {
   border-radius: 999px;
   background: #F8FAFC;
   color: var(--sh-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1982,7 +1982,7 @@ const vacuumStatusMessage = computed(() => {
   padding: 0 12px;
   border: 1px solid var(--sh-border);
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   color: var(--sh-text-main);
   background: #ffffff;
@@ -1996,8 +1996,8 @@ const vacuumStatusMessage = computed(() => {
 .dcc__change-code { display: flex; flex-direction: column; gap: 6px; }
 .dcc__change-code .dcc__code-input { margin-bottom: 0; }
 
-.dcc__error { font-size: 12px; color: var(--sh-error); font-family: 'Inter', sans-serif; margin: 4px 0 0; }
-.dcc__msg   { font-size: 12px; font-family: 'Inter', sans-serif; margin: 6px 0 0; }
+.dcc__error { font-size: 12px; color: var(--sh-error); font-family: var(--sh-font); margin: 4px 0 0; }
+.dcc__msg   { font-size: 12px; font-family: var(--sh-font); margin: 6px 0 0; }
 .dcc__msg--ok  { color: #22C55E; }
 .dcc__msg--err { color: var(--sh-error); }
 
@@ -2019,7 +2019,7 @@ const vacuumStatusMessage = computed(() => {
   gap: 4px;
   padding: 2px 8px;
   border-radius: 999px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
@@ -2037,7 +2037,7 @@ const vacuumStatusMessage = computed(() => {
   display: flex;
   align-items: center;
   gap: 3px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 11px;
   color: var(--sh-text-light);
   white-space: nowrap;
@@ -2058,7 +2058,7 @@ const vacuumStatusMessage = computed(() => {
   font-size: 13px;
   font-weight: 600;
   color: var(--sh-text-main);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2066,7 +2066,7 @@ const vacuumStatusMessage = computed(() => {
 .dcc__now-playing__meta {
   font-size: 12px;
   color: var(--sh-text-light);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 /* Position progress bar (Blind) */

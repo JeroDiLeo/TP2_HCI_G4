@@ -40,7 +40,7 @@ defineEmits<{ (e: 'add'): void }>()
   background-color: #ffffff;
   border: 2px dashed #e2e8f0;
   border-radius: 14px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 .empty-state__icon-wrap {
@@ -81,7 +81,7 @@ defineEmits<{ (e: 'add'): void }>()
   height: 48px;
   background-color: #6366f1;
   color: #ffffff;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-weight: 600;
   font-size: 15px;
   border: none;

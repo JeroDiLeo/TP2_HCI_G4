@@ -70,7 +70,7 @@ defineEmits(['change-password'])
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   white-space: nowrap;
 }
 

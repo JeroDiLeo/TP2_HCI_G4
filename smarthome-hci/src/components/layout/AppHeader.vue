@@ -127,7 +127,7 @@ async function handleLogout() {
 
 /* Logo */
 .app-header__logo {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 22px;
   font-weight: 700;
   text-decoration: none;
@@ -164,7 +164,7 @@ async function handleLogout() {
   border: 1px solid #e2e8f0;
   border-radius: 24px;
   background-color: #ffffff;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   color: #0f172a;
   outline: none;
@@ -186,7 +186,7 @@ async function handleLogout() {
   border: 1px solid transparent;
   border-radius: 999px;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   transition: background-color 0.15s, border-color 0.15s;
   justify-self: end;
 }
@@ -211,7 +211,7 @@ async function handleLogout() {
   color: #ffffff;
   font-weight: 700;
   font-size: 15px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 /* Dropdown menu (teleported) */
@@ -227,7 +227,7 @@ async function handleLogout() {
   border-radius: 14px;
   padding: 8px;
   min-width: 220px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
 }
 
 /* Header with avatar + name/email */
@@ -249,7 +249,7 @@ async function handleLogout() {
   color: #ffffff;
   font-weight: 700;
   font-size: 15px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   flex-shrink: 0;
 }
 
@@ -292,7 +292,7 @@ async function handleLogout() {
   background: transparent;
   border: none;
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--sh-font);
   font-size: 14px;
   font-weight: 500;
   color: #0f172a;
