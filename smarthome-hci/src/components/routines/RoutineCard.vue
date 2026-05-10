@@ -119,6 +119,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoutinesStore } from '@/stores/routines'
+import { getActionLabel } from '@/utils/deviceActionLabels'
 
 const props = defineProps({
   routine:  { type: Object,  required: true },
@@ -171,7 +172,7 @@ const hiddenCount    = computed(() => Math.max(0, props.routine.actions.length -
 
 function displayAction(action) {
   if (typeof action === 'string') return action
-  if (action?.actionName) return action.actionName
+  if (action?.actionName) return getActionLabel(action.actionName)
   return ''
 }
 

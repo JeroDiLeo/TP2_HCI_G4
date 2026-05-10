@@ -37,7 +37,7 @@
             @click="selectDevice(device)"
           >
             <div class="dev-card__icon" aria-hidden="true">
-              <v-icon :icon="DEVICE_TYPE_ICONS[device.type] ?? 'mdi-power-plug-outline'" size="18" />
+              <v-icon :icon="getDeviceIcon(device.type)" size="18" />
             </div>
             <span class="dev-card__name">{{ device.name }}</span>
             <span class="dev-card__room">{{ device.roomName || '—' }}</span>
@@ -59,7 +59,7 @@
             @click="selectAction(act)" @keydown.enter="selectAction(act)" @keydown.space.prevent="selectAction(act)"
           >
             <div class="item-list__info">
-              <span class="item-list__name">{{ act.name }}</span>
+              <span class="item-list__name">{{ getActionLabel(act.name) }}</span>
               <span v-if="act.description" class="item-list__sub">{{ act.description }}</span>
             </div>
           </li>
@@ -69,7 +69,7 @@
 
       <!-- step 3 -->
       <template v-else>
-        <p class="builder__hint">Completá los parámetros para <strong>{{ selectedAction?.name }}</strong>.</p>
+        <p class="builder__hint">Completá los parámetros para <strong>{{ getActionLabel(selectedAction?.name ?? '') }}</strong>.</p>
         <p v-if="!selectedAction?.params?.length" class="builder__hint">Esta acción no requiere parámetros.</p>
         <div v-for="(param, idx) in selectedAction?.params ?? []" :key="idx" class="pf">
           <label :for="`rab-p-${idx}`" class="pf__label">
@@ -123,6 +123,8 @@ import {
 } from '@/utils/deviceTypeParam'
 import type { ApiDeviceTypeAction, ApiDeviceTypeParam } from '@/utils/deviceMapper'
 import type { RoomDevice } from '@/types/rooms'
+import { getDeviceIcon } from '@/utils/deviceIcons.js'
+import { getActionLabel } from '@/utils/deviceActionLabels'
 
 const emit = defineEmits<{
   'cancel': []
@@ -139,11 +141,6 @@ const selectedAction = ref<ApiDeviceTypeAction | null>(null)
 const paramValues    = ref<unknown[]>([])
 const paramErrors    = ref<(string | null)[]>([])
 
-const DEVICE_TYPE_ICONS: Record<string, string> = {
-  light: 'mdi-lightbulb-outline', ac: 'mdi-air-conditioner', vacuum: 'mdi-robot-vacuum',
-  speaker: 'mdi-speaker', faucet: 'mdi-water-pump', blind: 'mdi-blinds',
-  oven: 'mdi-toaster-oven', door: 'mdi-door-closed', alarm: 'mdi-alarm-light-outline', fridge: 'mdi-fridge-outline',
-}
 
 const stepLabel        = computed(() => ['Elegí el dispositivo', 'Elegí la acción', 'Completá los parámetros'][step.value - 1])
 const rooms            = computed(() => roomsStore.rooms)

@@ -122,7 +122,8 @@
 import { ref, computed, watch } from 'vue'
 import { useDevicesStore } from '@/stores/devices'
 import RoutineActionBuilder from './RoutineActionBuilder.vue'
-import { getDeviceVisual } from '@/utils/deviceIcons.js'
+import { getRoutineDeviceVisual } from '@/utils/deviceIcons.js'
+import { formatRoutineActionDetail } from '@/utils/deviceActionLabels'
 
 const props = defineProps({
   open:        { type: Boolean, default: false },
@@ -147,13 +148,13 @@ const parsedActions = computed(() =>
     if (typeof a === 'string') {
       const parts = a.split('·').map(s => s.trim())
       const device = parts[0] ?? ''
-      return { device, detail: parts.slice(1).join(' · '), visual: getDeviceVisual(device) }
+      return { device, detail: parts.slice(1).join(' · '), visual: getRoutineDeviceVisual(device) }
     }
     const apiDevice = devicesStore.getDeviceById(a.device?.id)
     const deviceName = apiDevice?.name ?? a.device?.id ?? 'Dispositivo'
     const deviceType = apiDevice?.type ?? 'light'
-    const detail = a.actionName + (a.params?.length ? ': ' + a.params.join(', ') : '')
-    return { device: deviceName, detail, visual: getDeviceVisual(deviceType) }
+    const detail = formatRoutineActionDetail(a.actionName, a.params)
+    return { device: deviceName, detail, visual: getRoutineDeviceVisual(deviceType) }
   })
 )
 
