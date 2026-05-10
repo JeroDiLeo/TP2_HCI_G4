@@ -397,6 +397,7 @@ import { shareHome } from '@/services/api/homeApi'
 import casaPrincipalImg from '@/assets/images/homes/casaPrincipal.jpg'
 import casaFindeImg     from '@/assets/images/homes/casaFinde.jpg'
 import deptoImg         from '@/assets/images/homes/depto.jpg'
+import oficinaImg       from '@/assets/images/homes/oficina.jpg'
 
 const props = defineProps({
   open: {
@@ -420,6 +421,7 @@ const presetImages = [
   { src: casaPrincipalImg, label: 'Casa principal' },
   { src: casaFindeImg,     label: 'Casa de finde'  },
   { src: deptoImg,         label: 'Departamento'   },
+  { src: oficinaImg,       label: 'Oficina'         },
 ]
 
 const typeOptions = [

@@ -13,7 +13,7 @@
       <div class="hero__stats" aria-label="Resumen del hogar">
         <div class="hero-stat">
           <span class="hero-stat__icon" aria-hidden="true">
-            <v-icon icon="mdi-flash" size="20" />
+            <v-icon icon="mdi-devices" size="20" />
           </span>
           <div class="hero-stat__text">
             <p class="hero-stat__value">{{ totalActiveDevices }}</p>

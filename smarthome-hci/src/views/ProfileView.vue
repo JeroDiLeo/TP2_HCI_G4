@@ -19,12 +19,6 @@
           <i :class="['mdi', section.icon]"></i>
           <span>{{ section.title }}</span>
         </button>
-
-        <!-- Cerrar sesión -->
-        <button class="sidebar-item sidebar-item--logout" @click="handleLogout">
-          <i class="mdi mdi-logout"></i>
-          <span>Cerrar sesión</span>
-        </button>
       </aside>
 
       <!-- Main Content Card -->
@@ -58,7 +52,6 @@
           <h2>Seguridad</h2>
           <ProfileSecurity
             @change-password="handleChangePassword"
-            @delete-account="handleDeleteAccount"
           />
         </div>
 
@@ -71,7 +64,7 @@
 
           <!-- Modo de visualización -->
           <fieldset class="a11y-block" aria-labelledby="a11y-viewmode-label">
-            <legend id="a11y-viewmode-label" class="a11y-block__title">Modo de visualización</legend>
+            <legend id="a11y-viewmode-label" class="a11y-block__title">Modo de visualización - dispositivos en habitaciones</legend>
             <div class="a11y-options" role="radiogroup" aria-labelledby="a11y-viewmode-label">
               <button
                 type="button"
@@ -155,23 +148,18 @@
     <!-- Modal para cambiar contraseña -->
     <ChangePasswordModal ref="changePasswordModalRef" />
 
-    <!-- Modal para eliminar cuenta -->
-    <DeleteAccountModal ref="deleteAccountModalRef" />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
-import { changePassword, deleteAccount } from '@/services/api/userApi'
+import { changePassword } from '@/services/api/userApi'
 import ProfilePersonalData from '@/components/profile/ProfilePersonalData.vue'
 import ProfileSecurity from '@/components/profile/ProfileSecurity.vue'
 import ChangePasswordModal from '@/components/ChangePasswordModal.vue'
-import DeleteAccountModal from '@/components/DeleteAccountModal.vue'
 
-const router = useRouter()
 const authStore = useAuthStore()
 const prefs = usePreferencesStore()
 
@@ -191,7 +179,6 @@ const PAGE_SIZE_OPTIONS = [2, 3, 4, 5, 6]
 // Refs para acceder a los datos de los componentes
 const personalDataRef = ref(null)
 const changePasswordModalRef = ref(null)
-const deleteAccountModalRef = ref(null)
 
 // Datos de formulario - Datos personales
 const personalData = reactive({
@@ -250,27 +237,6 @@ const handleChangePassword = async () => {
     alert('Contraseña cambiada correctamente')
   } catch (error) {
     alert(`Error al cambiar contraseña: ${error.message}`)
-  }
-}
-
-const handleLogout = async () => {
-  if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-    await authStore.logout()
-    router.push('/login')
-  }
-}
-
-const handleDeleteAccount = async () => {
-  const result = await deleteAccountModalRef.value?.showModal()
-  if (!result) return
-
-  try {
-    await deleteAccount(result)
-    alert('Cuenta eliminada correctamente')
-    await authStore.logout()
-    router.push('/login')
-  } catch (error) {
-    alert(`Error al eliminar cuenta: ${error.message}`)
   }
 }
 

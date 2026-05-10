@@ -93,8 +93,9 @@ export const useDevicesStore = defineStore('devices', () => {
       roomsStore.rooms.map(room => String(room.id)),
     )
 
-    // If rooms haven't loaded yet, show all devices to avoid empty UI states
-    if (activeHomeRoomIds.size === 0) return devices.value
+    if (activeHomeRoomIds.size === 0) {
+      return roomsStore.roomsLoaded ? [] : devices.value
+    }
 
     return devices.value.filter(device =>
       activeHomeRoomIds.has(String(device.roomId)),

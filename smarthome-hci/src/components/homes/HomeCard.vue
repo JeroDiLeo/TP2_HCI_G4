@@ -15,7 +15,7 @@
         class="home-card__img"
       >
       <div v-else class="home-card__placeholder" aria-hidden="true">
-        foto exterior casa
+        foto
       </div>
     </div>
 
@@ -65,7 +65,7 @@
         <span>{{ home.rooms }} habitaciones</span>
       </p>
       <p class="home-card__metric">
-        <v-icon icon="mdi-flash" size="18" class="home-card__icon" aria-hidden="true" />
+        <v-icon icon="mdi-devices" size="18" class="home-card__icon" aria-hidden="true" />
         <span>{{ home.devices }} dispositivos</span>
       </p>
     </div>
@@ -297,6 +297,7 @@ import ShareHomeDialog from '@/components/homes/ShareHomeDialog.vue'
 import casaPrincipalImg from '@/assets/images/homes/casaPrincipal.jpg'
 import casaFindeImg     from '@/assets/images/homes/casaFinde.jpg'
 import deptoImg         from '@/assets/images/homes/depto.jpg'
+import oficinaImg       from '@/assets/images/homes/oficina.jpg'
 
 const props = defineProps<{ home: Home; selected: boolean }>()
 defineEmits<{ (e: 'select', id: string): void }>()
@@ -310,6 +311,7 @@ const presetImages = [
   { src: casaPrincipalImg, label: 'Casa principal' },
   { src: casaFindeImg,     label: 'Casa de finde'  },
   { src: deptoImg,         label: 'Departamento'   },
+  { src: oficinaImg,       label: 'Oficina'         },
 ]
 
 const typeOptions = [

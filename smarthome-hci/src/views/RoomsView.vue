@@ -16,7 +16,7 @@
           @click="toggleEditMode"
         >
           <v-icon icon="mdi-pencil-outline" size="18" aria-hidden="true" />
-          <span v-if="editMode">Finalizar habitaciones</span>
+          <span v-if="editMode">Finalizar cambios</span>
         </button>
 
         <button type="button" :class="editMode ? 'btn-primary btn-primary--secondary' : 'btn-primary'" :disabled="editMode" @click="isAddModalOpen = true">
@@ -248,7 +248,7 @@ function handleViewDetails(roomId) {
 .btn-edit:hover { background: var(--sh-primary-light); border-color: var(--sh-primary); color: var(--sh-primary); }
 .btn-edit:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
 
-/* Botón Finalizar habitaciones (morado filled) */
+/* Botón Finalizar cambios (morado filled) */
 .btn-edit-active {
   display: inline-flex;
   align-items: center;

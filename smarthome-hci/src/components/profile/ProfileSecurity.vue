@@ -14,28 +14,11 @@
         Cambiar
       </button>
     </div>
-
-    <hr class="profile-divider" />
-
-    <!-- Eliminar cuenta -->
-    <div class="profile-security-option">
-      <div class="profile-security-option__content">
-        <h3 class="profile-security-option__title">Eliminar cuenta</h3>
-        <p class="profile-security-option__description">Esta acción no se puede deshacer</p>
-      </div>
-      <button
-        type="button"
-        class="btn-danger"
-        @click="$emit('delete-account')"
-      >
-        Eliminar
-      </button>
-    </div>
   </section>
 </template>
 
 <script setup>
-defineEmits(['change-password', 'delete-account'])
+defineEmits(['change-password'])
 </script>
 
 <style scoped>
