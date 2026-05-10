@@ -1,392 +1,314 @@
 <template>
   <div class="historial-view">
+
     <!-- Header -->
     <div class="historial-header">
       <div>
         <h1 class="historial-header__title">Historial</h1>
         <p class="historial-header__subtitle">Acciones realizadas con tus dispositivos</p>
       </div>
+      <button
+        class="refresh-btn"
+        :disabled="logsStore.loading"
+        aria-label="Refrescar historial"
+        @click="reloadLogsForCurrentContext()"
+      >
+        <i class="mdi mdi-refresh" :class="{ 'refresh-btn--spinning': logsStore.loading }"></i>
+      </button>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="historial-stats">
-      <div class="stat-card">
-        <div class="stat-card__icon" style="--icon-bg: #EDE9FE">
-          <i class="mdi mdi-flash"></i>
-        </div>
-        <div class="stat-card__content">
-          <div class="stat-card__value">{{ stats.actionsToday }}</div>
-          <div class="stat-card__label">Acciones hoy</div>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-card__icon" style="--icon-bg: #EDE9FE">
-          <i class="mdi mdi-refresh"></i>
-        </div>
-        <div class="stat-card__content">
-          <div class="stat-card__value">{{ stats.byRoutines }}</div>
-          <div class="stat-card__label">Por rutinas</div>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-card__icon" style="--icon-bg: #EDE9FE">
-          <i class="mdi mdi-gesture-tap"></i>
-        </div>
-        <div class="stat-card__content">
-          <div class="stat-card__value">{{ stats.manual }}</div>
-          <div class="stat-card__label">Manuales</div>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-card__icon" style="--icon-bg: #EDE9FE">
-          <i class="mdi mdi-clock-outline"></i>
-        </div>
-        <div class="stat-card__content">
-          <div class="stat-card__value">{{ stats.lastActionTime }}</div>
-          <div class="stat-card__label">Última acción</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Filters -->
+    <!-- Device filter -->
     <HistorialFilters
-      :selected-room="selectedRoom"
-      :selected-period="selectedPeriod"
-      :selected-action="selectedAction"
-      :selected-origin="selectedOrigin"
-      @update-room="selectedRoom = $event"
-      @update-period="selectedPeriod = $event"
-      @update-action="selectedAction = $event"
-      @update-origin="selectedOrigin = $event"
+      :devices="homeDevices"
+      :selected-device-id="logsStore.selectedDeviceId"
+      @update-device="onDeviceFilter"
     />
 
-    <!-- Events List -->
-    <div class="historial-events">
-      <template v-for="group in groupedEvents" :key="group.date">
-        <div class="events-date-header">
-          <h3 class="events-date-title">{{ group.dateLabel }}</h3>
-          <span class="events-count">{{ group.events.length }} eventos</span>
-        </div>
-
-        <HistorialEventItem
-          v-for="event in group.events"
-          :key="event.id"
-          :event="event"
-        />
-      </template>
+    <!-- Base data loading (rooms / devices) -->
+    <div v-if="isBaseLoading" class="log-skeleton-list" aria-label="Cargando historial">
+      <div v-for="n in 4" :key="n" class="log-skeleton-item" aria-hidden="true" />
     </div>
+
+    <!-- Base data error -->
+    <div v-else-if="baseError" class="historial-state">
+      <i class="mdi mdi-alert-circle-outline historial-state__icon historial-state__icon--error"></i>
+      <p class="historial-state__title">Error al cargar los datos del hogar</p>
+      <p class="historial-state__subtitle">{{ baseError }}</p>
+    </div>
+
+    <!-- Home has no devices -->
+    <div v-else-if="homeHasNoDevices" class="historial-state">
+      <i class="mdi mdi-devices historial-state__icon"></i>
+      <p class="historial-state__title">Este hogar no tiene dispositivos aún</p>
+      <p class="historial-state__subtitle">Agregá dispositivos desde la sección de habitaciones</p>
+    </div>
+
+    <template v-else>
+      <!-- Logs first-page loading -->
+      <div
+        v-if="logsStore.loading && logsStore.filteredLogs.length === 0"
+        class="log-skeleton-list"
+        aria-label="Cargando logs"
+      >
+        <div v-for="n in 4" :key="n" class="log-skeleton-item" aria-hidden="true" />
+      </div>
+
+      <!-- Logs error -->
+      <div
+        v-else-if="logsStore.error && logsStore.filteredLogs.length === 0"
+        class="historial-state"
+      >
+        <i class="mdi mdi-wifi-off historial-state__icon historial-state__icon--error"></i>
+        <p class="historial-state__title">No se pudo cargar el historial</p>
+        <p class="historial-state__subtitle">{{ logsStore.error }}</p>
+        <button class="state-btn" @click="reloadLogsForCurrentContext()">Reintentar</button>
+      </div>
+
+      <!-- Searching: logs fetched but none match active home yet, more available -->
+      <div
+        v-else-if="logsStore.filteredLogs.length === 0 && logsStore.hasMore && !logsStore.loading"
+        class="historial-state"
+      >
+        <i class="mdi mdi-magnify historial-state__icon"></i>
+        <p class="historial-state__title">Buscando actividad de este hogar</p>
+        <p class="historial-state__subtitle">
+          Estamos filtrando los logs visibles para encontrar actividad de este hogar
+        </p>
+        <button
+          class="state-btn"
+          @click="logsStore.fetchUntilFull(logsStore.filteredLogs.length + prefsStore.pageSize)"
+        >
+          Cargar más
+        </button>
+      </div>
+
+      <!-- Empty: no logs, no active filter -->
+      <div
+        v-else-if="logsStore.filteredLogs.length === 0 && !logsStore.hasMore && !logsStore.selectedDeviceId"
+        class="historial-state"
+      >
+        <i class="mdi mdi-history historial-state__icon"></i>
+        <p class="historial-state__title">Todavía no hay actividad en este hogar</p>
+        <p class="historial-state__subtitle">
+          Las acciones que ejecutes en tus dispositivos van a aparecer acá
+        </p>
+      </div>
+
+      <!-- Empty: filter active but no results -->
+      <div
+        v-else-if="logsStore.filteredLogs.length === 0 && !logsStore.hasMore && logsStore.selectedDeviceId"
+        class="historial-state"
+      >
+        <i class="mdi mdi-filter-off-outline historial-state__icon"></i>
+        <p class="historial-state__title">No hay actividad para este dispositivo</p>
+        <button class="state-btn" @click="onDeviceFilter(null)">Limpiar filtro</button>
+      </div>
+
+      <!-- Log list -->
+      <div
+        v-else
+        class="historial-logs"
+        aria-live="polite"
+        aria-label="Historial de acciones"
+      >
+        <HistorialEventItem
+          v-for="entry in currentLogs"
+          :key="entry.id"
+          :entry="entry"
+          :catalog-description="catalogDescriptionFor(entry)"
+        />
+      </div>
+
+      <!-- Pagination controls -->
+      <div
+        v-if="prefsStore.viewMode === 'pagination' && logsStore.filteredLogs.length > 0"
+        class="historial-pagination"
+      >
+        <button
+          class="pagination-btn"
+          :disabled="!hasPrev"
+          aria-label="Página anterior"
+          @click="goPrev"
+        >
+          <i class="mdi mdi-chevron-left"></i> Anterior
+        </button>
+        <span class="pagination-info">Mostrando {{ showingFrom }}–{{ showingTo }}</span>
+        <button
+          class="pagination-btn"
+          :disabled="!hasNext || logsStore.loading"
+          aria-label="Página siguiente"
+          @click="goNext"
+        >
+          Siguiente <i class="mdi mdi-chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- Scroll: loading more indicator -->
+      <div
+        v-if="prefsStore.viewMode === 'scroll' && logsStore.loading && logsStore.filteredLogs.length > 0"
+        class="historial-loading-more"
+      >
+        <span class="loading-spinner" aria-label="Cargando más logs"></span>
+      </div>
+
+      <!-- Scroll: sentinel for IntersectionObserver -->
+      <div
+        v-if="prefsStore.viewMode === 'scroll'"
+        ref="sentinel"
+        class="scroll-sentinel"
+        aria-hidden="true"
+      />
+    </template>
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import HistorialFilters from '@/components/historial/HistorialFilters.vue'
 import HistorialEventItem from '@/components/historial/HistorialEventItem.vue'
+import { useLogsStore } from '@/stores/logs'
+import { usePreferencesStore } from '@/stores/preferences'
+import { useDevicesStore } from '@/stores/devices'
+import { useRoomsStore } from '@/stores/rooms'
+import { useHomesStore } from '@/stores/homes'
+import { useDeviceTypesStore } from '@/stores/deviceTypes'
+import type { LogEntry } from '@/types/logs'
+import type { RoomDevice } from '@/types/rooms'
 
-const selectedRoom = ref('Todas')
-const selectedPeriod = ref('Hoy')
-const selectedAction = ref('Todas las acciones')
-const selectedOrigin = ref('Todos')
+const logsStore        = useLogsStore()
+const prefsStore       = usePreferencesStore()
+const devicesStore     = useDevicesStore()
+const roomsStore       = useRoomsStore()
+const homesStore       = useHomesStore()
+const deviceTypesStore = useDeviceTypesStore()
 
-function getCurrentTime() {
-  const now = new Date()
-  const hours = String(now.getHours()).padStart(2, '0')
-  const minutes = String(now.getMinutes()).padStart(2, '0')
-  return `${hours}:${minutes}`
+// ── Base data state ──────────────────────────────────────────────────
+const isBaseLoading = computed(() => devicesStore.loading || roomsStore.loading)
+const baseError     = computed(() => devicesStore.error || roomsStore.error)
+
+const homeDevices = computed(() => {
+  if (isBaseLoading.value) return []
+  const activeRoomIds = new Set(roomsStore.rooms.map((r: { id: string | number }) => String(r.id)))
+  return devicesStore.devices
+    .filter((d: RoomDevice) => activeRoomIds.has(String(d.roomId)))
+    .map((d: RoomDevice) => ({ id: String(d.id), name: d.name }))
+})
+
+const homeHasNoDevices = computed(() =>
+  !isBaseLoading.value &&
+  !baseError.value &&
+  homeDevices.value.length === 0
+)
+
+// ── Catalog description helper ───────────────────────────────────────
+function catalogDescriptionFor(entry: LogEntry): string | undefined {
+  return deviceTypesStore.getAction(entry.deviceTypeApiId, entry.actionName)?.description
 }
 
-function getTodayDate() {
-  return new Date().toISOString().split('T')[0]
+// ── Reload ───────────────────────────────────────────────────────────
+async function reloadLogsForCurrentContext({ reset = true }: { reset?: boolean } = {}) {
+  if (reset) logsStore.reset()
+  if (roomsStore.loading || devicesStore.loading) return
+  await logsStore.fetchUntilFull(prefsStore.pageSize)
 }
 
-const events = ref([
-  {
-    id: '1',
-    action: 'Se abrió',
-    device: 'Persiana',
-    room: 'Sala de Estar',
-    status: 'Abierta 100%',
-    routine: 'Buenos Días',
-    user: 'Test User',
-    actionType: 'Apertura',
-    actionColor: '#3B82F6',
-    icon: 'mdi-blinds-open',
-    time: '10:48',
-    date: '2026-05-07',
-  },
-  {
-    id: '2',
-    action: 'Se encendió',
-    device: 'Aire acondicionado',
-    room: 'Habitación Principal',
-    status: '24°C · Modo automático',
-    user: 'Test User',
-    actionType: 'Encendido',
-    actionColor: '#10B981',
-    icon: 'mdi-air-conditioner',
-    time: '14:32',
-    date: '2026-05-07',
-  },
-  {
-    id: '3',
-    action: 'Se ajustó',
-    device: 'Luz Principal',
-    room: 'Sala de Estar',
-    status: 'Intensidad 75%',
-    user: 'Test User',
-    actionType: 'Ajuste',
-    actionColor: '#3B82F6',
-    icon: 'mdi-lightbulb',
-    time: '14:18',
-    date: '2026-05-07',
-  },
-  {
-    id: '4',
-    action: 'Se desbloqueó',
-    device: 'Puerta Principal',
-    room: 'Entrada',
-    status: 'Acceso por código',
-    user: 'Test User',
-    actionType: 'Desbloqueo',
-    actionColor: '#A78BFA',
-    icon: 'mdi-lock-open',
-    time: '13:45',
-    date: '2026-05-07',
-  },
-  {
-    id: '5',
-    action: 'Rutina ejecutada',
-    device: 'Buenos Días',
-    room: null,
-    status: '3 acciones realizadas',
-    actionType: 'Rutina',
-    actionColor: '#8B5CF6',
-    icon: 'mdi-play-circle-outline',
-    time: '07:00',
-    date: '2026-05-07',
-    isRoutine: true,
-    actions: [
-      {
-        action: 'Se abrió',
-        device: 'Persiana',
-        room: 'Sala de Estar',
-        detail: 'Abierta 100%',
-        icon: 'mdi-blinds-open',
-      },
-      {
-        action: 'Se encendió',
-        device: 'Luz Principal',
-        room: 'Habitación Principal',
-        detail: 'Intensidad 100%',
-        icon: 'mdi-lightbulb',
-      },
-      {
-        action: 'Se apagó',
-        device: 'Aire acondicionado',
-        room: 'Habitación Principal',
-        detail: 'Desactivado',
-        icon: 'mdi-air-conditioner',
-      },
-    ],
-  },
-  {
-    id: '6',
-    action: 'Se encendió',
-    device: 'Luz Principal',
-    room: 'Sala de Estar',
-    status: 'Intensidad 50%',
-    user: 'Test User',
-    actionType: 'Encendido',
-    actionColor: '#10B981',
-    icon: 'mdi-lightbulb',
-    time: '22:45',
-    date: '2026-05-06',
-  },
-  {
-    id: '7',
-    action: 'Rutina ejecutada',
-    device: 'Noche',
-    room: null,
-    status: '2 acciones realizadas',
-    actionType: 'Rutina',
-    actionColor: '#8B5CF6',
-    icon: 'mdi-play-circle-outline',
-    time: '22:15',
-    date: '2026-05-08',
-    isRoutine: true,
-    actions: [
-      {
-        action: 'Se apagó',
-        device: 'Luz Principal',
-        room: 'Sala de Estar',
-        detail: 'Apagado',
-        icon: 'mdi-lightbulb',
-      },
-      {
-        action: 'Se bloqueó',
-        device: 'Puerta Principal',
-        room: 'Entrada',
-        detail: 'Bloqueado',
-        icon: 'mdi-lock',
-      },
-    ],
-  },
-  {
-    id: '8',
-    action: 'Se apagó',
-    device: 'Televisor',
-    room: 'Sala de Estar',
-    status: 'Apagado',
-    user: 'Test User',
-    actionType: 'Apagado',
-    actionColor: '#6B7280',
-    icon: 'mdi-television',
-    time: '23:30',
-    date: '2026-05-06',
-  },
-])
+// ── Device filter ────────────────────────────────────────────────────
+function onDeviceFilter(deviceId: string | null) {
+  logsStore.setDeviceFilter(deviceId)
+  reloadLogsForCurrentContext({ reset: false })
+}
 
-const stats = computed(() => {
-  const today = new Date().toISOString().split('T')[0]
-  const todayEvents = events.value.filter((event) => event.date === today)
+// ── Pagination (viewMode === 'pagination') ───────────────────────────
+const pageStart   = computed(() => (logsStore.currentPage - 1) * prefsStore.pageSize)
+const currentLogs = computed(() =>
+  prefsStore.viewMode === 'pagination'
+    ? logsStore.filteredLogs.slice(pageStart.value, pageStart.value + prefsStore.pageSize)
+    : logsStore.filteredLogs
+)
+const hasPrev    = computed(() => logsStore.currentPage > 1)
+const hasNext    = computed(() =>
+  logsStore.currentPage * prefsStore.pageSize < logsStore.filteredLogs.length ||
+  logsStore.hasMore
+)
+const showingFrom = computed(() =>
+  Math.min(pageStart.value + 1, logsStore.filteredLogs.length)
+)
+const showingTo = computed(() =>
+  Math.min(pageStart.value + prefsStore.pageSize, logsStore.filteredLogs.length)
+)
 
-  let actionsToday = 0
-  let byRoutines = 0
-  let manual = 0
-
-  todayEvents.forEach((event) => {
-    if (event.isRoutine) {
-      const actionCount = event.actions?.length ?? 0
-      actionsToday += actionCount
-      byRoutines += actionCount
-    } else {
-      actionsToday += 1
-      manual += 1
-    }
-  })
-
-  // Última acción muestra la hora del evento más reciente
-  const lastAction = [...events.value].sort((a, b) => {
-    const timeA = new Date(`${a.date}T${a.time}`)
-    const timeB = new Date(`${b.date}T${b.time}`)
-    return timeB - timeA
-  })[0]
-
-  const lastActionTime = lastAction?.time ?? '--:--'
-
-  return {
-    actionsToday,
-    byRoutines,
-    manual,
-    lastActionTime,
-  }
-})
-
-const filteredEvents = computed(() => {
-  return events.value.filter((event) => {
-    // Filter by room
-    if (selectedRoom.value !== 'Todas') {
-      if (!event.room || !event.room.includes(selectedRoom.value)) {
-        return false
-      }
-    }
-
-    // Filter by period
-    if (selectedPeriod.value !== 'Todo') {
-      const eventDate = new Date(event.date)
-      const today = new Date()
-      const weekAgo = new Date(today)
-      weekAgo.setDate(weekAgo.getDate() - 7)
-      const monthAgo = new Date(today)
-      monthAgo.setMonth(monthAgo.getMonth() - 1)
-
-      if (selectedPeriod.value === 'Hoy') {
-        const todayStr = today.toISOString().split('T')[0]
-        if (event.date !== todayStr) return false
-      } else if (selectedPeriod.value === 'Esta semana') {
-        if (eventDate < weekAgo) return false
-      } else if (selectedPeriod.value === 'Este mes') {
-        if (eventDate < monthAgo) return false
-      }
-    }
-
-    // Filter by action
-    if (
-      selectedAction.value !== 'Todas las acciones' &&
-      event.actionType !== selectedAction.value
-    ) {
-      return false
-    }
-
-    // Filter by origin (manual vs routine)
-    if (selectedOrigin.value !== 'Todos') {
-      if (selectedOrigin.value === 'Rutina' && !event.isRoutine) return false
-      if (selectedOrigin.value === 'Manual' && event.isRoutine) return false
-    }
-
-    return true
-  })
-})
-
-const groupedEvents = computed(() => {
-  const grouped = {}
-
-  filteredEvents.value.forEach((event) => {
-    const dateKey = event.date
-    if (!grouped[dateKey]) {
-      grouped[dateKey] = {
-        date: dateKey,
-        dateLabel: formatDateLabel(dateKey),
-        events: [],
-      }
-    }
-    grouped[dateKey].events.push(event)
-  })
-
-  return Object.values(grouped).sort((a, b) => new Date(b.date) - new Date(a.date))
-})
-
-function formatDateLabel(dateStr) {
-  const date = new Date(dateStr)
-  const today = new Date()
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-
-  const todayStr = today.toISOString().split('T')[0]
-  const yesterdayStr = yesterday.toISOString().split('T')[0]
-
-  if (dateStr === todayStr) {
-    return 'Hoy'
-  } else if (dateStr === yesterdayStr) {
-    return 'Ayer'
-  } else {
-    const opts = { weekday: 'long', day: 'numeric', month: 'short' }
-    return date.toLocaleDateString('es-ES', opts).replace(/^\w/, (c) => c.toUpperCase())
+async function goNext() {
+  const nextPage = logsStore.currentPage + 1
+  await logsStore.fetchUntilFull(nextPage * prefsStore.pageSize)
+  if ((nextPage - 1) * prefsStore.pageSize < logsStore.filteredLogs.length) {
+    logsStore.currentPage = nextPage
   }
 }
 
-// Trigger re-render cada minuto para que la hora se actualice
-const currentTime = ref(getCurrentTime())
-let timeInterval
+function goPrev() {
+  if (logsStore.currentPage > 1) logsStore.currentPage--
+}
 
-onMounted(() => {
-  timeInterval = setInterval(() => {
-    currentTime.value = getCurrentTime()
-  }, 60000) // Actualizar cada minuto
+// ── Scroll infinite (viewMode === 'scroll') ──────────────────────────
+const sentinel = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
+
+function setupObserver() {
+  observer?.disconnect()
+  if (!sentinel.value) return
+  observer = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting && !logsStore.loading && logsStore.hasMore) {
+        logsStore.fetchUntilFull(logsStore.filteredLogs.length + prefsStore.pageSize)
+      }
+    },
+    { threshold: 0.1 }
+  )
+  observer.observe(sentinel.value)
+}
+
+watch(
+  () => prefsStore.viewMode,
+  (mode) => {
+    if (mode === 'scroll') nextTick(setupObserver)
+    else { observer?.disconnect(); observer = null }
+  },
+  { immediate: true }
+)
+
+watch(sentinel, () => {
+  if (prefsStore.viewMode === 'scroll') nextTick(setupObserver)
 })
 
-onUnmounted(() => {
-  if (timeInterval) clearInterval(timeInterval)
+// ── Watchers ─────────────────────────────────────────────────────────
+watch(() => homesStore.selectedHomeId, () => {
+  logsStore.setDeviceFilter(null)
+  reloadLogsForCurrentContext()
 })
+
+watch(
+  () => devicesStore.loading || roomsStore.loading,
+  (stillLoading) => {
+    if (!stillLoading && !logsStore.loading && logsStore.hasMore) {
+      reloadLogsForCurrentContext({ reset: false })
+    }
+  }
+)
+
+watch(() => prefsStore.pageSize, () => {
+  logsStore.currentPage = 1
+  if (prefsStore.viewMode === 'pagination') {
+    reloadLogsForCurrentContext()
+  }
+})
+
+// ── Lifecycle ─────────────────────────────────────────────────────────
+onMounted(() => { reloadLogsForCurrentContext() })
+onUnmounted(() => { observer?.disconnect() })
 </script>
 
 <style scoped>
-.historial-view {
-  padding: 0;
-}
+.historial-view { padding: 0; }
 
 .historial-header {
   display: flex;
@@ -406,76 +328,75 @@ onUnmounted(() => {
 }
 
 .historial-header__subtitle {
-  margin: 8px 0 0 0;
+  margin: 8px 0 0;
   font-size: 14px;
   color: var(--sh-text-muted);
   font-family: var(--sh-font);
 }
 
-
-.historial-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  padding: 0 24px;
-  margin-bottom: 32px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: white;
-  border: 1px solid var(--sh-border);
-  border-radius: 12px;
-}
-
-.stat-card__icon {
+.refresh-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--sh-border);
   border-radius: 10px;
-  background: var(--icon-bg);
-  color: #7C3AED;
-  font-size: 24px;
+  background: white;
+  color: var(--sh-text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
   flex-shrink: 0;
 }
 
-.stat-card__content {
-  flex: 1;
-}
+.refresh-btn:hover:not(:disabled) { background: #f8fafc; color: var(--sh-primary); }
+.refresh-btn:disabled { opacity: 0.5; cursor: default; }
 
-.stat-card__value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--sh-text-main);
-  font-family: var(--sh-font);
-}
+@keyframes spin { to { transform: rotate(360deg); } }
+.refresh-btn--spinning { animation: spin 0.8s linear infinite; display: inline-block; }
 
-.stat-card__label {
-  font-size: 12px;
-  color: var(--sh-text-muted);
-  margin-top: 2px;
-  font-family: var(--sh-font);
-}
-
-.historial-events {
+.historial-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 0 24px;
 }
 
-.events-date-header {
+.log-skeleton-list {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 28px;
-  margin-bottom: 12px;
-  padding: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 24px;
 }
 
-.events-date-title {
+.log-skeleton-item {
+  height: 68px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.historial-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 64px 24px;
+  text-align: center;
+}
+
+.historial-state__icon { font-size: 48px; color: var(--sh-text-muted); }
+.historial-state__icon--error { color: #EF4444; }
+
+.historial-state__title {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
@@ -483,31 +404,93 @@ onUnmounted(() => {
   font-family: var(--sh-font);
 }
 
-.events-count {
+.historial-state__subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--sh-text-muted);
+  font-family: var(--sh-font);
+}
+
+.state-btn {
+  margin-top: 4px;
+  padding: 8px 20px;
+  border: 1.5px solid var(--sh-primary);
+  border-radius: 8px;
+  background: white;
+  color: var(--sh-primary);
+  font-family: var(--sh-font);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.state-btn:hover { background: var(--sh-primary-light); }
+
+.historial-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border: 1px solid var(--sh-border);
+  border-radius: 8px;
+  background: white;
+  color: var(--sh-text-main);
+  font-family: var(--sh-font);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: var(--sh-primary);
+  color: var(--sh-primary);
+}
+
+.pagination-btn:disabled { opacity: 0.4; cursor: default; }
+
+.pagination-info {
   font-size: 13px;
   color: var(--sh-text-muted);
   font-family: var(--sh-font);
 }
 
-@media (max-width: 768px) {
-  .historial-view {
-    padding: 0;
-  }
+.historial-loading-more {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
 
+.loading-spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--sh-border);
+  border-top-color: var(--sh-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.scroll-sentinel { height: 1px; margin: 0 24px; }
+
+@media (max-width: 768px) {
   .historial-header {
     flex-direction: column;
     padding: 0 16px;
     margin-bottom: 24px;
   }
 
-  .historial-stats {
-    padding: 0 16px;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-
-  .historial-events {
-    padding: 0 16px;
-  }
+  .historial-logs,
+  .log-skeleton-list { padding: 0 16px; }
 }
 </style>
