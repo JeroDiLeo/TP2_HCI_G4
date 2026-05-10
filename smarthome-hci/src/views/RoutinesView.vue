@@ -54,7 +54,12 @@
     </div>
 
     <!-- Routines grid -->
-    <div class="routines-view__grid" role="list" aria-label="Lista de rutinas">
+    <div
+      v-if="filteredRoutines.length > 0"
+      class="routines-view__grid"
+      role="list"
+      aria-label="Lista de rutinas"
+    >
       <div
         v-for="routine in filteredRoutines"
         :key="routine.id"
@@ -70,6 +75,20 @@
           @open-duplicate="handleDuplicateRoutine"
         />
       </div>
+    </div>
+
+    <div v-else class="routines-view__empty" role="status">
+      <v-icon icon="mdi-magnify-remove-outline" size="46" class="routines-view__empty-icon" aria-hidden="true" />
+      <p class="routines-view__empty-title">{{ emptyTitle }}</p>
+      <p class="routines-view__empty-text">{{ emptyText }}</p>
+      <button
+        v-if="hasSearch"
+        type="button"
+        class="routines-view__empty-btn"
+        @click="clearSearch"
+      >
+        Limpiar búsqueda
+      </button>
     </div>
 
     <!-- Snackbar de errores -->
@@ -123,34 +142,53 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, inject } from 'vue'
 import { storeToRefs } from 'pinia'
 import RoutineCard from '@/components/routines/RoutineCard.vue'
 import EditRoutineModal from '@/components/routines/EditRoutineModal.vue'
 import CreateRoutineModal from '@/components/routines/CreateRoutineModal.vue'
 import { useRoutinesStore } from '@/stores/routines'
+import { normalizeSearchText } from '@/utils/dashboardSearch'
 
 const store = useRoutinesStore()
 const { filteredRoutines: storeFilteredRoutines } = storeToRefs(store)
+const layoutSearch = inject('layoutSearchQuery', ref(''))
 
 
 // ── Filter logic ──
 const CATEGORIES = ['Todas', 'Mañana', 'Noche', 'Confort', 'Seguridad', 'Personalizada']
 
 const selectedCategory = ref('Todas')
+const searchQuery = computed(() => layoutSearch.value.trim())
+const normalizedSearchQuery = computed(() => normalizeSearchText(searchQuery.value))
+const hasSearch = computed(() => normalizedSearchQuery.value.length > 0)
+const emptyTitle = computed(() => hasSearch.value ? 'Sin resultados' : 'Sin rutinas')
+const emptyText = computed(() =>
+  hasSearch.value
+    ? `Ninguna rutina coincide con "${searchQuery.value}".`
+    : 'Todavía no hay rutinas para mostrar.'
+)
+
+const searchFilteredRoutines = computed(() => {
+  const q = normalizedSearchQuery.value
+  if (!q) return storeFilteredRoutines.value
+  return storeFilteredRoutines.value.filter(r =>
+    normalizeSearchText(r.name).includes(q),
+  )
+})
 
 const filteredRoutines = computed(() => {
-  if (selectedCategory.value === 'Todas') return storeFilteredRoutines.value
-  return storeFilteredRoutines.value.filter(r => r.category === selectedCategory.value)
+  if (selectedCategory.value === 'Todas') return searchFilteredRoutines.value
+  return searchFilteredRoutines.value.filter(r => r.category === selectedCategory.value)
 })
 
 const categoryCounts = computed(() => ({
-  Todas:         storeFilteredRoutines.value.length,
-  Mañana:        storeFilteredRoutines.value.filter(r => r.category === 'Mañana').length,
-  Noche:         storeFilteredRoutines.value.filter(r => r.category === 'Noche').length,
-  Confort:       storeFilteredRoutines.value.filter(r => r.category === 'Confort').length,
-  Seguridad:     storeFilteredRoutines.value.filter(r => r.category === 'Seguridad').length,
-  Personalizada: storeFilteredRoutines.value.filter(r => r.category === 'Personalizada').length,
+  Todas:         searchFilteredRoutines.value.length,
+  Mañana:        searchFilteredRoutines.value.filter(r => r.category === 'Mañana').length,
+  Noche:         searchFilteredRoutines.value.filter(r => r.category === 'Noche').length,
+  Confort:       searchFilteredRoutines.value.filter(r => r.category === 'Confort').length,
+  Seguridad:     searchFilteredRoutines.value.filter(r => r.category === 'Seguridad').length,
+  Personalizada: searchFilteredRoutines.value.filter(r => r.category === 'Personalizada').length,
 }))
 
 const visibleCategories = computed(() =>
@@ -162,6 +200,10 @@ watch(visibleCategories, (categories) => {
 
   if (!categories.includes(selectedCategory.value)) selectedCategory.value = 'Todas'
 }, { immediate: true })
+
+function clearSearch() {
+  layoutSearch.value = ''
+}
 
 // ── Edit modal ──
 const editingRoutineId = ref(null)
@@ -488,6 +530,69 @@ async function confirmDelete() {
 
 .routines-view__grid > [role="listitem"] > * {
   width: 100%;
+}
+
+.routines-view__empty {
+  min-height: 260px;
+  padding: 48px 24px;
+  border: 1px dashed var(--sh-border);
+  border-radius: 16px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.routines-view__empty-icon {
+  color: var(--sh-text-light);
+}
+
+.routines-view__empty-title {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--sh-text-main);
+}
+
+.routines-view__empty-text {
+  margin: 0;
+  max-width: 360px;
+  font-family: 'Inter', sans-serif;
+  color: var(--sh-text-muted);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.routines-view__empty-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  margin-top: 4px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 9px;
+  background: var(--sh-primary);
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+
+.routines-view__empty-btn:hover {
+  background: var(--sh-primary-dark);
+}
+
+.routines-view__empty-btn:focus-visible {
+  outline: 2px solid var(--sh-primary);
+  outline-offset: 2px;
 }
 
 @media (min-width: 720px) {

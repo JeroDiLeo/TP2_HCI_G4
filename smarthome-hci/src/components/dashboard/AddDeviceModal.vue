@@ -199,14 +199,17 @@
                 <span class="added-item__icon" aria-hidden="true">
                   <v-icon :icon="deviceIcon(inst.type, inst.customIcon)" size="16" />
                 </span>
-                <input
-                  v-model="inst.name"
-                  type="text"
-                  class="added-item__name"
-                  :placeholder="deviceLabel(inst.type)"
-                  maxlength="30"
-                  :aria-label="`Nombre del ${deviceLabel(inst.type)}`"
-                />
+                <span class="added-item__name-wrap">
+                  <input
+                    v-model="inst.name"
+                    type="text"
+                    class="added-item__name"
+                    :placeholder="deviceLabel(inst.type)"
+                    maxlength="30"
+                    :aria-label="`Nombre del ${deviceLabel(inst.type)}`"
+                  />
+                  <v-icon icon="mdi-pencil-outline" size="14" class="added-item__edit-icon" aria-hidden="true" />
+                </span>
                 <span class="added-item__type">{{ deviceLabel(inst.type) }}</span>
                 <button
                   type="button"
@@ -308,21 +311,24 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import type { Room } from '@/types/dashboard'
-import { useDevicesStore } from '@/stores/devices'
-import { resolveTypeId } from '@/utils/deviceMapper'
+
+interface ModalRoom {
+  id: number | string
+  name: string
+  icon: string
+  category: string
+  devices: { id: number | string }[]
+}
 
 const props = defineProps<{
   open: boolean
-  rooms: Room[]
+  rooms: ModalRoom[]
 }>()
-
-const devicesStore = useDevicesStore()
 
 const emit = defineEmits<{
   (e: 'update:open', val: boolean): void
   (e: 'confirm', payload: {
-    targetRoomId: number | null
+    targetRoomId: number | string | null
     newRoom: { name: string; category: string } | null
     devices: { type: string; name: string; customIcon?: string }[]
   }): void
@@ -509,14 +515,13 @@ function prevStep() {
 
 // ── Confirm / close ─────────────────────────────────────────────────────────
 
-function normalizedTargetRoomId(): number | null {
+function normalizedTargetRoomId(): number | string | null {
   if (roomMode.value !== 'existing') return null
 
   const rawRoomId = selectedRoomId.value
   if (rawRoomId === null || rawRoomId === '') return null
 
-  const roomId = typeof rawRoomId === 'number' ? rawRoomId : Number(rawRoomId)
-  return Number.isFinite(roomId) ? roomId : null
+  return rawRoomId
 }
 
 async function handleConfirm() {
@@ -1050,13 +1055,21 @@ watch(() => props.open, (val) => {
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.added-item__name {
+
+.added-item__name-wrap {
   flex: 1;
   min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.added-item__name {
+  width: 100%;
   height: 30px;
   border: 1px solid transparent;
   border-radius: 7px;
-  padding: 0 8px;
+  padding: 0 30px 0 8px;
   background: transparent;
   font-family: var(--sh-font);
   font-size: 13px;
@@ -1070,6 +1083,17 @@ watch(() => props.open, (val) => {
   border-color: var(--sh-primary);
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, .12);
+}
+.added-item__edit-icon {
+  position: absolute;
+  right: 9px;
+  color: var(--sh-text-light);
+  pointer-events: none;
+  transition: color 150ms;
+}
+.added-item__name-wrap:focus-within .added-item__edit-icon,
+.added-item__name-wrap:hover .added-item__edit-icon {
+  color: var(--sh-text-muted);
 }
 .added-item__type {
   font-size: 11px;

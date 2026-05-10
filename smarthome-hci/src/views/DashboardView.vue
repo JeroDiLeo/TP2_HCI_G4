@@ -95,132 +95,145 @@
     </div>
 
     <template v-else>
-      <!-- ── Habitaciones favoritas ── -->
-      <section class="block" aria-labelledby="rooms-heading">
-        <header class="block__header">
-          <div class="block__heading">
-            <h2 id="rooms-heading" class="block__title">Habitaciones favoritas</h2>
-            <p class="block__subtitle">
-              Creá nuevas habitaciones o sumá dispositivos a las que ya tenés.
+      <DashboardSearchResults
+        v-if="hasDashboardSearch"
+        :query="dashboardSearchQuery"
+        :sections="dashboardSearchSections"
+        :total-results="dashboardSearchTotal"
+        :loading="showSearchLoadingState"
+        @clear="clearDashboardSearch"
+        @select="handleSearchSelect"
+        @action="handleSearchAction"
+      />
+
+      <template v-else>
+        <!-- ── Habitaciones favoritas ── -->
+        <section class="block" aria-labelledby="rooms-heading">
+          <header class="block__header">
+            <div class="block__heading">
+              <h2 id="rooms-heading" class="block__title">Habitaciones favoritas</h2>
+              <p class="block__subtitle">
+                Creá nuevas habitaciones o sumá dispositivos a las que ya tenés.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn-add"
+              aria-label="Crear habitación o sumar dispositivos a una existente"
+              title="Crear habitación o agregar dispositivos a una existente"
+              @click="addDeviceOpen = true"
+            >
+              <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
+              Crear habitación
+            </button>
+          </header>
+
+          <!-- Estado B: hay habitaciones pero ninguna favorita -->
+          <div v-if="favoriteRooms.length === 0" class="hint-empty">
+            <span class="hint-empty__icon" aria-hidden="true">
+              <v-icon icon="mdi-star-outline" size="20" />
+            </span>
+            <p class="hint-empty__text">
+              Marcá tus habitaciones más usadas con la
+              <v-icon icon="mdi-star" size="13" class="hint-empty__star" aria-hidden="true" />
+              desde <RouterLink to="/rooms" class="hint-empty__link">Habitaciones</RouterLink>
+              para tenerlas siempre a mano.
             </p>
           </div>
-          <button
-            type="button"
-            class="btn-add"
-            aria-label="Crear habitación o sumar dispositivos a una existente"
-            title="Crear habitación o agregar dispositivos a una existente"
-            @click="addDeviceOpen = true"
-          >
-            <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
-            Crear habitación
-          </button>
-        </header>
 
-        <!-- Estado B: hay habitaciones pero ninguna favorita -->
-        <div v-if="favoriteRooms.length === 0" class="hint-empty">
-          <span class="hint-empty__icon" aria-hidden="true">
-            <v-icon icon="mdi-star-outline" size="20" />
-          </span>
-          <p class="hint-empty__text">
-            Marcá tus habitaciones más usadas con la
-            <v-icon icon="mdi-star" size="13" class="hint-empty__star" aria-hidden="true" />
-            desde <RouterLink to="/rooms" class="hint-empty__link">Habitaciones</RouterLink>
-            para tenerlas siempre a mano.
-          </p>
-        </div>
+          <!-- Estado C: con favoritas -->
+          <div v-else class="rooms-grid">
+            <RoomCard
+              v-for="(room, idx) in favoriteRooms"
+              :key="room.id"
+              :room="room"
+              :style="cardDelay(idx)"
+              @view-details="goToRooms"
+              @toggle-favorite="roomsStore.toggleFavorite($event)"
+            />
+          </div>
+        </section>
 
-        <!-- Estado C: con favoritas -->
-        <div v-else class="rooms-grid">
-          <RoomCard
-            v-for="(room, idx) in favoriteRooms"
-            :key="room.id"
-            :room="room"
-            :style="cardDelay(idx)"
-            @view-details="goToRooms"
-            @toggle-favorite="roomsStore.toggleFavorite($event)"
-          />
-        </div>
-      </section>
+        <!-- ── Rutinas favoritas ── -->
+        <section class="block" aria-labelledby="routines-heading">
+          <header class="block__header">
+            <div class="block__heading">
+              <h2 id="routines-heading" class="block__title">Rutinas favoritas</h2>
+              <p class="block__subtitle">
+                Automatizá las acciones que más usás. Marcá favoritas para verlas acá.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn-add"
+              aria-label="Crear nueva rutina"
+              @click="createRoutineOpen = true"
+            >
+              <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
+              Crear rutina
+            </button>
+          </header>
 
-      <!-- ── Rutinas favoritas ── -->
-      <section class="block" aria-labelledby="routines-heading">
-        <header class="block__header">
-          <div class="block__heading">
-            <h2 id="routines-heading" class="block__title">Rutinas favoritas</h2>
-            <p class="block__subtitle">
-              Automatizá las acciones que más usás. Marcá favoritas para verlas acá.
+          <div v-if="showRoutinesLoadingState" class="routine-empty routine-empty--loading" role="status" aria-live="polite">
+            <v-progress-circular indeterminate color="var(--sh-primary)" size="28" />
+            <p class="routine-empty__loading-text">Cargando rutinas…</p>
+          </div>
+
+          <!-- Estado A: usuario sin rutinas -->
+          <div v-else-if="hasNoRoutines" class="routine-empty">
+            <div class="routine-empty__icon" aria-hidden="true">
+              <v-icon icon="mdi-flash-outline" size="34" />
+            </div>
+            <div class="routine-empty__body">
+              <h3 class="routine-empty__title">Todavía no creaste ninguna rutina</h3>
+              <p class="routine-empty__text">
+                Automatizá acciones frecuentes para ahorrar tiempo y hacer tu hogar más cómodo.
+              </p>
+              <p class="routine-empty__example">Ejemplo: encender luces al atardecer</p>
+              <p class="routine-empty__hint">Usá el botón “Crear rutina” para empezar.</p>
+            </div>
+            <div class="routine-empty__visual" aria-hidden="true">
+              <svg class="routine-illustration" viewBox="0 0 260 120" focusable="false">
+                <path class="routine-illustration__guide" d="M46 60H214" />
+                <circle class="routine-illustration__node routine-illustration__node--trigger" cx="52" cy="60" r="24" />
+                <circle class="routine-illustration__node" cx="130" cy="60" r="20" />
+                <circle class="routine-illustration__node" cx="208" cy="60" r="24" />
+                <path class="routine-illustration__clock" d="M52 48v13l9 6" />
+                <path class="routine-illustration__bolt" d="M130 46l-10 18h10l-6 15l17-22h-10l5-11h-6Z" />
+                <path class="routine-illustration__bulb" d="M198 58a10 10 0 1 1 20 0c0 6-5 8-5 14h-10c0-6-5-8-5-14Z" />
+                <path class="routine-illustration__bulb-base" d="M203 78h10M205 86h6" />
+                <path class="routine-illustration__soft" d="M76 38h28M156 82h26" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Estado B: rutinas sin favoritas -->
+          <div v-else-if="hasRoutinesButNoFavorites" class="hint-empty">
+            <span class="hint-empty__icon" aria-hidden="true">
+              <v-icon icon="mdi-star-outline" size="20" />
+            </span>
+            <p class="hint-empty__text">
+              Marcá tus rutinas favoritas con la
+              <v-icon icon="mdi-star" size="13" class="hint-empty__star" aria-hidden="true" />
+              desde <RouterLink to="/rutinas" class="hint-empty__link">Rutinas</RouterLink>
+              para tenerlas a un click.
             </p>
           </div>
-          <button
-            type="button"
-            class="btn-add"
-            aria-label="Crear nueva rutina"
-            @click="createRoutineOpen = true"
-          >
-            <v-icon icon="mdi-plus" size="18" aria-hidden="true" />
-            Crear rutina
-          </button>
-        </header>
 
-        <div v-if="showRoutinesLoadingState" class="routine-empty routine-empty--loading" role="status" aria-live="polite">
-          <v-progress-circular indeterminate color="var(--sh-primary)" size="28" />
-          <p class="routine-empty__loading-text">Cargando rutinas…</p>
-        </div>
-
-        <!-- Estado A: usuario sin rutinas -->
-        <div v-else-if="hasNoRoutines" class="routine-empty">
-          <div class="routine-empty__icon" aria-hidden="true">
-            <v-icon icon="mdi-flash-outline" size="34" />
+          <!-- Estado C: con favoritas -->
+          <div v-else class="routines-grid" role="list">
+            <RoutineCard
+              v-for="routine in favoriteRoutines"
+              :key="routine.id"
+              :routine="routine"
+              role="listitem"
+              @execute="routinesStore.executeRoutine($event)"
+              @edit="handleEditRoutine"
+              @toggle-favorite="routinesStore.toggleFavorite($event)"
+            />
           </div>
-          <div class="routine-empty__body">
-            <h3 class="routine-empty__title">Todavía no creaste ninguna rutina</h3>
-            <p class="routine-empty__text">
-              Automatizá acciones frecuentes para ahorrar tiempo y hacer tu hogar más cómodo.
-            </p>
-            <p class="routine-empty__example">Ejemplo: encender luces al atardecer</p>
-            <p class="routine-empty__hint">Usá el botón “Crear rutina” para empezar.</p>
-          </div>
-          <div class="routine-empty__visual" aria-hidden="true">
-            <svg class="routine-illustration" viewBox="0 0 260 120" focusable="false">
-              <path class="routine-illustration__guide" d="M46 60H214" />
-              <circle class="routine-illustration__node routine-illustration__node--trigger" cx="52" cy="60" r="24" />
-              <circle class="routine-illustration__node" cx="130" cy="60" r="20" />
-              <circle class="routine-illustration__node" cx="208" cy="60" r="24" />
-              <path class="routine-illustration__clock" d="M52 48v13l9 6" />
-              <path class="routine-illustration__bolt" d="M130 46l-10 18h10l-6 15l17-22h-10l5-11h-6Z" />
-              <path class="routine-illustration__bulb" d="M198 58a10 10 0 1 1 20 0c0 6-5 8-5 14h-10c0-6-5-8-5-14Z" />
-              <path class="routine-illustration__bulb-base" d="M203 78h10M205 86h6" />
-              <path class="routine-illustration__soft" d="M76 38h28M156 82h26" />
-            </svg>
-          </div>
-        </div>
-
-        <!-- Estado B: rutinas sin favoritas -->
-        <div v-else-if="hasRoutinesButNoFavorites" class="hint-empty">
-          <span class="hint-empty__icon" aria-hidden="true">
-            <v-icon icon="mdi-star-outline" size="20" />
-          </span>
-          <p class="hint-empty__text">
-            Marcá tus rutinas favoritas con la
-            <v-icon icon="mdi-star" size="13" class="hint-empty__star" aria-hidden="true" />
-            desde <RouterLink to="/rutinas" class="hint-empty__link">Rutinas</RouterLink>
-            para tenerlas a un click.
-          </p>
-        </div>
-
-        <!-- Estado C: con favoritas -->
-        <div v-else class="routines-grid" role="list">
-          <RoutineCard
-            v-for="routine in favoriteRoutines"
-            :key="routine.id"
-            :routine="routine"
-            role="listitem"
-            @execute="routinesStore.executeRoutine($event)"
-            @edit="handleEditRoutine"
-            @toggle-favorite="routinesStore.toggleFavorite($event)"
-          />
-        </div>
-      </section>
+        </section>
+      </template>
     </template>
 
     <!-- ── Modales ── -->
@@ -246,7 +259,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, inject } from 'vue'
+import type { Ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRoomsStore } from '@/stores/rooms'
@@ -256,30 +270,107 @@ import RoomCard from '@/components/rooms/RoomCard.vue'
 import RoutineCard from '@/components/routines/RoutineCard.vue'
 import AddRoomModal from '@/components/rooms/AddRoomModal.vue'
 import AddDeviceModal from '@/components/dashboard/AddDeviceModal.vue'
+import DashboardSearchResults from '@/components/dashboard/DashboardSearchResults.vue'
 import CreateRoutineModal from '@/components/routines/CreateRoutineModal.vue'
 import EditRoutineModal from '@/components/routines/EditRoutineModal.vue'
+import { getDeviceIcon } from '@/utils/deviceIcons.js'
+import type { Room } from '@/stores/rooms'
+import type { RoomDevice } from '@/types/rooms'
+import type { FrontRoutine } from '@/utils/routineMapper'
+import {
+  deviceSearchFields,
+  formatDeviceState,
+  formatRoutineActionCount,
+  formatRoutineTrigger,
+  getDeviceTypeLabel,
+  getRoomActivityLabel,
+  getRoomTypeLabel,
+  matchesQuery,
+  roomSearchFields,
+  routineSearchFields,
+  type DashboardSearchItem,
+  type DashboardSearchSection,
+} from '@/utils/dashboardSearch'
 
 const auth          = useAuthStore()
 const roomsStore    = useRoomsStore()
 const routinesStore = useRoutinesStore()
 const devicesStore  = useDevicesStore()
 const router        = useRouter()
+const layoutSearch  = inject<Ref<string>>('layoutSearchQuery', ref(''))
 
 // ── Reactive views ──
 const rooms            = computed(() => roomsStore.rooms)
 const routines         = computed(() => routinesStore.filteredRoutines)
 const favoriteRooms    = computed(() => roomsStore.favoriteRooms)
 const favoriteRoutines = computed(() => routinesStore.favoriteRoutines)
+const dashboardSearchQuery = computed(() => layoutSearch.value.trim())
+const hasDashboardSearch = computed(() => dashboardSearchQuery.value.length > 0)
 const showRoomsLoadingState = computed(() => !roomsStore.roomsLoaded || roomsStore.loading)
 const showInitialHomeEmptyState = computed(() =>
   roomsStore.roomsLoaded && !roomsStore.loading && rooms.value.length === 0
 )
 const showRoutinesLoadingState = computed(() => routinesStore.loading)
+const showSearchLoadingState = computed(() =>
+  roomsStore.loading || devicesStore.loading || routinesStore.loading
+)
 const hasNoRoutines = computed(() =>
   !showRoutinesLoadingState.value && routines.value.length === 0
 )
 const hasRoutinesButNoFavorites = computed(() =>
   !showRoutinesLoadingState.value && routines.value.length > 0 && favoriteRoutines.value.length === 0
+)
+
+// ── Search ──
+const executingRoutineId = ref<string | null>(null)
+
+const matchingDevices = computed(() => {
+  if (!hasDashboardSearch.value) return []
+  return devicesStore.devicesForActiveHome.filter((device: RoomDevice) =>
+    matchesQuery(dashboardSearchQuery.value, deviceSearchFields(device)),
+  )
+})
+
+const matchingRooms = computed(() => {
+  if (!hasDashboardSearch.value) return []
+  return rooms.value.filter((room: Room) =>
+    matchesQuery(dashboardSearchQuery.value, roomSearchFields(room)),
+  )
+})
+
+const matchingRoutines = computed(() => {
+  if (!hasDashboardSearch.value) return []
+  return routines.value.filter((routine: FrontRoutine) =>
+    matchesQuery(
+      dashboardSearchQuery.value,
+      routineSearchFields(routine, routineActionDeviceName),
+    ),
+  )
+})
+
+const dashboardSearchSections = computed<DashboardSearchSection[]>(() => [
+  {
+    id: 'device',
+    title: 'Dispositivos',
+    icon: 'mdi-devices',
+    items: matchingDevices.value.map(toDeviceSearchItem),
+  },
+  {
+    id: 'room',
+    title: 'Habitaciones',
+    icon: 'mdi-door',
+    items: matchingRooms.value.map(toRoomSearchItem),
+  },
+  {
+    id: 'routine',
+    title: 'Rutinas',
+    icon: 'mdi-flash-outline',
+    items: matchingRoutines.value.map(toRoutineSearchItem),
+  },
+])
+
+const dashboardSearchTotal = computed(() =>
+  dashboardSearchSections.value.reduce((total, section) => total + section.items.length, 0),
 )
 
 // ── Stats ──
@@ -312,7 +403,7 @@ const modalRooms = computed(() =>
     type?: string
     devicesTotal?: number
   }) => ({
-    id:       Number(r.id),
+    id:       r.id,
     name:     r.name,
     icon:     ROOM_TYPE_ICONS[r.type ?? 'other'] ?? 'mdi-home-variant',
     category: r.type ?? 'other',
@@ -329,7 +420,7 @@ const TYPE_FROM_CATEGORY: Record<string, string> = {
 }
 
 async function handleAddDevice(payload: {
-  targetRoomId: number | null
+  targetRoomId: number | string | null
   newRoom:      { name: string; category: string } | null
   devices:      { type: string; name: string; customIcon?: string }[]
 }) {
@@ -361,6 +452,91 @@ async function handleAddDevice(payload: {
 function handleEditRoutine(id: string) {
   editingRoutineId.value = id
   editRoutineOpen.value = true
+}
+
+function routineActionDeviceName(deviceId: string) {
+  return devicesStore.getDeviceById(String(deviceId))?.name ?? ''
+}
+
+function toDeviceSearchItem(device: RoomDevice): DashboardSearchItem {
+  return {
+    kind: 'device',
+    id: String(device.id),
+    title: device.name,
+    icon: getDeviceIcon(device.type),
+    eyebrow: getDeviceTypeLabel(device.type),
+    meta: device.roomName ? `En ${device.roomName}` : 'Sin habitación',
+    detail: formatDeviceState(device),
+    targetRoomId: String(device.roomId),
+  }
+}
+
+function toRoomSearchItem(room: Room): DashboardSearchItem {
+  const total = room.devicesTotal ?? 0
+  const favorite = !!room.favorite
+
+  return {
+    kind: 'room',
+    id: String(room.id),
+    title: room.name,
+    icon: ROOM_TYPE_ICONS[room.type ?? 'other'] ?? 'mdi-home-variant',
+    eyebrow: getRoomTypeLabel(room.type),
+    meta: getRoomActivityLabel(room),
+    detail: total === 0 ? 'Lista para sumar dispositivos' : `${total} dispositivo${total === 1 ? '' : 's'} vinculados`,
+    favorite,
+    targetRoomId: String(room.id),
+  }
+}
+
+function toRoutineSearchItem(routine: FrontRoutine): DashboardSearchItem {
+  const isExecuting = executingRoutineId.value === routine.id
+
+  return {
+    kind: 'routine',
+    id: routine.id,
+    title: routine.name,
+    icon: routine.icon,
+    eyebrow: routine.category,
+    meta: formatRoutineTrigger(routine),
+    detail: routine.description
+      ? `${formatRoutineActionCount(routine)} · ${routine.description}`
+      : formatRoutineActionCount(routine),
+    favorite: routine.favorite,
+    actionLabel: isExecuting ? 'Ejecutando' : 'Ejecutar',
+    actionLoading: isExecuting,
+  }
+}
+
+function clearDashboardSearch() {
+  layoutSearch.value = ''
+}
+
+function handleSearchSelect(item: DashboardSearchItem) {
+  if (item.kind === 'routine') {
+    handleEditRoutine(item.id)
+    return
+  }
+
+  const roomId = item.targetRoomId ?? item.id
+  const routeLocation = {
+    name: 'room-detail',
+    params: { roomId },
+    ...(item.kind === 'device' ? { query: { deviceId: item.id } } : {}),
+  }
+  router.push(routeLocation)
+}
+
+async function handleSearchAction(item: DashboardSearchItem) {
+  if (item.kind !== 'routine' || executingRoutineId.value) return
+
+  executingRoutineId.value = item.id
+  try {
+    await routinesStore.executeRoutine(item.id)
+  } catch (err) {
+    console.error(`Error al ejecutar rutina "${item.title}":`, err)
+  } finally {
+    executingRoutineId.value = null
+  }
 }
 
 function onEditRoutineOpenChange(val: boolean) {
