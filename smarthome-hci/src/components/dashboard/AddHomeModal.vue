@@ -124,7 +124,7 @@
             :style="staggerStyle(1)"
           >
             <label for="home-name" class="field__label">
-              Nombre del hogar
+              Nombre
               <span class="field__required" aria-hidden="true">*</span>
             </label>
             <input

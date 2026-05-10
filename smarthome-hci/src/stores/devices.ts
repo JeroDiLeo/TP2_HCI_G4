@@ -48,13 +48,34 @@ function mapDevice(apiDevice: ApiDevice): RoomDevice {
   return fromApi(apiDevice, roomName)
 }
 
+function preserveVacuumPauseState(
+  mapped: RoomDevice,
+  actionName?: string,
+): RoomDevice {
+  if (
+    actionName !== 'pause' ||
+    mapped.type !== 'vacuum' ||
+    mapped.vacuumStatus !== 'apagada'
+  ) {
+    return mapped
+  }
+
+  return {
+    ...mapped,
+    active: true,
+    vacuumStatus: 'pausada',
+  }
+}
+
 
 export const useDevicesStore = defineStore('devices', () => {
   const devices = ref<RoomDevice[]>([])
   const loading = ref(false)
+  const loaded = ref(false)
   const error = ref<string | null>(null)
   const actionLoadingById = ref<Record<string, boolean>>({})
   const actionErrorById = ref<Record<string, string | null>>({})
+  let fetchAllPromise: Promise<void> | null = null
 
   // ── Computed ────────────────────────────────────────────────────────
 
@@ -86,17 +107,26 @@ export const useDevicesStore = defineStore('devices', () => {
 
   // ── Fetch ──────────────────────────────────────────────────────────
 
-  async function fetchAll() {
-    loading.value = true
-    error.value = null
-    try {
-      const data = await getAllDevices()
-      devices.value = extractList(data).map(d => mapDevice(d as ApiDevice))
-    } catch (err: any) {
-      error.value = err.message || 'Error al cargar los dispositivos'
-    } finally {
-      loading.value = false
-    }
+  async function fetchAll(force = false) {
+    if (!force && loaded.value) return
+    if (fetchAllPromise) return fetchAllPromise
+
+    fetchAllPromise = (async () => {
+      loading.value = true
+      error.value = null
+      try {
+        const data = await getAllDevices()
+        devices.value = extractList(data).map(d => mapDevice(d as ApiDevice))
+        loaded.value = true
+      } catch (err: any) {
+        error.value = err.message || 'Error al cargar los dispositivos'
+      } finally {
+        loading.value = false
+        fetchAllPromise = null
+      }
+    })()
+
+    return fetchAllPromise
   }
 
   async function fetchByRoom(roomId: string) {
@@ -108,6 +138,7 @@ export const useDevicesStore = defineStore('devices', () => {
       // Reemplaza solo los devices de esa room en el array local
       const otherDevices = devices.value.filter(d => String(d.roomId) !== String(roomId))
       devices.value = [...otherDevices, ...fetched]
+      loaded.value = true
     } catch (err: any) {
       error.value = err.message || 'Error al cargar los dispositivos de la habitación'
     } finally {
@@ -129,6 +160,7 @@ export const useDevicesStore = defineStore('devices', () => {
       }
       const mapped = mapDevice(apiDevice)
       devices.value.push(mapped)
+      loaded.value = true
       return mapped
     } catch (err: any) {
       error.value = err.message || 'Error al crear el dispositivo'
@@ -147,6 +179,7 @@ export const useDevicesStore = defineStore('devices', () => {
       const mapped = mapDevice(extractOne(response) as ApiDevice)
       const idx = devices.value.findIndex(d => String(d.id) === id)
       if (idx !== -1) devices.value.splice(idx, 1, mapped)
+      loaded.value = true
       return mapped
     } catch (err: any) {
       error.value = err.message || 'Error al actualizar el dispositivo'
@@ -159,6 +192,7 @@ export const useDevicesStore = defineStore('devices', () => {
     try {
       await apiDeleteDevice(id)
       devices.value = devices.value.filter(d => String(d.id) !== id)
+      loaded.value = true
     } catch (err: any) {
       error.value = err.message || 'Error al eliminar el dispositivo'
       throw err
@@ -178,7 +212,7 @@ export const useDevicesStore = defineStore('devices', () => {
     try {
       await apiExecuteAction(id, actionName, params)
       // Después de ejecutar la acción, refrescamos el state del device
-      await refreshDeviceState(id)
+      await refreshDeviceState(id, actionName)
     } catch (err: any) {
       const message = err.message || 'Error al ejecutar la acción'
       error.value = message
@@ -189,9 +223,12 @@ export const useDevicesStore = defineStore('devices', () => {
     }
   }
 
-  async function refreshDeviceState(deviceId: string) {
+  async function refreshDeviceState(deviceId: string, actionName?: string) {
     const data = await apiGetDevice(deviceId)
-    const mapped = mapDevice(extractOne(data) as ApiDevice)
+    const mapped = preserveVacuumPauseState(
+      mapDevice(extractOne(data) as ApiDevice),
+      actionName,
+    )
     const idx = devices.value.findIndex(d => String(d.id) === String(deviceId))
     if (idx !== -1) devices.value.splice(idx, 1, mapped)
   }
@@ -200,6 +237,13 @@ export const useDevicesStore = defineStore('devices', () => {
 
   function getDeviceById(id: string): RoomDevice | undefined {
     return devices.value.find(d => String(d.id) === id)
+  }
+
+  function refreshRoomNames() {
+    devices.value = devices.value.map(device => ({
+      ...device,
+      roomName: resolveRoomName(String(device.roomId)) || device.roomName,
+    }))
   }
 
   function isActionLoading(deviceId: string): boolean {
@@ -226,6 +270,7 @@ export const useDevicesStore = defineStore('devices', () => {
 
   function clear() {
     devices.value = []
+    loaded.value = false
     error.value = null
     actionLoadingById.value = {}
     actionErrorById.value = {}
@@ -234,6 +279,7 @@ export const useDevicesStore = defineStore('devices', () => {
   return {
     devices,
     loading,
+    loaded,
     error,
     actionLoadingById,
     actionErrorById,
@@ -249,6 +295,7 @@ export const useDevicesStore = defineStore('devices', () => {
     executeAction,
     refreshDeviceState,
     getDeviceById,
+    refreshRoomNames,
     isActionLoading,
     getActionError,
     setActionError,

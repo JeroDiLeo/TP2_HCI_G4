@@ -147,7 +147,7 @@
         :room-id="roomId"
         :room-name="room.name"
         :room-icon="roomIcon"
-        @added="devicesStore.fetchAll()"
+        @added="devicesStore.fetchAll(true)"
       />
 
       <!-- Modal: editar dispositivo -->

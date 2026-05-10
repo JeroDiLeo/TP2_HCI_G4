@@ -163,7 +163,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useHomesStore } from '@/stores/homes'
@@ -212,12 +212,6 @@ function goToHome(homeId) {
   if (typeof homes.selectHome === 'function') homes.selectHome(homeId)
   router.push({ name: 'home-detail', params: { homeId } })
 }
-
-onMounted(() => {
-  if (homes.homes.length === 0 && typeof homes.fetchHomes === 'function') {
-    homes.fetchHomes()
-  }
-})
 
 // ── Click outside ──
 function onDocClick(e) {

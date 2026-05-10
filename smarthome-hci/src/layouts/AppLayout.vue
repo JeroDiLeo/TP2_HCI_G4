@@ -36,17 +36,43 @@ const devicesStore = useDevicesStore()
 const routinesStore = useRoutinesStore()
 let initializing = true
 
-async function loadActiveHomeData(homeId) {
+function dataNeedsForRoute(routeName) {
+  switch (routeName) {
+    case 'dashboard':
+    case 'home-detail':
+    case 'devices':
+      return { rooms: true, devices: true, routines: true }
+    case 'rooms':
+    case 'room-detail':
+    case 'historial':
+      return { rooms: true, devices: true, routines: false }
+    case 'rutinas':
+      return { rooms: true, devices: true, routines: true }
+    default:
+      return { rooms: false, devices: false, routines: false }
+  }
+}
+
+async function loadActiveHomeData(homeId, routeName = route.name) {
   if (!homeId) {
     roomsStore.clearRooms()
     return
   }
 
+  const needs = dataNeedsForRoute(routeName)
+  if (needs.rooms) {
+    await roomsStore.fetchRoomsByHome(homeId)
+    devicesStore.refreshRoomNames()
+  }
+
   await Promise.all([
-    roomsStore.fetchRoomsByHome(homeId),
-    devicesStore.fetchAll(),
-    routinesStore.fetchRoutines(),
+    needs.devices ? devicesStore.fetchAll() : Promise.resolve(),
+    needs.routines ? routinesStore.fetchRoutines() : Promise.resolve(),
   ])
+
+  if (needs.rooms && needs.devices) {
+    devicesStore.refreshRoomNames()
+  }
 }
 
 onMounted(async () => {
@@ -54,7 +80,7 @@ onMounted(async () => {
 
   // Cargar homes si no están cargados
   if (homesStore.homes.length === 0) {
-    await homesStore.fetchHomes()
+    await homesStore.fetchHomesBasic()
   }
 
   const routeHomeId = typeof route.params.homeId === 'string'
@@ -97,8 +123,11 @@ function toggleSidebar() {
   localStorage.setItem(SIDEBAR_STATE_KEY, String(sidebarExpanded.value))
 }
 
-// Reset search when navigating between views
-watch(() => route.name, () => { searchQuery.value = '' })
+watch(() => route.name, (routeName) => {
+  searchQuery.value = ''
+  if (initializing) return
+  loadActiveHomeData(homesStore.selectedHomeId, routeName)
+})
 
 watch(
   () => homesStore.selectedHomeId,

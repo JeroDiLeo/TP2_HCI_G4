@@ -169,7 +169,7 @@
         <!-- Nombre -->
         <div class="field">
           <label for="edit-home-name" class="field__label">
-            Nombre del hogar
+            Nombre
             <span class="field__required" aria-hidden="true">*</span>
           </label>
           <input
@@ -319,20 +319,22 @@ const typeOptions = [
   { value: 'otro',         label: 'Otro',         icon: 'mdi-dots-horizontal'          },
 ]
 
-// Ownership: prefer the store value; fall back to the shared users list for older data.
+// Ownership: only expose admin actions after the store confirms the user owns the home.
 const isOwner = computed(() => {
   if (typeof props.home.isOwner === 'boolean') return props.home.isOwner
   if (props.home.sharedByName) return false
 
   const sharedWith = props.home.sharedWith || []
   const currentEmail = authStore.user?.email || authStore.email
-  if (!currentEmail) return true
-  return !sharedWith.some((u: any) => u.email?.toLowerCase() === currentEmail.toLowerCase())
+  if (!currentEmail) return false
+  if (sharedWith.some((u: any) => u.email?.toLowerCase() === currentEmail.toLowerCase())) return false
+
+  return false
 })
 
 const sharedByText = computed(() => {
   if (props.home.sharedByName) return `Compartido por ${props.home.sharedByName}`
-  if (!isOwner.value) return 'Hogar compartido'
+  if (props.home.isOwner === false) return 'Hogar compartido'
   return ''
 })
 

@@ -21,7 +21,10 @@ export const useRoomsStore = defineStore('rooms', () => {
   const categoryFilter = ref<string>('todas')
   const loading = ref(false)
   const roomsLoaded = ref(false)
+  const loadedHomeId = ref<string | null>(null)
   const error = ref<string | null>(null)
+  let fetchRoomsPromise: Promise<void> | null = null
+  let fetchRoomsHomeId: string | null = null
 
   const roomsWithStats = computed<Room[]>(() =>
     rooms.value.map(r => {
@@ -82,6 +85,7 @@ export const useRoomsStore = defineStore('rooms', () => {
     }
     rooms.value.push(created)
     roomsLoaded.value = true
+    loadedHomeId.value = homeId
     return created
   }
 
@@ -110,32 +114,47 @@ export const useRoomsStore = defineStore('rooms', () => {
     if (room) room.favorite = !room.favorite
   }
 
-  async function fetchRoomsByHome(homeId: string) {
-    loading.value = true
-    roomsLoaded.value = false
-    error.value = null
-    try {
-      const data = await getRoomsByHome(homeId)
-      const list = Array.isArray(data) ? data : (data?.result ?? [])
-      rooms.value = list.map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        type: r.metadata?.type ?? 'other',
-        favorite: r.metadata?.favorite === true,
-        home: r.home,
-        metadata: r.metadata,
-      }))
-    } catch (err: unknown) {
-      error.value = (err as Error).message ?? 'Error al cargar las habitaciones'
-    } finally {
-      loading.value = false
-      roomsLoaded.value = true
+  async function fetchRoomsByHome(homeId: string, force = false) {
+    if (!force && roomsLoaded.value && loadedHomeId.value === homeId) return
+    if (fetchRoomsPromise) {
+      if (fetchRoomsHomeId === homeId) return fetchRoomsPromise
+      await fetchRoomsPromise
     }
+
+    fetchRoomsHomeId = homeId
+    fetchRoomsPromise = (async () => {
+      loading.value = true
+      roomsLoaded.value = false
+      error.value = null
+      try {
+        const data = await getRoomsByHome(homeId)
+        const list = Array.isArray(data) ? data : (data?.result ?? [])
+        rooms.value = list.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          type: r.metadata?.type ?? 'other',
+          favorite: r.metadata?.favorite === true,
+          home: r.home,
+          metadata: r.metadata,
+        }))
+        loadedHomeId.value = homeId
+      } catch (err: unknown) {
+        error.value = (err as Error).message ?? 'Error al cargar las habitaciones'
+      } finally {
+        loading.value = false
+        roomsLoaded.value = true
+        fetchRoomsPromise = null
+        fetchRoomsHomeId = null
+      }
+    })()
+
+    return fetchRoomsPromise
   }
 
   function clearRooms() {
     rooms.value = []
     roomsLoaded.value = true
+    loadedHomeId.value = null
     error.value = null
   }
 

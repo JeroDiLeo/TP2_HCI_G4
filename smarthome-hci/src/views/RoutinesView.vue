@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import RoutineCard from '@/components/routines/RoutineCard.vue'
 import EditRoutineModal from '@/components/routines/EditRoutineModal.vue'
@@ -131,7 +131,6 @@ import { useRoutinesStore } from '@/stores/routines'
 const store = useRoutinesStore()
 const { filteredRoutines: storeFilteredRoutines } = storeToRefs(store)
 
-onMounted(() => store.fetchRoutines())
 
 // ── Filter logic ──
 const CATEGORIES = ['Todas', 'Mañana', 'Noche', 'Confort', 'Seguridad', 'Personalizada']

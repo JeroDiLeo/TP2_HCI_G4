@@ -9,6 +9,7 @@ import {
 } from '@/services/api/routineApi'
 import { fromApi, toApi, type FrontRoutine, type FrontRoutineAction } from '@/utils/routineMapper'
 import { useHomesStore } from '@/stores/homes'
+import { useDevicesStore } from '@/stores/devices'
 
 export type { FrontRoutineAction }
 export type Routine = FrontRoutine
@@ -91,7 +92,9 @@ function extractOne(data: unknown): unknown {
 export const useRoutinesStore = defineStore('routines', () => {
   const routines = ref<FrontRoutine[]>([])
   const loading = ref(false)
+  const loaded = ref(false)
   const error = ref<string | null>(null)
+  let fetchRoutinesPromise: Promise<void> | null = null
 
   const filteredRoutines = computed(() => {
     const homesStore = useHomesStore()
@@ -104,17 +107,26 @@ export const useRoutinesStore = defineStore('routines', () => {
     filteredRoutines.value.filter(r => r.favorite),
   )
 
-  async function fetchRoutines() {
-    loading.value = true
-    error.value = null
-    try {
-      const data = await getAllRoutines()
-      routines.value = extractList(data).map(r => fromApi(r as any))
-    } catch (err: any) {
-      error.value = err.message || 'Error al cargar las rutinas'
-    } finally {
-      loading.value = false
-    }
+  async function fetchRoutines(force = false) {
+    if (!force && loaded.value) return
+    if (fetchRoutinesPromise) return fetchRoutinesPromise
+
+    fetchRoutinesPromise = (async () => {
+      loading.value = true
+      error.value = null
+      try {
+        const data = await getAllRoutines()
+        routines.value = extractList(data).map(r => fromApi(r as any))
+        loaded.value = true
+      } catch (err: any) {
+        error.value = err.message || 'Error al cargar las rutinas'
+      } finally {
+        loading.value = false
+        fetchRoutinesPromise = null
+      }
+    })()
+
+    return fetchRoutinesPromise
   }
 
   async function addRoutine(data: Omit<FrontRoutine, 'id'>) {
@@ -129,6 +141,7 @@ export const useRoutinesStore = defineStore('routines', () => {
       const response = await apiAddRoutine(payload)
       const mapped = fromApi(extractOne(response) as any)
       routines.value.push(mapped)
+      loaded.value = true
       return mapped
     } catch (err: any) {
       error.value = err.message || 'Error al crear la rutina'
@@ -146,6 +159,7 @@ export const useRoutinesStore = defineStore('routines', () => {
       const response = await apiUpdateRoutine(id, payload)
       const mapped = fromApi(extractOne(response) as any)
       routines.value.splice(idx, 1, mapped)
+      loaded.value = true
       return mapped
     } catch (err: any) {
       error.value = err.message || 'Error al actualizar la rutina'
@@ -159,6 +173,7 @@ export const useRoutinesStore = defineStore('routines', () => {
     routines.value = routines.value.filter(r => r.id !== id)
     try {
       await apiDeleteRoutine(id)
+      loaded.value = true
     } catch (err: any) {
       routines.value = prev
       error.value = err.message || 'Error al eliminar la rutina'
@@ -169,7 +184,21 @@ export const useRoutinesStore = defineStore('routines', () => {
   async function executeRoutine(id: string) {
     error.value = null
     try {
-      return await apiExecuteRoutine(id)
+      const result = await apiExecuteRoutine(id)
+
+      // Leer el nuevo estado de cada device afectado (sin re-ejecutar acciones)
+      const routine = routines.value.find(r => r.id === id)
+      if (routine?.actions.length) {
+        const devicesStore = useDevicesStore()
+        const uniqueDeviceIds = [...new Set(routine.actions.map(a => a.device.id))]
+        await Promise.all(
+          uniqueDeviceIds.map(deviceId =>
+            devicesStore.refreshDeviceState(deviceId).catch(() => {}),
+          ),
+        )
+      }
+
+      return result
     } catch (err: any) {
       error.value = err.message || 'Error al ejecutar la rutina'
       throw err
@@ -192,6 +221,7 @@ export const useRoutinesStore = defineStore('routines', () => {
   return {
     routines,
     loading,
+    loaded,
     error,
     filteredRoutines,
     favoriteRoutines,

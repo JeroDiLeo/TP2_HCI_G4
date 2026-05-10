@@ -27,7 +27,7 @@
       </section>
 
       <!-- Loading -->
-      <div v-if="homesStore.loading" class="homes-view__loading">
+      <div v-if="isHomesLoading" class="homes-view__loading">
         <v-progress-circular indeterminate color="#6366f1" size="48" />
       </div>
 
@@ -42,10 +42,10 @@
       </v-snackbar>
 
       <!-- Empty state vs grid + stats -->
-      <template v-if="!homesStore.loading && homesStore.homes.length === 0">
+      <template v-if="!isHomesLoading && homesStore.homes.length === 0">
         <EmptyHomesState class="homes-view__empty" @add="openAddDialog" />
       </template>
-      <template v-if="!homesStore.loading && homesStore.homes.length > 0">
+      <template v-if="!isHomesLoading && homesStore.homes.length > 0">
         <HomesGrid
           class="homes-view__grid"
           :homes="filteredHomes"
@@ -74,9 +74,11 @@ const homesStore = useHomesStore()
 const searchQuery = ref('')
 const addDialog = ref(false)
 const showError = ref(false)
+const isHomesLoading = computed(() => homesStore.loading || homesStore.shareLoading)
 
-onMounted(() => {
-  homesStore.fetchHomes()
+onMounted(async () => {
+  await homesStore.fetchHomes()
+  await homesStore.fetchHomeCounts()
 })
 
 watch(() => homesStore.error, (val) => {

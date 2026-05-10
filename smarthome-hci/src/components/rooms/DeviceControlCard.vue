@@ -6,6 +6,7 @@
       'dcc--busy': isExecuting,
       'dcc--error': !!actionError,
       'dcc--edit': editMode,
+      'dcc--vacuum': device.type === 'vacuum',
     }"
     :aria-label="`${device.name}, ${d.active ? 'activo' : 'inactivo'}`"
     :aria-busy="isExecuting ? 'true' : 'false'"
@@ -223,23 +224,27 @@
          VACUUM
     ══════════════════════════════════════════════ -->
     <template v-else-if="device.type === 'vacuum'">
-      <div class="dcc__status-panel">
+      <div class="dcc__status-panel dcc__vacuum-status">
         <div class="dcc__stat-col">
           <span class="dcc__badge" :class="{
             'dcc__badge--on':   d.vacuumStatus === 'encendida',
             'dcc__badge--warn': d.vacuumStatus === 'pausada',
             'dcc__badge--off':  d.vacuumStatus === 'apagada',
-          }">{{ d.vacuumStatus }}</span>
+          }">{{ vacuumStatusLabel }}</span>
+          <span class="dcc__panel-meta">{{ vacuumStatusMessage }}</span>
         </div>
       </div>
 
       <div class="dcc__section">
         <span class="dcc__section-label">MODO</span>
         <div class="dcc__segment" role="group" aria-label="Modo aspiradora">
-          <button v-for="m in ['aspirar','trapear']" :key="m" type="button" class="dcc__seg-btn"
-            :class="{ 'dcc__seg-btn--active': d.vacuumMode === m }"
+          <button v-for="m in VACUUM_MODES" :key="m.value" type="button" class="dcc__seg-btn"
+            :class="{ 'dcc__seg-btn--active': d.vacuumMode === m.value }"
             :disabled="!d.active"
-            @click="action('setMode', [VACUUM_MODE_FRONT_TO_API[m] ?? m])">{{ m }}</button>
+            @click="action('setMode', [VACUUM_MODE_FRONT_TO_API[m.value] ?? m.value])">
+            <v-icon :icon="m.icon" size="14" aria-hidden="true" />
+            {{ m.label }}
+          </button>
         </div>
       </div>
 
@@ -247,28 +252,60 @@
         <span class="dcc__section-label">HABITACIÓN OBJETIVO</span>
         <v-select
           v-model="vacuumTargetRoom"
+          class="dcc__vacuum-select"
           :items="activeRooms"
           item-title="name"
           item-value="id"
           density="compact"
           hide-details
+          variant="outlined"
           placeholder="Seleccioná una habitación"
           aria-label="Habitación objetivo para la aspiradora"
+          :menu-props="{ contentClass: 'dcc-vacuum-menu' }"
           @update:model-value="v => { if (v) action('setLocation', [v]) }"
-        />
+        >
+          <template #selection="{ item }">
+            <span class="dcc__vacuum-selection">
+              <v-icon :icon="roomIcon(selectItemRoom(item))" size="16" aria-hidden="true" />
+              <span>{{ selectItemRoom(item).name }}</span>
+            </span>
+          </template>
+          <template #item="{ props: itemProps, item }">
+            <v-list-item v-bind="itemProps" class="dcc-vacuum-menu__item">
+              <template #prepend>
+                <span class="dcc-vacuum-menu__thumb" aria-hidden="true">
+                  <v-icon :icon="roomIcon(selectItemRoom(item))" size="18" />
+                </span>
+              </template>
+              <template #append>
+                <v-icon
+                  v-if="String(selectItemRoom(item).id) === String(vacuumTargetRoom)"
+                  icon="mdi-check"
+                  size="16"
+                  class="dcc-vacuum-menu__check"
+                  aria-hidden="true"
+                />
+              </template>
+            </v-list-item>
+          </template>
+        </v-select>
       </div>
 
       <div class="dcc__section dcc__section--actions">
-        <button v-if="d.vacuumStatus === 'encendida'" type="button" class="dcc__action-btn"
+        <button v-if="d.vacuumStatus === 'encendida'" type="button" class="dcc__action-btn dcc__vacuum-primary"
           :disabled="!d.active"
           @click="action('pause')">
           <v-icon icon="mdi-pause" size="16" /> Pausar
         </button>
-        <button v-if="d.vacuumStatus === 'pausada'" type="button" class="dcc__action-btn"
+        <button v-else-if="d.vacuumStatus === 'pausada'" type="button" class="dcc__action-btn dcc__vacuum-primary"
           @click="action('start')">
           <v-icon icon="mdi-play" size="16" /> Reanudar
         </button>
-        <button type="button" class="dcc__action-btn dcc__action-btn--ghost"
+        <button v-else type="button" class="dcc__action-btn dcc__vacuum-primary"
+          @click="action('start')">
+          <v-icon icon="mdi-play" size="16" /> Iniciar limpieza
+        </button>
+        <button type="button" class="dcc__action-btn dcc__action-btn--ghost dcc__vacuum-secondary"
           @click="action('dock')">
           <v-icon icon="mdi-home-import-outline" size="16" /> Regresar a base
         </button>
@@ -870,10 +907,41 @@ const OVEN_CONV = [
   { value: 'convencional', label: 'Convencional', icon: 'mdi-fan' },
 ]
 
+const VACUUM_MODES = [
+  { value: 'aspirar', label: 'Aspirar', icon: 'mdi-fan' },
+  { value: 'trapear', label: 'Trapear', icon: 'mdi-water-outline' },
+]
+
 const SPEAKER_GENRES = ['clásica', 'country', 'dance', 'latina', 'pop', 'rock']
 
 const FRIDGE_MODES = ['normal', 'fiesta', 'vacaciones']
 const BLIND_PRESETS = [25, 50, 75, 100]
+
+const ROOM_ICONS: Record<string, string> = {
+  living:   'mdi-sofa-outline',
+  bedroom:  'mdi-bed-king-outline',
+  kitchen:  'mdi-silverware-fork-knife',
+  bathroom: 'mdi-shower',
+  office:   'mdi-briefcase-outline',
+}
+
+function toSentenceCase(value: string) {
+  return value ? `${value.charAt(0).toUpperCase()}${value.slice(1).toLowerCase()}` : ''
+}
+
+type SelectRoomItem = {
+  id?: number | string
+  name?: string
+  type?: string
+}
+
+function selectItemRoom(item: unknown): SelectRoomItem {
+  return ((item as { raw?: SelectRoomItem })?.raw ?? {})
+}
+
+function roomIcon(room: SelectRoomItem | undefined) {
+  return ROOM_ICONS[room?.type ?? ''] ?? 'mdi-home-outline'
+}
 
 // ── Lamp helpers ─────────────────────────────────────────────────────
 const initialColor = props.device.type === 'light' ? (props.device as { color: string }).color : '#FFFFFF'
@@ -937,6 +1005,12 @@ const fridgeTempMax = computed(() => {
 // ── Vacuum — rooms del hogar activo para setLocation ─────────────────
 const vacuumTargetRoom = ref<string | null>(null)
 const activeRooms = computed(() => roomsStore.rooms)
+const vacuumStatusLabel = computed(() => toSentenceCase(String(d.value.vacuumStatus ?? '')))
+const vacuumStatusMessage = computed(() => {
+  if (d.value.vacuumStatus === 'encendida') return 'Limpieza en curso'
+  if (d.value.vacuumStatus === 'pausada') return 'Limpieza pausada'
+  return 'Listo para limpiar'
+})
 </script>
 
 <style scoped>
@@ -1200,6 +1274,280 @@ const activeRooms = computed(() => roomsStore.rooms)
 .dcc__section-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .dcc__section-value { font-size: 12px; font-weight: 600; color: var(--sh-text-muted); font-family: 'Inter', sans-serif; }
 
+/* ── Vacuum ── */
+.dcc--vacuum {
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, .05);
+}
+.dcc--vacuum.dcc--off {
+  opacity: 1;
+}
+.dcc--vacuum .dcc__header {
+  align-items: flex-start;
+  padding: 12px 16px 12px;
+}
+.dcc--vacuum .dcc__id {
+  gap: 10px;
+}
+.dcc--vacuum .dcc__icon-tile {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #EEF0FF;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .75);
+}
+.dcc--vacuum .dcc__icon-tile :deep(.v-icon) {
+  font-size: 16px !important;
+}
+.dcc--vacuum .dcc__names {
+  gap: 1px;
+}
+.dcc--vacuum .dcc__name {
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+.dcc--vacuum .dcc__room {
+  font-size: 12px;
+  line-height: 1.25;
+  color: #8A96AD;
+}
+.dcc--vacuum .toggle {
+  width: 44px;
+  height: 24px;
+  margin-top: 0;
+}
+.dcc--vacuum .toggle__track {
+  background: #CBD4E4;
+}
+.dcc--vacuum .toggle__track::after {
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.dcc--vacuum .toggle__input:checked ~ .toggle__track::after {
+  transform: translateX(20px);
+}
+.dcc--vacuum .dcc__section {
+  padding: 8px 16px 0;
+}
+.dcc--vacuum .dcc__section-label {
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: .06em;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.dcc__vacuum-status {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(248, 250, 255, .96)),
+    radial-gradient(circle at 96% 0%, rgba(99, 102, 241, .10), transparent 38%);
+}
+.dcc--vacuum .dcc__vacuum-status {
+  min-height: 58px;
+  margin: 0 14px 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .78);
+}
+.dcc--vacuum .dcc__badge {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+.dcc--vacuum .dcc__panel-meta {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.2;
+  color: #8190AA;
+}
+.dcc--vacuum .dcc__segment {
+  border-radius: 8px;
+  background: #ffffff;
+}
+.dcc--vacuum .dcc__seg-btn {
+  height: 30px;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.dcc--vacuum .dcc__seg-btn :deep(.v-icon) {
+  font-size: 14px !important;
+}
+.dcc__vacuum-select {
+  font-family: 'Inter', sans-serif;
+}
+.dcc--vacuum .dcc__vacuum-select :deep(.v-field) {
+  min-height: 38px;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--sh-text-main);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+  transition: box-shadow 150ms;
+}
+.dcc--vacuum .dcc__vacuum-select :deep(.v-field--variant-outlined .v-field__outline__start),
+.dcc--vacuum .dcc__vacuum-select :deep(.v-field--variant-outlined .v-field__outline__end),
+.dcc--vacuum .dcc__vacuum-select :deep(.v-field--variant-outlined .v-field__outline__notch) {
+  border-color: var(--sh-border);
+  opacity: 1;
+  transition: border-color 150ms;
+}
+.dcc--vacuum .dcc__vacuum-select :deep(.v-field--variant-outlined.v-field--focused .v-field__outline__start),
+.dcc--vacuum .dcc__vacuum-select :deep(.v-field--variant-outlined.v-field--focused .v-field__outline__end),
+.dcc--vacuum .dcc__vacuum-select :deep(.v-field--variant-outlined.v-field--focused .v-field__outline__notch) {
+  border-color: var(--sh-primary);
+}
+.dcc--vacuum .dcc__vacuum-select :deep(.v-field__input) {
+  min-height: 38px;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-inline: 12px 6px;
+  align-items: center;
+  color: var(--sh-text-main);
+  font-size: 13px;
+  font-weight: 600;
+}
+.dcc--vacuum .dcc__vacuum-select :deep(.v-select__selection) {
+  margin: 0;
+}
+.dcc--vacuum .dcc__vacuum-select :deep(.v-select__selection-text) {
+  color: var(--sh-text-main);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+}
+.dcc__vacuum-selection {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--sh-text-main);
+}
+.dcc__vacuum-selection span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dcc__vacuum-selection :deep(.v-icon) {
+  color: var(--sh-primary);
+  flex-shrink: 0;
+}
+.dcc--vacuum .dcc__vacuum-select :deep(.v-field__input input::placeholder) {
+  color: #8A96AD;
+  opacity: 1;
+}
+.dcc--vacuum .dcc__vacuum-select :deep(.v-field__append-inner) {
+  align-items: center;
+  color: var(--sh-text-muted);
+  padding-top: 0;
+  padding-inline-end: 10px;
+}
+.dcc--vacuum .dcc__vacuum-select :deep(.v-field--focused) {
+  color: var(--sh-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .10);
+  border-radius: 10px;
+}
+.dcc--vacuum .dcc__section--actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 10px 16px 12px;
+}
+.dcc--vacuum .dcc__vacuum-primary,
+.dcc--vacuum .dcc__vacuum-secondary {
+  width: 100%;
+  height: 34px;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.dcc--vacuum .dcc__vacuum-primary {
+  background: linear-gradient(135deg, #6D63F6 0%, #5D5FEF 100%);
+  border-color: transparent;
+  box-shadow: 0 10px 18px rgba(99, 102, 241, .22);
+}
+.dcc--vacuum .dcc__vacuum-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5F56EA 0%, #4F51E2 100%);
+  border-color: transparent;
+}
+.dcc--vacuum .dcc__vacuum-secondary {
+  background: #F8FAFC;
+  color: #64748B;
+  border-color: #D7DFEC;
+  box-shadow: none;
+}
+.dcc--vacuum .dcc__vacuum-secondary:hover:not(:disabled) {
+  background: #EEF2F7;
+  color: var(--sh-text-main);
+  border-color: #CBD5E1;
+}
+:global(.dcc-vacuum-menu) {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+:global(.dcc-vacuum-menu .v-list) {
+  border: 1px solid var(--sh-border) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 4px 24px rgba(15, 23, 42, .12),
+    0 1px 3px rgba(15, 23, 42, .06) !important;
+  padding: 4px !important;
+  background: #ffffff;
+  font-family: 'Inter', sans-serif !important;
+}
+:global(.dcc-vacuum-menu .v-list-item) {
+  min-height: 42px;
+  border-radius: 8px !important;
+  color: var(--sh-text-main) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500;
+  padding-inline: 10px 8px !important;
+  transition: background-color 100ms, color 100ms;
+}
+:global(.dcc-vacuum-menu .v-list-item-title) {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+}
+:global(.dcc-vacuum-menu__thumb) {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: var(--sh-primary-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sh-primary);
+}
+:global(.dcc-vacuum-menu__check) {
+  color: var(--sh-primary);
+  flex-shrink: 0;
+}
+:global(.dcc-vacuum-menu .v-list-item:hover > .v-list-item__overlay) {
+  opacity: 0 !important;
+}
+:global(.dcc-vacuum-menu .v-list-item:hover) {
+  background: var(--sh-primary-light);
+  color: var(--sh-primary-dark) !important;
+}
+:global(.dcc-vacuum-menu .v-list-item--active) {
+  background: var(--sh-primary-light) !important;
+  color: var(--sh-primary) !important;
+  font-weight: 600;
+}
+:global(.dcc-vacuum-menu .v-list-item--active .v-list-item__overlay) {
+  opacity: 0 !important;
+}
+
 /* ── Slider ── */
 .dcc__slider { flex: 1; }
 .dcc__slider-row { display: flex; align-items: center; gap: 8px; }
@@ -1268,6 +1616,10 @@ const activeRooms = computed(() => roomsStore.rooms)
 .dcc__seg-btn {
   flex: 1;
   height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   background: transparent;
   border: none;
   border-right: 1px solid var(--sh-border);

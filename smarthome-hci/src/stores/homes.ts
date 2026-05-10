@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getAllHomes, addHome as apiAddHome, updateHome as apiUpdateHome, deleteHome as apiDeleteHome, getHomeShareInfo } from '@/services/api/homeApi'
+import { getRoomsByHome } from '@/services/api/roomApi'
+import { getAllDevices } from '@/services/api/deviceApi'
 import { useAuthStore } from '@/stores/auth'
 
 export interface SharedUser {
@@ -15,13 +17,12 @@ export interface Home {
   name: string
   metadata: Record<string, unknown>
   sharedWith: SharedUser[]
-  // TODO: rooms y devices se obtendrán de los endpoints /rooms y /devices en una próxima integración
   rooms: number
   devices: number
   image: string | null
   sharedByName: string | null
   sharedByEmail: string | null
-  isOwner: boolean
+  isOwner: boolean | null
 }
 
 interface UserSummary {
@@ -192,14 +193,21 @@ function mapApiHome(home: any, currentUser: UserSummary): Home {
     image: home.metadata?.image ?? null,
     sharedByName: sharedBy?.name || sharedBy?.email || null,
     sharedByEmail: sharedBy?.email || null,
-    isOwner: explicitOwner ?? !sharedBy,
+    isOwner: explicitOwner ?? (sharedBy ? false : null),
   }
 }
 
 export const useHomesStore = defineStore('homes', () => {
   const homes = ref<Home[]>([])
   const loading = ref(false)
+  const shareLoading = ref(false)
+  const countsLoading = ref(false)
   const error = ref<string | null>(null)
+  const homesLoaded = ref(false)
+  const shareInfoLoaded = ref(false)
+
+  let fetchHomesBasicPromise: Promise<void> | null = null
+  let hydrateHomesSharePromise: Promise<void> | null = null
 
   const selectedHomeId = ref<string | null>(
     localStorage.getItem('selectedHomeId'),
@@ -214,60 +222,99 @@ export const useHomesStore = defineStore('homes', () => {
     localStorage.setItem('selectedHomeId', id)
   }
 
-  async function fetchHomes() {
-    loading.value = true
-    error.value = null
-    try {
-      const authStore = useAuthStore()
-      const currentUser = currentUserSummary(authStore)
-      const data = await getAllHomes()
-      const mapped = data.map((h: any) => mapApiHome(h, currentUser))
-      homes.value = mapped
+  async function fetchHomesBasic(force = false) {
+    if (!force && homesLoaded.value) return
+    if (fetchHomesBasicPromise) return fetchHomesBasicPromise
 
-      // Para cada hogar, buscar usuarios compartidos y completar la atribución si la API la expone.
-      const promises = mapped.map(async (h: any) => {
-        try {
-          const shareInfo = await getHomeShareInfo(h.id)
-          const users = normalizeSharedUsers(shareInfo.users)
-          const idx = homes.value.findIndex((home: any) => home.id === h.id)
-          if (idx === -1) return
+    fetchHomesBasicPromise = (async () => {
+      loading.value = true
+      error.value = null
+      try {
+        const authStore = useAuthStore()
+        const currentUser = currentUserSummary(authStore)
+        const data = await getAllHomes()
+        const mapped = data.map((h: any) => mapApiHome(h, currentUser))
+        homes.value = mapped
+        homesLoaded.value = true
+        shareInfoLoaded.value = false
+      } catch (err: any) {
+        error.value = err.message || 'Error al cargar los hogares'
+      } finally {
+        loading.value = false
+        fetchHomesBasicPromise = null
+      }
+    })()
 
-          const currentIsSharedUser = users.some(user => sameUser(summarizeUser(user), currentUser))
-          const currentHome = homes.value[idx]
-          const ownerFromShareInfo = summarizeUser(shareInfo.sharedBy ?? shareInfo.owner)
-          const fallbackOwner = currentIsSharedUser
-            ? users.find(user => !sameUser(summarizeUser(user), currentUser))
-            : null
-          const sharedBy = differentUser(ownerFromShareInfo, currentUser)
-            ? ownerFromShareInfo
-            : fallbackOwner
-              ? summarizeUser(fallbackOwner)
-              : sharedByFromHome(currentHome, currentUser)
+    return fetchHomesBasicPromise
+  }
 
-          homes.value.splice(idx, 1, {
-            ...currentHome,
-            sharedWith: users,
-            sharedByName: sharedBy?.name || sharedBy?.email || currentHome.sharedByName,
-            sharedByEmail: sharedBy?.email || currentHome.sharedByEmail,
-            isOwner: currentIsSharedUser ? false : currentHome.isOwner,
-          })
-        } catch (err: any) {
-          const idx = homes.value.findIndex((home: any) => home.id === h.id)
-          if (idx !== -1 && err?.status === 403) {
+  async function hydrateHomesShareInfo(force = false) {
+    if (!force && shareInfoLoaded.value) return
+    if (hydrateHomesSharePromise) return hydrateHomesSharePromise
+
+    hydrateHomesSharePromise = (async () => {
+      if (!homesLoaded.value) {
+        await fetchHomesBasic()
+      }
+      if (!homesLoaded.value) return
+
+      shareLoading.value = true
+      error.value = null
+      try {
+        const authStore = useAuthStore()
+        const currentUser = currentUserSummary(authStore)
+
+        const promises = homes.value.map(async (h: any) => {
+          try {
+            const shareInfo = await getHomeShareInfo(h.id)
+            const users = normalizeSharedUsers(shareInfo.users)
+            const idx = homes.value.findIndex((home: any) => home.id === h.id)
+            if (idx === -1) return
+
+            const currentIsSharedUser = users.some(user => sameUser(summarizeUser(user), currentUser))
+            const currentHome = homes.value[idx]
+            const ownerFromShareInfo = summarizeUser(shareInfo.sharedBy ?? shareInfo.owner)
+            const fallbackOwner = currentIsSharedUser
+              ? users.find(user => !sameUser(summarizeUser(user), currentUser))
+              : null
+            const sharedBy = differentUser(ownerFromShareInfo, currentUser)
+              ? ownerFromShareInfo
+              : fallbackOwner
+                ? summarizeUser(fallbackOwner)
+                : sharedByFromHome(currentHome, currentUser)
+
             homes.value.splice(idx, 1, {
-              ...homes.value[idx],
-              isOwner: false,
+              ...currentHome,
+              sharedWith: users,
+              sharedByName: sharedBy?.name || sharedBy?.email || currentHome.sharedByName,
+              sharedByEmail: sharedBy?.email || currentHome.sharedByEmail,
+              isOwner: currentIsSharedUser ? false : currentHome.isOwner ?? true,
             })
+          } catch (err: any) {
+            const idx = homes.value.findIndex((home: any) => home.id === h.id)
+            if (idx !== -1 && err?.status === 403) {
+              homes.value.splice(idx, 1, {
+                ...homes.value[idx],
+                isOwner: false,
+              })
+            }
+            // Si falla por otro motivo, no bloqueamos la carga de hogares.
           }
-          // Si falla por otro motivo, no bloqueamos la carga de hogares.
-        }
-      })
-      await Promise.all(promises)
-    } catch (err: any) {
-      error.value = err.message || 'Error al cargar los hogares'
-    } finally {
-      loading.value = false
-    }
+        })
+        await Promise.all(promises)
+        shareInfoLoaded.value = true
+      } finally {
+        shareLoading.value = false
+        hydrateHomesSharePromise = null
+      }
+    })()
+
+    return hydrateHomesSharePromise
+  }
+
+  async function fetchHomes(force = false) {
+    await fetchHomesBasic(force)
+    await hydrateHomesShareInfo(force)
   }
 
   async function addHome({ name, metadata = {} }: { name: string; metadata?: Record<string, unknown> }) {
@@ -283,7 +330,6 @@ export const useHomesStore = defineStore('homes', () => {
       const created = await apiAddHome({ name, metadata: ownerMetadata })
       homes.value.push({
         ...created,
-        // TODO: rooms y devices vendrán de endpoints dedicados
         sharedWith: [],
         rooms: 0,
         devices: 0,
@@ -292,6 +338,7 @@ export const useHomesStore = defineStore('homes', () => {
         sharedByEmail: null,
         isOwner: true,
       })
+      homesLoaded.value = true
       return created
     } catch (err: any) {
       error.value = err.message || 'Error al crear el hogar'
@@ -336,8 +383,50 @@ export const useHomesStore = defineStore('homes', () => {
     }
   }
 
+  async function fetchHomeCounts() {
+    if (countsLoading.value) return
+
+    countsLoading.value = true
+    let allDevices: any[] = []
+    try {
+      const devData = await getAllDevices()
+      allDevices = Array.isArray(devData) ? devData : (devData?.result ?? [])
+    } catch {
+      // non-blocking
+    }
+
+    const countPromises = homes.value.map(async (home) => {
+      try {
+        const roomsData = await getRoomsByHome(home.id)
+        const roomsList = Array.isArray(roomsData) ? roomsData : (roomsData?.result ?? [])
+        const roomIds = new Set(roomsList.map((r: any) => String(r.id)))
+        const devicesCount = allDevices.filter((d: any) => {
+          const roomId = d.room?.id
+          return roomId && roomIds.has(String(roomId))
+        }).length
+        const idx = homes.value.findIndex(h => h.id === home.id)
+        if (idx !== -1) {
+          homes.value.splice(idx, 1, {
+            ...homes.value[idx],
+            rooms: roomsList.length,
+            devices: devicesCount,
+          })
+        }
+      } catch {
+        // non-blocking: keep 0 on error
+      }
+    })
+    try {
+      await Promise.all(countPromises)
+    } finally {
+      countsLoading.value = false
+    }
+  }
+
   function clearHomes() {
     homes.value = []
+    homesLoaded.value = false
+    shareInfoLoaded.value = false
     selectedHomeId.value = null
     localStorage.removeItem('selectedHomeId')
   }
@@ -345,11 +434,18 @@ export const useHomesStore = defineStore('homes', () => {
   return {
     homes,
     loading,
+    shareLoading,
+    countsLoading,
     error,
+    homesLoaded,
+    shareInfoLoaded,
     selectedHomeId,
     selectedHome,
     selectHome,
+    fetchHomesBasic,
+    hydrateHomesShareInfo,
     fetchHomes,
+    fetchHomeCounts,
     addHome,
     updateHome,
     removeHome,
