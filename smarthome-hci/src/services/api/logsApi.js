@@ -12,13 +12,13 @@ function getHeaders() {
 async function parseErrorBody(response) {
   const text = await response.text()
   if (!text) return {}
-  try { return JSON.parse(text) } catch (_) { return {} }
+  try { return JSON.parse(text) } catch { return {} }
 }
 
 async function parseResponseBody(response) {
   const text = await response.text()
   if (!text) return null
-  try { return JSON.parse(text) } catch (_) { return text }
+  try { return JSON.parse(text) } catch { return text }
 }
 
 function handleError(data, status) {

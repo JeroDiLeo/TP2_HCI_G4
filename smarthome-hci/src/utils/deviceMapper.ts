@@ -12,7 +12,7 @@ export interface ApiDevice {
   name: string
   type: { id: string }
   state: Record<string, unknown>
-  room?: { id: string }
+  room?: { id: string; name?: string }
   metadata?: Record<string, unknown>
 }
 

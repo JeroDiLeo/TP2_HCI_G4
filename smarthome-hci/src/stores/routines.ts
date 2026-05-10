@@ -138,7 +138,7 @@ export const useRoutinesStore = defineStore('routines', () => {
         homeId: data.homeId ?? homesStore.selectedHomeId,
       }
       const payload = toApi(withHome)
-      const response = await apiAddRoutine(payload)
+      const response = await apiAddRoutine(payload as any)
       const mapped = fromApi(extractOne(response) as any)
       routines.value.push(mapped)
       loaded.value = true
@@ -156,7 +156,7 @@ export const useRoutinesStore = defineStore('routines', () => {
       if (idx === -1) return
       const merged: Omit<FrontRoutine, 'id'> = { ...routines.value[idx], ...patch }
       const payload = toApi(merged)
-      const response = await apiUpdateRoutine(id, payload)
+      const response = await apiUpdateRoutine(id, payload as any)
       const mapped = fromApi(extractOne(response) as any)
       routines.value.splice(idx, 1, mapped)
       loaded.value = true

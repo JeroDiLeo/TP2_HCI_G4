@@ -143,14 +143,14 @@ defineExpose({
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
-.profile-form__input:readonly {
+.profile-form__input[readonly] {
   background: #f1f5f9;
   color: #0f172a;
   cursor: not-allowed;
   border: 1px solid #e2e8f0;
 }
 
-.profile-form__input:readonly:focus {
+.profile-form__input[readonly]:focus {
   border: 1px solid #e2e8f0;
   box-shadow: none;
   background: #f1f5f9;

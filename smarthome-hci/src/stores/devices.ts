@@ -16,7 +16,6 @@ import {
   type ApiDevice,
 } from '@/utils/deviceMapper'
 import type { RoomDevice, RoomDeviceType, RoomId } from '@/types/rooms'
-import { useRoomsStore } from '@/stores/rooms'
 import { useHomesStore } from '@/stores/homes'
 
 function extractList(data: unknown): unknown[] {
@@ -32,20 +31,6 @@ function extractOne(data: unknown): unknown {
     return (data as any).result
   }
   return data
-}
-
-/** Resuelve el nombre de la room a partir del rooms store */
-function resolveRoomName(roomId: string | undefined): string {
-  if (!roomId) return ''
-  const roomsStore = useRoomsStore()
-  const room = roomsStore.getRoomById(roomId)
-  return room?.name ?? ''
-}
-
-/** Convierte un device de la API al shape del front, resolviendo roomName */
-function mapDevice(apiDevice: ApiDevice): RoomDevice {
-  const roomName = resolveRoomName(apiDevice.room?.id)
-  return fromApi(apiDevice, roomName)
 }
 
 function preserveVacuumPauseState(
@@ -75,34 +60,42 @@ export const useDevicesStore = defineStore('devices', () => {
   const error = ref<string | null>(null)
   const actionLoadingById = ref<Record<string, boolean>>({})
   const actionErrorById = ref<Record<string, string | null>>({})
+  const activeHomeRoomIds = ref<Set<string> | null>(null)
+  const roomNamesById = ref<Record<string, string>>({})
   let fetchAllPromise: Promise<void> | null = null
 
   // ── Computed ────────────────────────────────────────────────────────
+
+  function resolveRoomName(roomId: string | undefined): string {
+    if (!roomId) return ''
+    return roomNamesById.value[String(roomId)] ?? ''
+  }
+
+  function mapDevice(apiDevice: ApiDevice): RoomDevice {
+    const roomName = apiDevice.room?.name ?? resolveRoomName(apiDevice.room?.id)
+    return fromApi(apiDevice, roomName)
+  }
 
   function devicesByRoom(roomId: RoomId): RoomDevice[] {
     return devices.value.filter(d => String(d.roomId) === String(roomId))
   }
 
-  const devicesForActiveHome = computed(() => {
+  const devicesForActiveHome = computed<RoomDevice[]>(() => {
     const homesStore = useHomesStore()
-    const roomsStore = useRoomsStore()
 
     if (!homesStore.selectedHomeId) return devices.value
 
-    const activeHomeRoomIds = new Set(
-      roomsStore.rooms.map(room => String(room.id)),
-    )
+    const roomIds = activeHomeRoomIds.value
 
-    if (activeHomeRoomIds.size === 0) {
-      return roomsStore.roomsLoaded ? [] : devices.value
-    }
+    if (!roomIds) return devices.value
+    if (roomIds.size === 0) return []
 
     return devices.value.filter(device =>
-      activeHomeRoomIds.has(String(device.roomId)),
+      roomIds.has(String(device.roomId)),
     )
   })
 
-  const activeDevices = computed(() =>
+  const activeDevices = computed<RoomDevice[]>(() =>
     devicesForActiveHome.value.filter(d => d.active),
   )
 
@@ -153,7 +146,7 @@ export const useDevicesStore = defineStore('devices', () => {
     error.value = null
     try {
       const payload = toApiCreate(deviceData)
-      const response = await apiAddDevice(payload)
+      const response = await apiAddDevice(payload as any)
       const apiDevice = extractOne(response) as ApiDevice
       // Asegurar que el roomId se preserve si la API no lo devuelve en el response
       if (deviceData.roomId && !apiDevice.room?.id) {
@@ -176,7 +169,7 @@ export const useDevicesStore = defineStore('devices', () => {
   async function updateDevice(id: string, payload: { name?: string; metadata?: Record<string, unknown> }) {
     error.value = null
     try {
-      const response = await apiUpdateDevice(id, payload)
+      const response = await apiUpdateDevice(id, payload as any)
       const mapped = mapDevice(extractOne(response) as ApiDevice)
       const idx = devices.value.findIndex(d => String(d.id) === id)
       if (idx !== -1) devices.value.splice(idx, 1, mapped)
@@ -247,6 +240,20 @@ export const useDevicesStore = defineStore('devices', () => {
     }))
   }
 
+  function syncRoomsForActiveHome(rooms: Array<{ id: RoomId; name: string }>) {
+    activeHomeRoomIds.value = new Set(rooms.map(room => String(room.id)))
+    roomNamesById.value = rooms.reduce<Record<string, string>>((acc, room) => {
+      acc[String(room.id)] = room.name
+      return acc
+    }, {})
+    refreshRoomNames()
+  }
+
+  function clearActiveHomeRooms() {
+    activeHomeRoomIds.value = null
+    roomNamesById.value = {}
+  }
+
   function isActionLoading(deviceId: string): boolean {
     return !!actionLoadingById.value[String(deviceId)]
   }
@@ -275,6 +282,7 @@ export const useDevicesStore = defineStore('devices', () => {
     error.value = null
     actionLoadingById.value = {}
     actionErrorById.value = {}
+    clearActiveHomeRooms()
   }
 
   return {
@@ -297,6 +305,8 @@ export const useDevicesStore = defineStore('devices', () => {
     refreshDeviceState,
     getDeviceById,
     refreshRoomNames,
+    syncRoomsForActiveHome,
+    clearActiveHomeRooms,
     isActionLoading,
     getActionError,
     setActionError,

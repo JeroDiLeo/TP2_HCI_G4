@@ -18,7 +18,7 @@ function handleError(data, status) {
 }
 
 async function parseErrorBody(response) {
-  try { return await response.json() } catch (_) { return {} }
+  try { return await response.json() } catch { return {} }
 }
 
 async function parseResponseBody(response) {
@@ -27,7 +27,7 @@ async function parseResponseBody(response) {
 
   try {
     return JSON.parse(text)
-  } catch (_) {
+  } catch {
     return text
   }
 }

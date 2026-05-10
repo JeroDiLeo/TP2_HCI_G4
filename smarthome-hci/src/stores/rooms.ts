@@ -61,6 +61,14 @@ export const useRoomsStore = defineStore('rooms', () => {
     return roomsWithStats.value.find(r => String(r.id) === String(id))
   }
 
+  function syncDeviceRoomContext() {
+    const devicesStore = useDevicesStore()
+    devicesStore.syncRoomsForActiveHome(rooms.value.map(room => ({
+      id: room.id,
+      name: room.name,
+    })))
+  }
+
   async function addRoom({ name, type }: { name: string; type?: string }): Promise<Room> {
     const homesStore = useHomesStore()
     const homeId = homesStore.selectedHomeId
@@ -84,34 +92,82 @@ export const useRoomsStore = defineStore('rooms', () => {
       metadata: result.metadata,
     }
     rooms.value.push(created)
+    syncDeviceRoomContext()
     roomsLoaded.value = true
     loadedHomeId.value = homeId
     return created
   }
 
-  async function updateRoom(id: number | string, payload: { name: string }) {
-    const data = await apiUpdateRoom(String(id), payload)
-    const result = data?.result ?? data
+  async function updateRoom(
+    id: number | string,
+    payload: { name?: string; metadata?: Record<string, unknown> },
+  ) {
     const idx = rooms.value.findIndex(r => String(r.id) === String(id))
+    const current = idx !== -1 ? rooms.value[idx] : null
+    const metadata = payload.metadata
+      ? { ...(current?.metadata ?? {}), ...payload.metadata }
+      : current?.metadata
+    const body: Record<string, unknown> = {}
+
+    if (payload.name !== undefined) body.name = payload.name
+    else if (current?.name) body.name = current.name
+    if (metadata) body.metadata = metadata
+
+    const data = await apiUpdateRoom(String(id), body)
+    const result = data?.result ?? data
     if (idx !== -1) {
-      rooms.value[idx] = { ...rooms.value[idx], name: result.name ?? payload.name }
+      const nextMetadata = result?.metadata ?? metadata ?? rooms.value[idx].metadata
+      const nextType = typeof nextMetadata?.type === 'string'
+        ? nextMetadata.type
+        : rooms.value[idx].type
+      rooms.value[idx] = {
+        ...rooms.value[idx],
+        name: result?.name ?? payload.name ?? rooms.value[idx].name,
+        type: nextType,
+        favorite: nextMetadata?.favorite === true,
+        metadata: nextMetadata,
+      }
+      syncDeviceRoomContext()
     }
   }
 
   async function removeRoom(id: number | string) {
     const prev = rooms.value
     rooms.value = rooms.value.filter(r => String(r.id) !== String(id))
+    syncDeviceRoomContext()
     try {
       await apiDeleteRoom(String(id))
     } catch (err) {
       rooms.value = prev
+      syncDeviceRoomContext()
       throw err
     }
   }
 
-  function toggleFavorite(id: number | string) {
-    const room = rooms.value.find(r => String(r.id) === String(id))
-    if (room) room.favorite = !room.favorite
+  async function toggleFavorite(id: number | string) {
+    const idx = rooms.value.findIndex(r => String(r.id) === String(id))
+    if (idx === -1) return
+
+    const previous = { ...rooms.value[idx], metadata: { ...(rooms.value[idx].metadata ?? {}) } }
+    const nextFavorite = !rooms.value[idx].favorite
+    const nextMetadata = {
+      ...(rooms.value[idx].metadata ?? {}),
+      type: rooms.value[idx].type ?? rooms.value[idx].metadata?.type ?? 'other',
+      favorite: nextFavorite,
+    }
+
+    rooms.value[idx] = {
+      ...rooms.value[idx],
+      favorite: nextFavorite,
+      metadata: nextMetadata,
+    }
+
+    try {
+      await updateRoom(id, { metadata: nextMetadata })
+    } catch (err: unknown) {
+      rooms.value[idx] = previous
+      error.value = (err as Error).message || 'Error al actualizar la habitación'
+    }
   }
 
   async function fetchRoomsByHome(homeId: string, force = false) {
@@ -137,6 +193,7 @@ export const useRoomsStore = defineStore('rooms', () => {
           home: r.home,
           metadata: r.metadata,
         }))
+        syncDeviceRoomContext()
         loadedHomeId.value = homeId
       } catch (err: unknown) {
         error.value = (err as Error).message ?? 'Error al cargar las habitaciones'
@@ -153,6 +210,8 @@ export const useRoomsStore = defineStore('rooms', () => {
 
   function clearRooms() {
     rooms.value = []
+    const devicesStore = useDevicesStore()
+    devicesStore.clearActiveHomeRooms()
     roomsLoaded.value = true
     loadedHomeId.value = null
     error.value = null

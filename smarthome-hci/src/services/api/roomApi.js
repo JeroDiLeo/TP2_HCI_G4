@@ -18,7 +18,7 @@ function handleError(data, status) {
 }
 
 async function parseErrorBody(response) {
-  try { return await response.json() } catch (_) { return {} }
+  try { return await response.json() } catch { return {} }
 }
 
 export async function createRoom(body) {

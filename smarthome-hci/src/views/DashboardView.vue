@@ -251,8 +251,9 @@
     />
 
     <EditRoutineModal
-      :routine-id="editingRoutineId"
+      :routine-id="editingRoutineId ?? undefined"
       :open="editRoutineOpen"
+      mode="actions"
       @update:open="onEditRoutineOpenChange"
     />
   </div>
