@@ -72,15 +72,21 @@
           role="list"
           aria-label="Dispositivos de la habitación"
         >
-          <DeviceControlCard
+          <div
             v-for="device in visibleDevices"
             :key="device.id"
-            :device="device"
-            :edit-mode="editMode"
+            class="room-detail__device-shell"
+            :class="{ 'room-detail__device-shell--focused': highlightedDeviceId === String(device.id) }"
+            :data-focus-device-id="String(device.id)"
             role="listitem"
-            @edit="openEditModal"
-            @delete="openDeleteModal"
-          />
+          >
+            <DeviceControlCard
+              :device="device"
+              :edit-mode="editMode"
+              @edit="openEditModal"
+              @delete="openDeleteModal"
+            />
+          </div>
         </div>
 
         <!-- Pagination controls (pagination mode only) -->
@@ -188,7 +194,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, ref, watch } from 'vue'
+import { computed, inject, nextTick, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { Ref } from 'vue'
 import { useRoomsStore } from '@/stores/rooms'
@@ -207,6 +213,11 @@ const prefs        = usePreferencesStore()
 
 const roomId = computed(() => String(route.params.roomId))
 const room   = computed(() => store.getRoomById(roomId.value))
+const focusedDeviceId = computed(() => {
+  const raw = route.query.deviceId
+  if (Array.isArray(raw)) return raw[0] ? String(raw[0]) : ''
+  return raw ? String(raw) : ''
+})
 
 const ROOM_ICONS: Record<string, string> = {
   living:   'mdi-sofa-outline',
@@ -227,6 +238,8 @@ const errorMessage = ref('')
 // Edit modal
 const editModalOpen  = ref(false)
 const editingDevice  = ref<RoomDevice | null>(null)
+const highlightedDeviceId = ref<string | null>(null)
+let highlightTimer: number | null = null
 
 // Delete modal
 const deleteModalOpen  = ref(false)
@@ -322,6 +335,54 @@ watch(viewMode,    () => { currentPage.value = 1 })
 watch(totalPages, (pages) => {
   if (currentPage.value > pages) currentPage.value = pages
 })
+
+watch(
+  [focusedDeviceId, allDevices, filteredDevices, viewMode, pageSize],
+  () => {
+    revealFocusedDevice()
+  },
+  { immediate: true, flush: 'post' },
+)
+
+async function revealFocusedDevice() {
+  const id = focusedDeviceId.value
+  if (!id) return
+
+  const existsInRoom = allDevices.value.some(device => String(device.id) === id)
+  if (!existsInRoom) return
+
+  const existsInCurrentFilter = filteredDevices.value.some(device => String(device.id) === id)
+  if (!existsInCurrentFilter) {
+    layoutSearch.value = ''
+    await nextTick()
+  }
+
+  const visibleIndex = filteredDevices.value.findIndex(device => String(device.id) === id)
+  if (visibleIndex === -1) return
+
+  if (viewMode.value === 'pagination') {
+    currentPage.value = Math.floor(visibleIndex / pageSize.value) + 1
+  }
+
+  await nextTick()
+
+  const target = findDeviceElement(id)
+  if (!target) return
+
+  highlightedDeviceId.value = id
+  if (highlightTimer !== null) window.clearTimeout(highlightTimer)
+  highlightTimer = window.setTimeout(() => {
+    if (highlightedDeviceId.value === id) highlightedDeviceId.value = null
+    highlightTimer = null
+  }, 2200)
+
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+function findDeviceElement(id: string): HTMLElement | null {
+  const candidates = document.querySelectorAll<HTMLElement>('[data-focus-device-id]')
+  return Array.from(candidates).find(el => el.dataset.focusDeviceId === id) ?? null
+}
 
 function clearSearch() {
   layoutSearch.value = ''
@@ -696,6 +757,19 @@ function goBack() {
   gap: 16px;
 }
 
+.room-detail__device-shell {
+  min-width: 0;
+  border-radius: 14px;
+}
+
+.room-detail__device-shell--focused {
+  animation: focus-device-ring 2200ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.room-detail__device-shell--focused :deep(.dcc) {
+  border-color: rgba(99, 102, 241, .68);
+}
+
 /* ── Pagination ── */
 .room-detail__pagination {
   display: flex;
@@ -780,6 +854,18 @@ function goBack() {
   color: var(--sh-primary);
 }
 .room-detail__clear-btn:focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+
+@keyframes focus-device-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, .34);
+  }
+  24% {
+    box-shadow: 0 0 0 5px rgba(99, 102, 241, .18), 0 12px 24px -18px rgba(15, 23, 42, .35);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  }
+}
 
 /* ── Consistent card height in pagination mode ── */
 /* min-height covers the tallest device card (Horno ~426px) with buffer.   */

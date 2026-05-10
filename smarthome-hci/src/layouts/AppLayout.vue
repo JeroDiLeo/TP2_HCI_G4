@@ -105,10 +105,12 @@ const SIDEBAR_STATE_KEY = 'smarthome.sidebarExpanded'
 const sidebarExpanded = ref(localStorage.getItem(SIDEBAR_STATE_KEY) === 'true')
 
 const PLACEHOLDERS = {
-  'dashboard': 'Buscar dispositivos...',
+  'dashboard': 'Buscar dispositivos, habitaciones, rutinas...',
+  'home-detail': 'Buscar dispositivos, habitaciones, rutinas...',
   'rooms': 'Buscar habitaciones...',
   'room-detail': 'Buscar dispositivos...',
-  'devices': 'Buscar dispositivos...',
+  'devices': 'Buscar dispositivos, habitaciones, rutinas...',
+  'rutinas': 'Buscar rutinas...',
   'profile': 'Buscar en perfil...',
   'settings': 'Buscar configuración...',
   'historial': 'Buscar dispositivos, acciones, rutinas...',
