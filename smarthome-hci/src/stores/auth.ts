@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { loginUser, logoutUser, updateUserProfile } from '@/services/api/userApi'
+import { loginUser, logoutUser, updateUserProfile, type ApiUser } from '@/services/api/userApi'
 
 export const useAuthStore = defineStore('auth', () => {
-  const email = ref<string>(JSON.parse(localStorage.getItem('user') || 'null')?.email || '')
-  const fullName = ref<string>(JSON.parse(localStorage.getItem('user') || 'null')?.name || '')
-  const user = ref<Record<string, any> | null>(JSON.parse(localStorage.getItem('user') || 'null'))
+  const storedUser = JSON.parse(localStorage.getItem('user') || 'null') as ApiUser | null
+  const email = ref<string>(storedUser?.email || '')
+  const fullName = ref<string>(storedUser?.name || '')
+  const user = ref<ApiUser | null>(storedUser)
   const token = ref<string | null>(localStorage.getItem('token'))
 
   const isAuthenticated = computed(() => !!token.value)

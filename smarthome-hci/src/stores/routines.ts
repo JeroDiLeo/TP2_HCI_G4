@@ -6,8 +6,10 @@ import {
   updateRoutine as apiUpdateRoutine,
   deleteRoutine as apiDeleteRoutine,
   executeRoutine as apiExecuteRoutine,
+  type ApiRoutineListResponse,
+  type ApiRoutineResponse,
 } from '@/services/api/routineApi'
-import { fromApi, toApi, type FrontRoutine, type FrontRoutineAction } from '@/utils/routineMapper'
+import { fromApi, toApi, type ApiRoutine, type FrontRoutine, type FrontRoutineAction } from '@/utils/routineMapper'
 import { useHomesStore } from '@/stores/homes'
 import { useDevicesStore } from '@/stores/devices'
 
@@ -73,17 +75,17 @@ const MOCK_ROUTINES: Routine[] = [
 ]
 */
 
-function extractList(data: unknown): unknown[] {
+function extractList(data: ApiRoutineListResponse): ApiRoutine[] {
   if (Array.isArray(data)) return data
-  if (data && typeof data === 'object' && Array.isArray((data as any).result)) {
-    return (data as any).result
+  if (data && Array.isArray(data.result)) {
+    return data.result
   }
   return []
 }
 
-function extractOne(data: unknown): unknown {
-  if (data && typeof data === 'object' && 'result' in (data as any)) {
-    return (data as any).result
+function extractOne(data: ApiRoutineResponse): ApiRoutine {
+  if ('result' in data) {
+    return data.result
   }
   return data
 }
@@ -116,7 +118,7 @@ export const useRoutinesStore = defineStore('routines', () => {
       error.value = null
       try {
         const data = await getAllRoutines()
-        routines.value = extractList(data).map(r => fromApi(r as any))
+        routines.value = extractList(data).map(fromApi)
         loaded.value = true
       } catch (err: any) {
         error.value = err.message || 'Error al cargar las rutinas'
@@ -138,8 +140,8 @@ export const useRoutinesStore = defineStore('routines', () => {
         homeId: data.homeId ?? homesStore.selectedHomeId,
       }
       const payload = toApi(withHome)
-      const response = await apiAddRoutine(payload as any)
-      const mapped = fromApi(extractOne(response) as any)
+      const response = await apiAddRoutine(payload)
+      const mapped = fromApi(extractOne(response))
       routines.value.push(mapped)
       loaded.value = true
       return mapped
@@ -156,8 +158,8 @@ export const useRoutinesStore = defineStore('routines', () => {
       if (idx === -1) return
       const merged: Omit<FrontRoutine, 'id'> = { ...routines.value[idx], ...patch }
       const payload = toApi(merged)
-      const response = await apiUpdateRoutine(id, payload as any)
-      const mapped = fromApi(extractOne(response) as any)
+      const response = await apiUpdateRoutine(id, payload)
+      const mapped = fromApi(extractOne(response))
       routines.value.splice(idx, 1, mapped)
       loaded.value = true
       return mapped

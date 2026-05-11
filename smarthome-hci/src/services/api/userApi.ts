@@ -1,6 +1,16 @@
 import { apiRequest } from '@/services/api/client'
 
-type ApiResponse = any
+export type ApiUser = {
+  email: string
+  id?: string
+  metadata?: Record<string, unknown>
+  name?: string
+} & Record<string, unknown>
+
+export type AuthResponse = {
+  token: string
+  user: ApiUser
+}
 
 type EmailPayload = {
   email: string
@@ -35,8 +45,8 @@ function errorStatus(error: unknown): unknown {
     : undefined
 }
 
-export async function sendVerification(email: string): Promise<ApiResponse> {
-  return apiRequest('/users/send-verification', {
+export async function sendVerification(email: string): Promise<unknown> {
+  return apiRequest<unknown>('/users/send-verification', {
     auth: false,
     method: 'POST',
     body: { email },
@@ -44,8 +54,8 @@ export async function sendVerification(email: string): Promise<ApiResponse> {
   })
 }
 
-export async function verifyAccount(code: string): Promise<ApiResponse> {
-  return apiRequest('/users/verify-account', {
+export async function verifyAccount(code: string): Promise<unknown> {
+  return apiRequest<unknown>('/users/verify-account', {
     auth: false,
     method: 'POST',
     body: { code },
@@ -53,8 +63,8 @@ export async function verifyAccount(code: string): Promise<ApiResponse> {
   })
 }
 
-export async function forgotPassword(email: string): Promise<ApiResponse> {
-  return apiRequest('/users/forgot-password', {
+export async function forgotPassword(email: string): Promise<unknown> {
+  return apiRequest<unknown>('/users/forgot-password', {
     auth: false,
     method: 'POST',
     body: { email },
@@ -65,8 +75,8 @@ export async function forgotPassword(email: string): Promise<ApiResponse> {
 export async function resetPassword({
   code,
   password,
-}: ResetPasswordPayload): Promise<ApiResponse> {
-  return apiRequest('/users/reset-password', {
+}: ResetPasswordPayload): Promise<unknown> {
+  return apiRequest<unknown>('/users/reset-password', {
     auth: false,
     method: 'POST',
     body: { code, password },
@@ -91,8 +101,8 @@ export async function logoutUser(): Promise<void> {
   }
 }
 
-export async function loginUser({ email, password }: LoginPayload): Promise<ApiResponse> {
-  return apiRequest('/users/login', {
+export async function loginUser({ email, password }: LoginPayload): Promise<AuthResponse> {
+  return apiRequest<AuthResponse>('/users/login', {
     auth: false,
     method: 'POST',
     body: { email, password },
@@ -105,8 +115,8 @@ export async function registerUser({
   password,
   name,
   metadata = {},
-}: RegisterPayload): Promise<ApiResponse> {
-  return apiRequest('/users/register', {
+}: RegisterPayload): Promise<AuthResponse> {
+  return apiRequest<AuthResponse>('/users/register', {
     auth: false,
     method: 'POST',
     body: { email, password, name, metadata },
@@ -114,8 +124,8 @@ export async function registerUser({
   })
 }
 
-export async function updateUserProfile({ name }: { name: string }): Promise<ApiResponse> {
-  return apiRequest('/users/profile', {
+export async function updateUserProfile({ name }: { name: string }): Promise<ApiUser> {
+  return apiRequest<ApiUser>('/users/profile', {
     method: 'PUT',
     body: { name, metadata: {} },
     responseMode: 'json',
@@ -125,16 +135,16 @@ export async function updateUserProfile({ name }: { name: string }): Promise<Api
 export async function changePassword({
   oldPassword,
   newPassword,
-}: ChangePasswordPayload): Promise<ApiResponse> {
-  return apiRequest('/users/change-password', {
+}: ChangePasswordPayload): Promise<unknown> {
+  return apiRequest<unknown>('/users/change-password', {
     method: 'POST',
     body: { oldPassword, newPassword },
     responseMode: 'json',
   })
 }
 
-export async function deleteAccount({ password }: { password: string }): Promise<ApiResponse> {
-  return apiRequest('/users/delete-account', {
+export async function deleteAccount({ password }: { password: string }): Promise<unknown> {
+  return apiRequest<unknown>('/users/delete-account', {
     method: 'DELETE',
     body: { password },
     responseMode: 'json',

@@ -92,6 +92,8 @@
               v-if="item.actionLabel"
               type="button"
               class="search-result-card__action"
+              :class="{ 'search-result-card__action--routine': item.kind === 'routine' }"
+              :aria-label="`${item.actionLabel} rutina ${item.title}`"
               :disabled="item.actionLoading"
               @click="emit('action', item)"
             >
@@ -100,10 +102,10 @@
                 indeterminate
                 size="16"
                 width="2"
-                color="var(--sh-primary)"
+                :color="item.kind === 'routine' ? 'white' : 'var(--sh-primary)'"
               />
               <v-icon v-else icon="mdi-play" size="16" aria-hidden="true" />
-              {{ item.actionLabel }}
+              <span v-if="item.kind !== 'routine'">{{ item.actionLabel }}</span>
             </button>
           </article>
         </div>
@@ -387,6 +389,11 @@ const resultsLabel = computed(() =>
   font-family: var(--sh-font);
 }
 
+.search-result-card--routine .search-result-card__main {
+  padding-right: 76px;
+  padding-bottom: 18px;
+}
+
 .search-result-card__icon {
   width: 36px;
   height: 36px;
@@ -463,9 +470,41 @@ const resultsLabel = computed(() =>
   background: #eef2ff;
 }
 
+.search-result-card__action--routine {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  width: 46px;
+  height: 46px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  color: #ffffff;
+  background: var(--sh-primary);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, .4);
+  z-index: 2;
+}
+
+.search-result-card__action--routine:hover:not(:disabled) {
+  border: none;
+  background: var(--sh-primary-dark);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, .5);
+  transform: scale(1.06);
+}
+
+.search-result-card__action--routine :deep(.v-icon) {
+  margin-left: 2px;
+}
+
 .search-result-card__action:disabled {
   cursor: wait;
   opacity: .72;
+}
+
+.search-result-card__action--routine:disabled {
+  opacity: 1;
+  transform: none;
 }
 
 @media (max-width: 720px) {
@@ -486,7 +525,11 @@ const resultsLabel = computed(() =>
     padding-right: 42px;
   }
 
-  .search-result-card__action {
+  .search-result-card--routine .search-result-card__main {
+    padding-right: 76px;
+  }
+
+  .search-result-card__action:not(.search-result-card__action--routine) {
     margin-left: 16px;
   }
 }

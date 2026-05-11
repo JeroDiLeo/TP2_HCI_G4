@@ -41,7 +41,7 @@
 
 <script setup lang="ts">
 // Vite requiere importar las imágenes de src/assets para procesarlas correctamente
-import defaultHeroImage from '@/assets/images/loginPhoto.jpg'
+import defaultHeroImage from '@/assets/images/fotoLogin.jpg'
 
 // Props para personalizar el panel derecho en cada vista de auth
 withDefaults(
