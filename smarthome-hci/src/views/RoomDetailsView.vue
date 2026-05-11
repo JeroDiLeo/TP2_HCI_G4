@@ -749,12 +749,20 @@ function goBack() {
 /* ── Devices grid ── */
 .room-detail__grid {
   display: grid;
+  align-items: stretch;
   gap: 16px;
 }
 
 .room-detail__device-shell {
+  display: flex;
   min-width: 0;
   border-radius: 14px;
+}
+
+.room-detail__device-shell :deep(.dcc) {
+  width: 100%;
+  height: 100%;
+  min-height: 450px;
 }
 
 .room-detail__device-shell--focused {
@@ -862,15 +870,6 @@ function goBack() {
   }
 }
 
-/* ── Consistent card height in pagination mode ── */
-/* min-height covers the tallest device card (Horno ~426px) with buffer.   */
-/* Grid align-items:stretch (default) equalises cards within each page;    */
-/* min-height makes height consistent across pages for the same pageSize.  */
-/* Only applied when viewMode === 'pagination'; Scroll mode is untouched.  */
-.room-detail__grid--pagination :deep(.dcc) {
-  min-height: 450px;
-}
-
 /* ── Responsive ── */
 @media (max-width: 1100px) {
   .room-detail__grid { grid-template-columns: repeat(2, 1fr) !important; }
@@ -880,8 +879,7 @@ function goBack() {
   .room-detail__heading-row { flex-direction: column; gap: 10px; }
   .room-detail__header-actions { justify-content: flex-start; }
   .room-detail__controls { gap: 10px; }
-  /* Mobile: reduce min-height to avoid excessive empty space in single-column layout */
-  .room-detail__grid--pagination :deep(.dcc) {
+  .room-detail__device-shell :deep(.dcc) {
     min-height: 360px;
   }
 }
