@@ -1,35 +1,39 @@
 import { apiRequest } from '@/services/api/client'
+import type { ApiDevice } from '@/utils/deviceMapper'
 
-type ApiResponse = any
+export type { ApiDevice }
 
-type CreateDevicePayload = {
+export type ApiDeviceResponse = ApiDevice | { result: ApiDevice }
+export type ApiDeviceListResponse = ApiDevice[] | { result: ApiDevice[] }
+
+export type CreateDevicePayload = {
   metadata?: Record<string, unknown>
   name: string
-  room?: unknown
-  type: unknown
+  room?: { id: string }
+  type: { id: string }
 }
 
-type UpdateDevicePayload = {
+export type UpdateDevicePayload = {
   metadata?: Record<string, unknown>
   name?: string
 }
 
-export async function getAllDevices(): Promise<ApiResponse> {
-  return apiRequest('/devices', {
+export async function getAllDevices(): Promise<ApiDeviceListResponse> {
+  return apiRequest<ApiDeviceListResponse>('/devices', {
     method: 'GET',
     responseMode: 'textOrJson',
   })
 }
 
-export async function getDevice(deviceId: string): Promise<ApiResponse> {
-  return apiRequest(`/devices/${deviceId}`, {
+export async function getDevice(deviceId: string): Promise<ApiDeviceResponse> {
+  return apiRequest<ApiDeviceResponse>(`/devices/${deviceId}`, {
     method: 'GET',
     responseMode: 'textOrJson',
   })
 }
 
-export async function getDevicesByRoom(roomId: string): Promise<ApiResponse> {
-  return apiRequest(`/rooms/${roomId}/devices`, {
+export async function getDevicesByRoom(roomId: string): Promise<ApiDeviceListResponse> {
+  return apiRequest<ApiDeviceListResponse>(`/rooms/${roomId}/devices`, {
     method: 'GET',
     responseMode: 'textOrJson',
   })
@@ -40,11 +44,11 @@ export async function addDevice({
   type,
   room,
   metadata = {},
-}: CreateDevicePayload): Promise<ApiResponse> {
+}: CreateDevicePayload): Promise<ApiDeviceResponse> {
   const body: Record<string, unknown> = { name, type, metadata }
   if (room) body.room = room
 
-  return apiRequest('/devices', {
+  return apiRequest<ApiDeviceResponse>('/devices', {
     method: 'POST',
     body,
     responseMode: 'textOrJson',
@@ -54,12 +58,12 @@ export async function addDevice({
 export async function updateDevice(
   deviceId: string,
   { name, metadata }: UpdateDevicePayload,
-): Promise<ApiResponse> {
+): Promise<ApiDeviceResponse> {
   const body: Record<string, unknown> = {}
   if (name !== undefined) body.name = name
   if (metadata !== undefined) body.metadata = metadata
 
-  return apiRequest(`/devices/${deviceId}`, {
+  return apiRequest<ApiDeviceResponse>(`/devices/${deviceId}`, {
     method: 'PUT',
     body,
     responseMode: 'textOrJson',
@@ -87,8 +91,8 @@ function normalizeActionResult(response: unknown): unknown {
   return response
 }
 
-export async function getDeviceState(deviceId: string): Promise<ApiResponse> {
-  return apiRequest(`/devices/${deviceId}/state`, {
+export async function getDeviceState(deviceId: string): Promise<unknown> {
+  return apiRequest<unknown>(`/devices/${deviceId}/state`, {
     method: 'GET',
     responseMode: 'textOrJson',
   })

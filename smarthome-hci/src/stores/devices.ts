@@ -8,6 +8,8 @@ import {
   updateDevice as apiUpdateDevice,
   deleteDevice as apiDeleteDevice,
   executeAction as apiExecuteAction,
+  type ApiDeviceListResponse,
+  type ApiDeviceResponse,
 } from '@/services/api/deviceApi'
 import {
   fromApi,
@@ -17,19 +19,13 @@ import {
 import type { RoomDevice, RoomDeviceType, RoomId } from '@/types/rooms'
 import { useHomesStore } from '@/stores/homes'
 
-function extractList(data: unknown): unknown[] {
+function extractList(data: ApiDeviceListResponse): ApiDevice[] {
   if (Array.isArray(data)) return data
-  if (data && typeof data === 'object' && Array.isArray((data as any).result)) {
-    return (data as any).result
-  }
-  return []
+  return data.result
 }
 
-function extractOne(data: unknown): unknown {
-  if (data && typeof data === 'object' && 'result' in (data as any)) {
-    return (data as any).result
-  }
-  return data
+function extractOne(data: ApiDeviceResponse): ApiDevice {
+  return 'result' in data ? data.result : data
 }
 
 function preserveVacuumPauseState(
@@ -109,7 +105,7 @@ export const useDevicesStore = defineStore('devices', () => {
       error.value = null
       try {
         const data = await getAllDevices()
-        devices.value = extractList(data).map(d => mapDevice(d as ApiDevice))
+        devices.value = extractList(data).map(d => mapDevice(d))
         loaded.value = true
       } catch (err: any) {
         error.value = err.message || 'Error al cargar los dispositivos'
@@ -127,7 +123,7 @@ export const useDevicesStore = defineStore('devices', () => {
     error.value = null
     try {
       const data = await apiGetDevicesByRoom(roomId)
-      const fetched = extractList(data).map(d => mapDevice(d as ApiDevice))
+      const fetched = extractList(data).map(d => mapDevice(d))
       // Reemplaza solo los devices de esa room en el array local
       const otherDevices = devices.value.filter(d => String(d.roomId) !== String(roomId))
       devices.value = [...otherDevices, ...fetched]
@@ -145,8 +141,8 @@ export const useDevicesStore = defineStore('devices', () => {
     error.value = null
     try {
       const payload = toApiCreate(deviceData)
-      const response = await apiAddDevice(payload as any)
-      const apiDevice = extractOne(response) as ApiDevice
+      const response = await apiAddDevice(payload)
+      const apiDevice = extractOne(response)
       // Asegurar que el roomId se preserve si la API no lo devuelve en el response
       if (deviceData.roomId && !apiDevice.room?.id) {
         apiDevice.room = { id: String(deviceData.roomId) }
@@ -168,8 +164,8 @@ export const useDevicesStore = defineStore('devices', () => {
   async function updateDevice(id: string, payload: { name?: string; metadata?: Record<string, unknown> }) {
     error.value = null
     try {
-      const response = await apiUpdateDevice(id, payload as any)
-      const mapped = mapDevice(extractOne(response) as ApiDevice)
+      const response = await apiUpdateDevice(id, payload)
+      const mapped = mapDevice(extractOne(response))
       const idx = devices.value.findIndex(d => String(d.id) === id)
       if (idx !== -1) devices.value.splice(idx, 1, mapped)
       loaded.value = true
@@ -219,7 +215,7 @@ export const useDevicesStore = defineStore('devices', () => {
   async function refreshDeviceState(deviceId: string, actionName?: string) {
     const data = await apiGetDevice(deviceId)
     const mapped = preserveVacuumPauseState(
-      mapDevice(extractOne(data) as ApiDevice),
+      mapDevice(extractOne(data)),
       actionName,
     )
     const idx = devices.value.findIndex(d => String(d.id) === String(deviceId))

@@ -1,8 +1,25 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { getAllHomes, addHome as apiAddHome, updateHome as apiUpdateHome, deleteHome as apiDeleteHome, getHomeShareInfo } from '@/services/api/homeApi'
-import { getRoomsByHome } from '@/services/api/roomApi'
-import { getAllDevices } from '@/services/api/deviceApi'
+import {
+  getAllHomes,
+  addHome as apiAddHome,
+  updateHome as apiUpdateHome,
+  deleteHome as apiDeleteHome,
+  getHomeShareInfo,
+  type ApiHome,
+  type ApiHomeListResponse,
+  type ApiHomeResponse,
+} from '@/services/api/homeApi'
+import {
+  getRoomsByHome,
+  type ApiRoom,
+  type ApiRoomListResponse,
+} from '@/services/api/roomApi'
+import {
+  getAllDevices,
+  type ApiDevice,
+  type ApiDeviceListResponse,
+} from '@/services/api/deviceApi'
 import { useAuthStore } from '@/stores/auth'
 
 export interface SharedUser {
@@ -31,6 +48,30 @@ interface UserSummary {
   name: string
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function extractHome(data: ApiHomeResponse): ApiHome {
+  const result = (data as { result?: ApiHome }).result
+  return result ?? data as ApiHome
+}
+
+function extractHomeList(data: ApiHomeListResponse): ApiHome[] {
+  if (Array.isArray(data)) return data
+  return (data as { result?: ApiHome[] }).result ?? []
+}
+
+function extractRoomList(data: ApiRoomListResponse): ApiRoom[] {
+  if (Array.isArray(data)) return data
+  return data?.result ?? []
+}
+
+function extractDeviceList(data: ApiDeviceListResponse): ApiDevice[] {
+  if (Array.isArray(data)) return data
+  return data.result
+}
+
 function cleanText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -49,6 +90,10 @@ function firstText(...values: unknown[]): string {
     if (text) return text
   }
   return ''
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
 }
 
 function userId(user: any): string {
@@ -99,47 +144,48 @@ function currentUserSummary(authStore: ReturnType<typeof useAuthStore>): UserSum
   }
 }
 
-function homeAttribution(home: any) {
-  const metadata = home.metadata ?? {}
+function homeAttribution(home: ApiHome | Home) {
+  const source = home as ApiHome
+  const metadata = source.metadata ?? {}
   const owner = summarizeUser(
-    home.owner ??
-    home.createdBy ??
-    home.creator ??
-    home.user ??
+    source.owner ??
+    source.createdBy ??
+    source.creator ??
+    source.user ??
     metadata.owner ??
     metadata.createdBy ??
     metadata.creator ??
     metadata.user
   )
   const sharedBy = summarizeUser(
-    home.sharedBy ??
-    home.sharedByUser ??
+    source.sharedBy ??
+    source.sharedByUser ??
     metadata.sharedBy ??
     metadata.sharedByUser
   )
 
   owner.name = firstText(
-    home.ownerName,
-    home.createdByName,
+    source.ownerName,
+    source.createdByName,
     metadata.ownerName,
     metadata.createdByName,
     owner.name,
   )
   owner.email = normalizeEmail(firstText(
-    home.ownerEmail,
-    home.createdByEmail,
+    source.ownerEmail,
+    source.createdByEmail,
     metadata.ownerEmail,
     metadata.createdByEmail,
     owner.email,
   ))
 
   sharedBy.name = firstText(
-    home.sharedByName,
+    source.sharedByName,
     metadata.sharedByName,
     sharedBy.name,
   )
   sharedBy.email = normalizeEmail(firstText(
-    home.sharedByEmail,
+    source.sharedByEmail,
     metadata.sharedByEmail,
     sharedBy.email,
   ))
@@ -147,7 +193,7 @@ function homeAttribution(home: any) {
   return { owner, sharedBy }
 }
 
-function sharedByFromHome(home: any, currentUser: UserSummary): UserSummary | null {
+function sharedByFromHome(home: ApiHome | Home, currentUser: UserSummary): UserSummary | null {
   const { owner, sharedBy } = homeAttribution(home)
 
   if ((sharedBy.name || sharedBy.email) && differentUser(sharedBy, currentUser)) {
@@ -159,29 +205,34 @@ function sharedByFromHome(home: any, currentUser: UserSummary): UserSummary | nu
   return null
 }
 
-function isExplicitOwner(home: any, currentUser: UserSummary): boolean | null {
+function isExplicitOwner(home: ApiHome | Home, currentUser: UserSummary): boolean | null {
   const { owner } = homeAttribution(home)
+  const source = home as ApiHome
 
   if ((owner.email || owner.id) && sameUser(owner, currentUser)) return true
   if ((owner.email || owner.id) && differentUser(owner, currentUser)) return false
 
-  const role = firstText(home.role, home.permission, home.access, home.metadata?.role).toLowerCase()
+  const role = firstText(source.role, source.permission, source.access, source.metadata?.role).toLowerCase()
   if (['owner', 'dueño', 'dueno', 'admin'].some(token => role.includes(token))) return true
   if (['shared', 'member', 'guest', 'invitado', 'miembro'].some(token => role.includes(token))) return false
 
   return null
 }
 
-function normalizeSharedUsers(users: any[]): SharedUser[] {
-  return users.map(user => ({
-    id: userId(user),
-    email: userEmail(user),
-    name: userName(user),
-    sharedAt: firstText(user?.sharedAt, user?.createdAt, user?.date),
-  }))
+function normalizeSharedUsers(users: unknown[]): SharedUser[] {
+  return users.map(user => {
+    const source = isRecord(user) ? user : {}
+
+    return {
+      id: userId(user),
+      email: userEmail(user),
+      name: userName(user),
+      sharedAt: firstText(source.sharedAt, source.createdAt, source.date),
+    }
+  })
 }
 
-function mapApiHome(home: any, currentUser: UserSummary): Home {
+function mapApiHome(home: ApiHome, currentUser: UserSummary): Home {
   const sharedBy = sharedByFromHome(home, currentUser)
   const explicitOwner = isExplicitOwner(home, currentUser)
 
@@ -190,7 +241,7 @@ function mapApiHome(home: any, currentUser: UserSummary): Home {
     sharedWith: Array.isArray(home.sharedWith) ? normalizeSharedUsers(home.sharedWith) : [],
     rooms: 0,
     devices: 0,
-    image: home.metadata?.image ?? null,
+    image: stringOrNull(home.metadata?.image),
     sharedByName: sharedBy?.name || sharedBy?.email || null,
     sharedByEmail: sharedBy?.email || null,
     isOwner: explicitOwner ?? (sharedBy ? false : null),
@@ -233,7 +284,7 @@ export const useHomesStore = defineStore('homes', () => {
         const authStore = useAuthStore()
         const currentUser = currentUserSummary(authStore)
         const data = await getAllHomes()
-        const mapped = data.map((h: any) => mapApiHome(h, currentUser))
+        const mapped = extractHomeList(data).map(h => mapApiHome(h, currentUser))
         homes.value = mapped
         homesLoaded.value = true
         shareInfoLoaded.value = false
@@ -264,11 +315,11 @@ export const useHomesStore = defineStore('homes', () => {
         const authStore = useAuthStore()
         const currentUser = currentUserSummary(authStore)
 
-        const promises = homes.value.map(async (h: any) => {
+        const promises = homes.value.map(async (h) => {
           try {
             const shareInfo = await getHomeShareInfo(h.id)
             const users = normalizeSharedUsers(shareInfo.users)
-            const idx = homes.value.findIndex((home: any) => home.id === h.id)
+            const idx = homes.value.findIndex(home => home.id === h.id)
             if (idx === -1) return
 
             const currentIsSharedUser = users.some(user => sameUser(summarizeUser(user), currentUser))
@@ -291,7 +342,7 @@ export const useHomesStore = defineStore('homes', () => {
               isOwner: currentIsSharedUser ? false : currentHome.isOwner ?? true,
             })
           } catch (err: any) {
-            const idx = homes.value.findIndex((home: any) => home.id === h.id)
+            const idx = homes.value.findIndex(home => home.id === h.id)
             if (idx !== -1 && err?.status === 403) {
               homes.value.splice(idx, 1, {
                 ...homes.value[idx],
@@ -327,13 +378,13 @@ export const useHomesStore = defineStore('homes', () => {
         ownerName: metadata.ownerName ?? authStore.displayName,
         ownerEmail: metadata.ownerEmail ?? ownerEmail,
       }
-      const created = await apiAddHome({ name, metadata: ownerMetadata })
+      const created = extractHome(await apiAddHome({ name, metadata: ownerMetadata }))
       homes.value.push({
         ...created,
         sharedWith: [],
         rooms: 0,
         devices: 0,
-        image: created.metadata?.image ?? null,
+        image: stringOrNull(created.metadata?.image),
         sharedByName: null,
         sharedByEmail: null,
         isOwner: true,
@@ -349,13 +400,13 @@ export const useHomesStore = defineStore('homes', () => {
   async function updateHome(homeId: string, { name, metadata = {} }: { name: string; metadata?: Record<string, unknown> }) {
     error.value = null
     try {
-      const updated = await apiUpdateHome(homeId, { name, metadata })
+      const updated = extractHome(await apiUpdateHome(homeId, { name, metadata }))
       const index = homes.value.findIndex(h => h.id === homeId)
       if (index !== -1) {
         homes.value.splice(index, 1, {
           ...homes.value[index],
           ...updated,
-          image: updated.metadata?.image ?? null,
+          image: stringOrNull(updated.metadata?.image),
         })
       }
       return updated
@@ -387,10 +438,10 @@ export const useHomesStore = defineStore('homes', () => {
     if (countsLoading.value) return
 
     countsLoading.value = true
-    let allDevices: any[] = []
+    let allDevices: ApiDevice[] = []
     try {
       const devData = await getAllDevices()
-      allDevices = Array.isArray(devData) ? devData : (devData?.result ?? [])
+      allDevices = extractDeviceList(devData)
     } catch {
       // non-blocking
     }
@@ -398,9 +449,9 @@ export const useHomesStore = defineStore('homes', () => {
     const countPromises = homes.value.map(async (home) => {
       try {
         const roomsData = await getRoomsByHome(home.id)
-        const roomsList = Array.isArray(roomsData) ? roomsData : (roomsData?.result ?? [])
-        const roomIds = new Set(roomsList.map((r: any) => String(r.id)))
-        const devicesCount = allDevices.filter((d: any) => {
+        const roomsList = extractRoomList(roomsData)
+        const roomIds = new Set(roomsList.map(r => String(r.id)))
+        const devicesCount = allDevices.filter((d) => {
           const roomId = d.room?.id
           return roomId && roomIds.has(String(roomId))
         }).length
