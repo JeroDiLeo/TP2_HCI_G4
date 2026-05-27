@@ -676,7 +676,7 @@
           type="button"
           class="dcc__action-btn"
           :disabled="isExecuting || !alarmCode || d.alarmMode === 'modo casa'"
-          @click="action('arm', ['armedStay', alarmCode])"
+          @click="action('armStay', [alarmCode])"
         >
           <v-icon icon="mdi-home-lock" size="16" /> Modo Casa
         </button>
@@ -684,7 +684,7 @@
           type="button"
           class="dcc__action-btn"
           :disabled="isExecuting || !alarmCode || d.alarmMode === 'modo regular'"
-          @click="action('arm', ['armedAway', alarmCode])"
+          @click="action('armAway', [alarmCode])"
         >
           <v-icon icon="mdi-shield-check" size="16" /> Modo Regular
         </button>
@@ -810,10 +810,13 @@ async function action(actionName: string, params: unknown[] = []) {
   if (isExecuting.value) return
   if (
     deviceTypesStore.loaded &&
+    supportedActionNames.value.size > 0 &&
     !supportedActionNames.value.has(actionName)
   ) {
-    devicesStore.setActionError(deviceId.value, 'Acción no disponible para este dispositivo')
-    return
+    console.warn(
+      `Acción '${actionName}' no listada para ${props.device.type}; se intenta igualmente. Disponibles:`,
+      [...supportedActionNames.value],
+    )
   }
 
   try {
